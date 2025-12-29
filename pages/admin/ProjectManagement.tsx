@@ -189,7 +189,17 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
 
   // Check if user is project leader
   const isProjectLeader = (project: Project): boolean => {
-    return project.leaderId === currentUserId;
+    const isLeader = project.leaderId === currentUserId;
+    // Debug logging
+    if (project.title === 'Assistive Tech' || project.leaderId) {
+      console.log('Project Leader Check:', {
+        projectTitle: project.title,
+        projectLeaderId: project.leaderId,
+        currentUserId: currentUserId,
+        isLeader: isLeader
+      });
+    }
+    return isLeader;
   };
 
   const handleCreateProject = async () => {
@@ -243,6 +253,15 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
 
   const handleEditProject = async () => {
     if (!selectedProject || !projectTitle.trim()) {
+      return;
+    }
+
+    // Only allow editing if user is President/VP/Admin (canManageProjects)
+    // Project leaders cannot edit project details, only manage members
+    if (!canManageProjects()) {
+      showAlert('error', 'Access Denied', 'Only President, Vice President, or Admin can edit project details.');
+      setShowEditModal(false);
+      setSelectedProject(null);
       return;
     }
 
@@ -300,6 +319,11 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
   };
 
   const openEditModal = (project: Project) => {
+    // Only allow editing if user is President/VP/Admin
+    if (!canManageProjects()) {
+      showAlert('error', 'Access Denied', 'Only President, Vice President, or Admin can edit project details.');
+      return;
+    }
     setSelectedProject(project);
     setProjectTitle(project.title);
     setProjectDescription(project.description);
@@ -447,12 +471,17 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   <div className="text-sm">
                     <span className="font-semibold text-gray-700">Members:</span>{' '}
                     <span className="text-gray-600">
-                      {project.members?.length || 0}
+                      {(project.members?.length || 0) + (project.chairs?.length || 0)}
                     </span>
+                    {project.chairs?.length > 0 && project.members?.length > 0 && (
+                      <span className="text-xs text-gray-500 ml-1">
+                        ({project.members.length} managed, {project.chairs.length} legacy)
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {project.approvalStatus === 'approved' && (canManageProjects() || isProjectLeader(project)) && (
+                {(project.approvalStatus === 'approved' || !project.approvalStatus) && isProjectLeader(project) && (
                   <button
                     onClick={() => openMemberModal(project)}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center justify-center gap-2 text-sm"
@@ -486,7 +515,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                     type="text"
                     value={projectTitle}
                     onChange={(e) => setProjectTitle(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
                     placeholder="e.g., Assistive Tech"
                   />
                 </div>
@@ -498,7 +528,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   <textarea
                     value={projectDescription}
                     onChange={(e) => setProjectDescription(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
                     rows={4}
                     placeholder="Project description..."
                   />
@@ -511,10 +542,11 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   <select
                     value={projectStatus}
                     onChange={(e) => setProjectStatus(e.target.value as 'current' | 'past')}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    style={{ color: '#111827', backgroundColor: '#ffffff', appearance: 'menulist' }}
                   >
-                    <option value="current">Current</option>
-                    <option value="past">Past</option>
+                    <option value="current" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Current</option>
+                    <option value="past" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Past</option>
                   </select>
                 </div>
 
@@ -526,11 +558,12 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                     <select
                       value={projectLeaderId}
                       onChange={(e) => setProjectLeaderId(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                      style={{ color: '#111827', backgroundColor: '#ffffff', appearance: 'menulist' }}
                     >
-                      <option value="">No Leader</option>
+                      <option value="" style={{ color: '#111827', backgroundColor: '#ffffff' }}>No Leader</option>
                       {allUsers.map((user) => (
-                        <option key={user.uid} value={user.uid}>
+                        <option key={user.uid} value={user.uid} style={{ color: '#111827', backgroundColor: '#ffffff' }}>
                           {user.name || user.email} ({user.role || 'member'})
                         </option>
                       ))}
@@ -581,7 +614,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                     type="text"
                     value={projectTitle}
                     onChange={(e) => setProjectTitle(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
                   />
                 </div>
 
@@ -592,7 +626,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   <textarea
                     value={projectDescription}
                     onChange={(e) => setProjectDescription(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
                     rows={4}
                   />
                 </div>
@@ -604,10 +639,11 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   <select
                     value={projectStatus}
                     onChange={(e) => setProjectStatus(e.target.value as 'current' | 'past')}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    style={{ color: '#111827', backgroundColor: '#ffffff', appearance: 'menulist' }}
                   >
-                    <option value="current">Current</option>
-                    <option value="past">Past</option>
+                    <option value="current" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Current</option>
+                    <option value="past" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Past</option>
                   </select>
                 </div>
 
@@ -619,11 +655,12 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                     <select
                       value={projectLeaderId}
                       onChange={(e) => setProjectLeaderId(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                      style={{ color: '#111827', backgroundColor: '#ffffff', appearance: 'menulist' }}
                     >
-                      <option value="">No Leader</option>
+                      <option value="" style={{ color: '#111827', backgroundColor: '#ffffff' }}>No Leader</option>
                       {allUsers.map((user) => (
-                        <option key={user.uid} value={user.uid}>
+                        <option key={user.uid} value={user.uid} style={{ color: '#111827', backgroundColor: '#ffffff' }}>
                           {user.name || user.email} ({user.role || 'member'})
                         </option>
                       ))}
@@ -723,20 +760,29 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
   const [selectedUserRole, setSelectedUserRole] = useState('');
   const [showConfirmRemoveMember, setShowConfirmRemoveMember] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<string | null>(null);
+  
+  // Project roles management
+  const [projectRoles, setProjectRoles] = useState<string[]>(
+    project.projectRoles || [
+      'Software Lead',
+      'Hardware Lead',
+      'Design Lead',
+      'Mechanical Lead',
+      'Electrical Lead',
+      'Firmware Lead',
+      'Designer',
+      'Developer',
+      'Engineer',
+      'Member',
+    ]
+  );
+  const [showManageRoles, setShowManageRoles] = useState(false);
+  const [newRoleName, setNewRoleName] = useState('');
+  const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
+  const [showConfirmDeleteRole, setShowConfirmDeleteRole] = useState(false);
 
-  // Project-specific role options
-  const projectRoleOptions = [
-    'Software Lead',
-    'Hardware Lead',
-    'Design Lead',
-    'Mechanical Lead',
-    'Electrical Lead',
-    'Firmware Lead',
-    'Designer',
-    'Developer',
-    'Engineer',
-    'Member',
-  ];
+  // Combine default roles with custom project roles
+  const projectRoleOptions = projectRoles;
 
   const [memberAlertModal, setMemberAlertModal] = useState<{
     isOpen: boolean;
@@ -849,6 +895,67 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
     user => !members.some(m => m.userId === user.uid)
   );
 
+  // Handle add project role
+  const handleAddProjectRole = async () => {
+    if (!newRoleName.trim()) {
+      showMemberAlert('warning', 'Validation Error', 'Please enter a role name.');
+      return;
+    }
+
+    if (projectRoles.includes(newRoleName.trim())) {
+      showMemberAlert('warning', 'Duplicate Role', 'This role already exists.');
+      return;
+    }
+
+    try {
+      const updatedRoles = [...projectRoles, newRoleName.trim()];
+      await updateDoc(doc(db, 'projects', project.id), {
+        projectRoles: updatedRoles,
+        updatedAt: new Date().toISOString(),
+      });
+
+      setProjectRoles(updatedRoles);
+      setNewRoleName('');
+      showMemberAlert('success', 'Success', 'Project role added successfully!');
+    } catch (error) {
+      console.error('Error adding project role:', error);
+      showMemberAlert('error', 'Error', 'Failed to add project role. Please try again.');
+    }
+  };
+
+  // Handle delete project role
+  const handleDeleteRoleClick = (role: string) => {
+    // Check if role is being used by any member
+    const isUsed = members.some(m => m.projectRole === role);
+    if (isUsed) {
+      showMemberAlert('warning', 'Cannot Delete', `Cannot delete role "${role}" because it is currently assigned to one or more members. Please reassign members before deleting.`);
+      return;
+    }
+
+    setRoleToDelete(role);
+    setShowConfirmDeleteRole(true);
+  };
+
+  const handleDeleteProjectRole = async () => {
+    if (!roleToDelete) return;
+
+    try {
+      const updatedRoles = projectRoles.filter(r => r !== roleToDelete);
+      await updateDoc(doc(db, 'projects', project.id), {
+        projectRoles: updatedRoles,
+        updatedAt: new Date().toISOString(),
+      });
+
+      setProjectRoles(updatedRoles);
+      setRoleToDelete(null);
+      setShowConfirmDeleteRole(false);
+      showMemberAlert('success', 'Success', 'Project role deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting project role:', error);
+      showMemberAlert('error', 'Error', 'Failed to delete project role. Please try again.');
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -865,16 +972,17 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
         </div>
 
         {(canManageProjects || isProjectLeader) && (
-          <div className="mb-6">
-            {!showAddMember ? (
-              <button
-                onClick={() => setShowAddMember(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
-              >
-                <UserPlus className="w-5 h-5" />
-                Add Member
-              </button>
-            ) : (
+          <div className="mb-6 space-y-3">
+            <div className="flex gap-2">
+              {!showAddMember ? (
+                <button
+                  onClick={() => setShowAddMember(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
+                >
+                  <UserPlus className="w-5 h-5" />
+                  Add Member
+                </button>
+              ) : (
               <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -883,11 +991,12 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
                   <select
                     value={selectedUserId}
                     onChange={(e) => setSelectedUserId(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    style={{ color: '#111827', backgroundColor: '#ffffff', appearance: 'menulist' }}
                   >
-                    <option value="">Choose a user...</option>
+                    <option value="" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Choose a user...</option>
                     {availableUsers.map((user) => (
-                      <option key={user.uid} value={user.uid}>
+                      <option key={user.uid} value={user.uid} style={{ color: '#111827', backgroundColor: '#ffffff' }}>
                         {user.name || user.email} ({user.role || 'member'})
                       </option>
                     ))}
@@ -901,10 +1010,11 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
                   <select
                     value={selectedUserRole}
                     onChange={(e) => setSelectedUserRole(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    style={{ color: '#111827', backgroundColor: '#ffffff', appearance: 'menulist' }}
                   >
                     {projectRoleOptions.map((role) => (
-                      <option key={role} value={role}>
+                      <option key={role} value={role} style={{ color: '#111827', backgroundColor: '#ffffff' }}>
                         {role}
                       </option>
                     ))}
@@ -928,6 +1038,85 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
                   >
                     Cancel
                   </button>
+                </div>
+              </div>
+              )}
+              
+              {/* Manage Project Roles Button */}
+              <button
+                onClick={() => setShowManageRoles(!showManageRoles)}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded flex items-center gap-2"
+              >
+                <Users className="w-5 h-5" />
+                Manage Roles
+              </button>
+            </div>
+            
+            {/* Project Roles Management Section */}
+            {showManageRoles && (
+              <div className="bg-gray-50 p-4 rounded-lg space-y-4 border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-semibold text-gray-800">Project Roles</h4>
+                </div>
+                
+                {/* Add New Role */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newRoleName}
+                    onChange={(e) => setNewRoleName(e.target.value)}
+                    placeholder="Enter new role name (e.g., Software Lead)"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handleAddProjectRole();
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={handleAddProjectRole}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+                  >
+                    Add Role
+                  </button>
+                </div>
+                
+                {/* List of Roles */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700">Current Roles:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {projectRoles.map((role) => {
+                      const isUsed = members.some(m => m.projectRole === role);
+                      return (
+                        <div
+                          key={role}
+                          className={`px-3 py-1 rounded-full text-sm flex items-center gap-2 ${
+                            isUsed
+                              ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                              : 'bg-gray-100 text-gray-800 border border-gray-300'
+                          }`}
+                        >
+                          <span>{role}</span>
+                          {isUsed && (
+                            <span className="text-xs text-blue-600">(in use)</span>
+                          )}
+                          {!isUsed && (
+                            <button
+                              onClick={() => handleDeleteRoleClick(role)}
+                              className="text-red-600 hover:text-red-800 text-xs font-semibold"
+                              title="Delete role"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {projectRoles.length === 0 && (
+                    <p className="text-sm text-gray-500 italic">No custom roles defined. Default roles will be used.</p>
+                  )}
                 </div>
               </div>
             )}
@@ -1015,6 +1204,21 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
           type={memberAlertModal.type}
           title={memberAlertModal.title}
           message={memberAlertModal.message}
+        />
+
+        {/* Confirm Delete Role Modal */}
+        <ConfirmModal
+          isOpen={showConfirmDeleteRole}
+          onClose={() => {
+            setShowConfirmDeleteRole(false);
+            setRoleToDelete(null);
+          }}
+          onConfirm={handleDeleteProjectRole}
+          title="Delete Project Role"
+          message={`Are you sure you want to delete the role "${roleToDelete}"? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          type="warning"
         />
       </div>
     </div>

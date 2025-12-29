@@ -55,8 +55,18 @@ export const deleteTeamMember = async (
 
 export const getProjects = async (): Promise<Project[]> => {
   const projectsRef = collection(db, 'projects');
-  const snapshot = await getDocs(query(projectsRef, orderBy('status'), orderBy('id')));
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
+  // Use single orderBy to avoid requiring composite index
+  // Client-side sorting will handle multiple criteria
+  const snapshot = await getDocs(query(projectsRef, orderBy('status')));
+  const projects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
+  
+  // Client-side sorting: status first (current before past), then by title
+  return projects.sort((a, b) => {
+    if (a.status !== b.status) {
+      return a.status === 'current' ? -1 : 1;
+    }
+    return (a.title || '').localeCompare(b.title || '');
+  });
 };
 
 export const getProject = async (id: string): Promise<Project | null> => {

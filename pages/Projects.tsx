@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { PROJECTS } from '../constants';
 import { Project } from '../types';
+import { getProjects } from '../firebase/services';
 import ProjectCard from '../components/ProjectCard';
 import ProjectDetailPage from './ProjectDetailPage';
 
@@ -18,6 +18,9 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
   };
 
   const [view, setView] = useState<'current' | 'past'>(() => getViewFromPath(currentPath));
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Update view when currentPath changes
   useEffect(() => {
@@ -30,7 +33,45 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
     });
   }, [currentPath]);
 
-  const filteredProjects = PROJECTS.filter(p => p.status === view);
+  // Load projects from Firebase
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const allProjects = await getProjects();
+        
+        console.log('Loaded projects from Firebase:', allProjects);
+        
+        // Filter: show approved projects or projects without approvalStatus (legacy projects)
+        // Also exclude deleted projects
+        const activeProjects = allProjects.filter(project => {
+          const isNotDeleted = !project.deletedAt || project.deletedAt === null;
+          const isApproved = !project.approvalStatus || project.approvalStatus === 'approved';
+          
+          return isNotDeleted && isApproved;
+        });
+        
+        console.log('Filtered active projects:', activeProjects);
+        
+        setProjects(activeProjects);
+      } catch (err: any) {
+        console.error('Error loading projects:', err);
+        console.error('Error details:', {
+          code: err?.code,
+          message: err?.message,
+          stack: err?.stack
+        });
+        setError(`Failed to load projects: ${err?.message || 'Unknown error'}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProjects();
+  }, []);
+
+  const filteredProjects = projects.filter(p => p.status === view);
 
   // Check if we're on a project detail page (e.g., /projects/solar-panel-optimization)
   const getProjectFromPath = (path: string): Project | null => {
@@ -52,10 +93,26 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
       if (projectSlug === 'current' || projectSlug === 'past') return null;
       
       // Find project by matching slug (title converted to slug)
-      const project = PROJECTS.find(p => {
+      // Only search in approved or legacy (no approvalStatus), non-deleted projects
+      const activeProjects = projects.filter(p => {
+        const isNotDeleted = !p.deletedAt || p.deletedAt === null;
+        const isApproved = !p.approvalStatus || p.approvalStatus === 'approved';
+        return isNotDeleted && isApproved;
+      });
+      
+      const project = activeProjects.find(p => {
         const slug = p.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
         return slug === projectSlug || p.id === projectSlug;
       });
+      
+      if (!project) {
+        console.log('Project not found for slug:', projectSlug);
+        console.log('Available projects:', activeProjects.map(p => ({
+          id: p.id,
+          title: p.title,
+          slug: p.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+        })));
+      }
       
       return project || null;
     } catch (error) {
@@ -64,8 +121,8 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
     }
   };
 
-  // Use useMemo to ensure projectDetail is recalculated when currentPath changes
-  const projectDetail = useMemo(() => getProjectFromPath(currentPath), [currentPath]);
+  // Use useMemo to ensure projectDetail is recalculated when currentPath or projects change
+  const projectDetail = useMemo(() => getProjectFromPath(currentPath), [currentPath, projects]);
 
   // Log when currentPath changes for debugging
   useEffect(() => {
@@ -118,9 +175,27 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
 
   // If we're on a project detail page, show the detail page
   // IMPORTANT: This conditional return must come AFTER all hooks to follow React Hooks rules
-  if (projectDetail) {
-    if (!onNavigate) {
-      console.error('onNavigate is required for project detail page');
+  // Wait for projects to load before showing detail page
+  if (!loading && currentPath && currentPath !== '/projects' && currentPath !== '/projects/' && !currentPath.includes('?view=')) {
+    if (projectDetail) {
+      if (!onNavigate) {
+        console.error('onNavigate is required for project detail page');
+        return (
+          <div 
+            className="min-h-screen bg-[#0f131a] flex items-center justify-center relative"
+            style={{
+              minHeight: 'calc(100vh + 140px)',
+              marginTop: '-140px',
+              paddingTop: '140px',
+            }}
+          >
+            <p className="text-white">Error: Navigation not available</p>
+          </div>
+        );
+      }
+      return <ProjectDetailPage project={projectDetail} onNavigate={onNavigate} />;
+    } else if (!loading && projects.length > 0) {
+      // Projects loaded but not found - show error
       return (
         <div 
           className="min-h-screen bg-[#0f131a] flex items-center justify-center relative"
@@ -130,11 +205,18 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
             paddingTop: '140px',
           }}
         >
-          <p className="text-white">Error: Navigation not available</p>
+          <div className="text-center">
+            <p className="text-white text-xl mb-4">Project not found</p>
+            <button
+              onClick={() => onNavigate?.('/projects')}
+              className="text-blue-400 hover:text-blue-300 underline"
+            >
+              Back to Projects
+            </button>
+          </div>
         </div>
       );
     }
-    return <ProjectDetailPage project={projectDetail} onNavigate={onNavigate} />;
   }
 
   return (
@@ -178,27 +260,43 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
           </button>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center text-gray-500 py-20 font-jost">
+            Loading projects...
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="text-center text-red-500 py-20 font-jost">
+            {error}
+          </div>
+        )}
+
         {/* Project List */}
-        <div className="space-y-12">
-            {filteredProjects.length > 0 ? (
-                filteredProjects.map((project) => (
-                    <ProjectCard 
-                      key={project.id} 
-                      project={project} 
-                      onImageClick={(project) => {
-                        if (onNavigate) {
-                          const slug = project.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                          onNavigate(`/projects/${slug}`);
-                        }
-                      }}
-                    />
-                ))
-            ) : (
-                <div className="text-center text-gray-500 py-20 font-jost">
-                    No projects found for this category.
-                </div>
-            )}
-        </div>
+        {!loading && !error && (
+          <div className="space-y-12">
+              {filteredProjects.length > 0 ? (
+                  filteredProjects.map((project) => (
+                      <ProjectCard 
+                        key={project.id} 
+                        project={project} 
+                        onImageClick={(project) => {
+                          if (onNavigate) {
+                            const slug = project.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                            onNavigate(`/projects/${slug}`);
+                          }
+                        }}
+                      />
+                  ))
+              ) : (
+                  <div className="text-center text-gray-500 py-20 font-jost">
+                      No projects found for this category.
+                  </div>
+              )}
+          </div>
+        )}
 
       </div>
     </div>

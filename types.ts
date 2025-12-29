@@ -23,6 +23,7 @@ export interface Project {
   leaderId?: string; // UID of project leader (assigned by President/VP)
   leaderEmail?: string; // Email of project leader
   members?: ProjectMember[]; // Project members assigned by leader
+  projectRoles?: string[]; // Custom project roles defined by leader (e.g., 'Software Lead', 'Hardware Lead')
   createdAt?: string;
   updatedAt?: string;
   // Project approval system
