@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, getDocs, updateDoc, doc, Timestamp, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
+import { Check, X } from 'lucide-react';
 import AlertModal from '../../components/AlertModal';
 import ConfirmModal from '../../components/ConfirmModal';
 
@@ -32,6 +33,15 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
   // Confirm reject modal states
   const [showConfirmReject, setShowConfirmReject] = useState(false);
   const [userToReject, setUserToReject] = useState<string | null>(null);
+  
+  // Confirm restore to pending modal states
+  const [showConfirmRestore, setShowConfirmRestore] = useState(false);
+  const [userToRestore, setUserToRestore] = useState<string | null>(null);
+  
+  // Check if user can restore rejected/approved users to pending (President/VP only)
+  const canRestoreToPending = (): boolean => {
+    return currentUserRole === 'President' || currentUserRole === 'Vice President';
+  };
   
   // Alert modal states
   const [alertModal, setAlertModal] = useState<{
@@ -151,6 +161,46 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
     }
   };
 
+  const handleRestoreClick = (uid: string) => {
+    if (!canRestoreToPending()) {
+      showAlert('error', 'Access Denied', 'Only President and Vice President can restore users to pending.');
+      return;
+    }
+    setUserToRestore(uid);
+    setShowConfirmRestore(true);
+  };
+
+  const handleRestoreToPending = async () => {
+    if (!userToRestore) return;
+
+    if (!canRestoreToPending()) {
+      showAlert('error', 'Access Denied', 'Only President and Vice President can restore users to pending.');
+      setShowConfirmRestore(false);
+      setUserToRestore(null);
+      return;
+    }
+
+    try {
+      const currentUser = auth.currentUser;
+      await updateDoc(doc(db, 'users', userToRestore), {
+        status: 'pending',
+        rejectedAt: null,
+        rejectedBy: null,
+        approvedAt: null,
+        approvedBy: null,
+        restoredAt: new Date(),
+        restoredBy: currentUser?.email || 'admin',
+      });
+      setUserToRestore(null);
+      setShowConfirmRestore(false);
+      await loadUsers();
+      showAlert('success', 'Success', 'User restored to pending status successfully!');
+    } catch (error) {
+      console.error('Error restoring user:', error);
+      showAlert('error', 'Error', 'An error occurred while restoring user. Please try again.');
+    }
+  };
+
 
   const currentUsers = activeTab === 'pending' ? pendingUsers : activeTab === 'approved' ? approvedUsers : rejectedUsers;
 
@@ -205,23 +255,23 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Major</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Major</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {currentUsers.map((user) => (
                   <tr key={user.uid}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.major}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.year}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center">{user.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{user.email}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{user.major}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{user.year}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                       {activeTab === 'pending' && (
                         <span className="inline-block px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-800">Pending</span>
                       )}
@@ -232,31 +282,56 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
                         <span className="inline-block px-2 py-1 text-xs rounded bg-red-100 text-red-800">Rejected</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
                       {user.createdAt?.toDate?.().toLocaleDateString() || 'N/A'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
                       {activeTab === 'pending' && (
-                        <div className="flex space-x-2">
+                        <div className="flex justify-center items-center space-x-3">
                           <button
                             onClick={() => handleApprove(user.uid)}
-                            className="text-green-600 hover:text-green-900"
+                            className="p-2 bg-green-500 hover:bg-green-600 text-white rounded transition-colors shadow-sm hover:shadow flex items-center justify-center"
+                            title="Approve"
                           >
-                            Approve
+                            <Check className="w-5 h-5" />
                           </button>
                           <button
                             onClick={() => handleRejectClick(user.uid)}
-                            className="text-red-600 hover:text-red-900"
+                            className="p-2 bg-red-500 hover:bg-red-600 text-white rounded transition-colors shadow-sm hover:shadow flex items-center justify-center"
+                            title="Reject"
                           >
-                            Reject
+                            <X className="w-5 h-5" />
                           </button>
                         </div>
                       )}
                       {activeTab === 'approved' && (
-                        <span className="text-green-600">✓ Approved</span>
+                        <div className="flex justify-center">
+                          {canRestoreToPending() && (
+                            <button
+                              onClick={() => handleRestoreClick(user.uid)}
+                              className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded transition-colors shadow-sm hover:shadow"
+                              title="Restore to Pending"
+                            >
+                              Restore to Pending
+                            </button>
+                          )}
+                          {!canRestoreToPending() && (
+                            <span className="text-green-600">✓ Approved</span>
+                          )}
+                        </div>
                       )}
                       {activeTab === 'rejected' && (
-                        <span className="text-red-600">✗ Rejected</span>
+                        <div className="flex justify-center">
+                          {canRestoreToPending() && (
+                            <button
+                              onClick={() => handleRestoreClick(user.uid)}
+                              className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded transition-colors shadow-sm hover:shadow"
+                              title="Restore to Pending"
+                            >
+                              Restore to Pending
+                            </button>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -288,6 +363,21 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
           confirmText="Reject"
           cancelText="Cancel"
           type="danger"
+        />
+
+        {/* Confirm Restore to Pending Modal */}
+        <ConfirmModal
+          isOpen={showConfirmRestore}
+          onClose={() => {
+            setShowConfirmRestore(false);
+            setUserToRestore(null);
+          }}
+          onConfirm={handleRestoreToPending}
+          title="Restore to Pending"
+          message="Are you sure you want to restore this user to pending status? They will need to be approved again."
+          confirmText="Restore to Pending"
+          cancelText="Cancel"
+          type="info"
         />
       </div>
     </div>
