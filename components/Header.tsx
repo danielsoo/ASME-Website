@@ -81,7 +81,7 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
         borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
         // Make the height responsive: smallest is 70px, biggest is 140px
         // Reduced height for more compact header
-        height: "clamp(70px, 9.5vw, 140px)",
+        height: "clamp(70px, 8vw, 125px)",
         // Make the header take up the full width of the screen
         width: "100%",
         // Use flexbox to arrange things inside
@@ -119,7 +119,7 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
           alt="ASME"
           style={{
             // Make height responsive: smallest is 40px, biggest is 113px
-            height: "clamp(40px, 7.47vw, 113px)",
+            height: "clamp(40px, 6vw, 113px)",
             // Keep the width proportional to height (auto = figure it out)
             width: "auto",
             // Make it a block element
@@ -151,7 +151,7 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
                 // Use the Jost font we set up earlier
                 fontFamily: "var(--font-jost, 'Jost', sans-serif)",
                 // Make font size responsive: smallest is 12px, biggest is 34.575px
-                fontSize: "clamp(12px, 2.29vw, 34.575px)",
+                fontSize: "clamp(12px, 1.8vw, 34.575px)",
                 // Make text normal weight (not bold)
                 fontWeight: 400,
                 // If this is the active page, underline it. Otherwise, no underline
