@@ -462,12 +462,23 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                 </p>
 
                 <div className="space-y-2 mb-4">
-                  {project.leaderEmail && (
-                    <div className="text-sm">
-                      <span className="font-semibold text-gray-700">Leader:</span>{' '}
-                      <span className="text-gray-600">{project.leaderEmail}</span>
-                    </div>
-                  )}
+                  {(project.leaderEmail || project.leaderId) && (() => {
+                    const leaderUser = project.leaderId 
+                      ? allUsers.find(u => u.uid === project.leaderId)
+                      : project.leaderEmail 
+                      ? allUsers.find(u => u.email === project.leaderEmail)
+                      : null;
+                    const leaderName = leaderUser?.name || project.leaderEmail?.split('@')[0] || 'Unknown';
+                    return (
+                      <div className="text-sm">
+                        <span className="font-semibold text-gray-700">Leader:</span>{' '}
+                        <span className="text-gray-600">{leaderName}</span>
+                        {project.leaderEmail && (
+                          <span className="text-xs text-gray-500 ml-1">({project.leaderEmail})</span>
+                        )}
+                      </div>
+                    );
+                  })()}
                   <div className="text-sm">
                     <span className="font-semibold text-gray-700">Members:</span>{' '}
                     <span className="text-gray-600">

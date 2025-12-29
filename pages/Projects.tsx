@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Project } from '../types';
 import { getProjects } from '../firebase/services';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/config';
 import ProjectCard from '../components/ProjectCard';
 import ProjectDetailPage from './ProjectDetailPage';
 
@@ -21,6 +23,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userNames, setUserNames] = useState<Record<string, string>>({}); // Map of userId/email to name
 
   // Update view when currentPath changes
   useEffect(() => {
@@ -32,6 +35,33 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
       return prevView;
     });
   }, [currentPath]);
+
+  // Load user names from Firebase
+  useEffect(() => {
+    const loadUserNames = async () => {
+      try {
+        const usersRef = collection(db, 'users');
+        const snapshot = await getDocs(usersRef);
+        const nameMap: Record<string, string> = {};
+        
+        snapshot.forEach((doc) => {
+          const userData = doc.data();
+          if (userData.email) {
+            nameMap[userData.email] = userData.name || userData.email.split('@')[0];
+            if (doc.id) {
+              nameMap[doc.id] = userData.name || userData.email.split('@')[0];
+            }
+          }
+        });
+        
+        setUserNames(nameMap);
+      } catch (err) {
+        console.error('Error loading user names:', err);
+      }
+    };
+
+    loadUserNames();
+  }, []);
 
   // Load projects from Firebase
   useEffect(() => {
@@ -193,7 +223,17 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
           </div>
         );
       }
-      return <ProjectDetailPage project={projectDetail} onNavigate={onNavigate} />;
+      // Add leader name to project for display
+    const projectDetailWithLeaderName = projectDetail ? {
+      ...projectDetail,
+      leaderName: projectDetail.leaderId 
+        ? userNames[projectDetail.leaderId] 
+        : projectDetail.leaderEmail 
+        ? userNames[projectDetail.leaderEmail] || projectDetail.leaderEmail.split('@')[0]
+        : undefined
+    } : null;
+    
+    return projectDetailWithLeaderName ? <ProjectDetailPage project={projectDetailWithLeaderName} onNavigate={onNavigate} /> : null;
     } else if (!loading && projects.length > 0) {
       // Projects loaded but not found - show error
       return (
@@ -278,10 +318,20 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
         {!loading && !error && (
           <div className="space-y-12">
               {filteredProjects.length > 0 ? (
-                  filteredProjects.map((project) => (
+                  filteredProjects.map((project) => {
+                    // Add leader name to project for display
+                    const projectWithLeaderName = {
+                      ...project,
+                      leaderName: project.leaderId 
+                        ? userNames[project.leaderId] 
+                        : project.leaderEmail 
+                        ? userNames[project.leaderEmail] || project.leaderEmail.split('@')[0]
+                        : undefined
+                    };
+                    return (
                       <ProjectCard 
                         key={project.id} 
-                        project={project} 
+                        project={projectWithLeaderName} 
                         onImageClick={(project) => {
                           if (onNavigate) {
                             const slug = project.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -289,7 +339,8 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
                           }
                         }}
                       />
-                  ))
+                    );
+                  })
               ) : (
                   <div className="text-center text-gray-500 py-20 font-jost">
                       No projects found for this category.

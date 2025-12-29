@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from '../../firebase/config';
+import { auth, db } from '../../firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
 import Login from './Login';
 import Dashboard from './Dashboard';
 import UserApproval from './UserApproval';
@@ -17,12 +18,30 @@ interface AdminProps {
 
 const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => {
   const [user, setUser] = useState<any>(null);
+  const [userName, setUserName] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     console.log('Admin component - currentPath:', currentPath); // Debug
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
+      
+      // Load user name from Firestore
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserName(userData.name || user.email?.split('@')[0] || 'User');
+          } else {
+            setUserName(user.email?.split('@')[0] || 'User');
+          }
+        } catch (error) {
+          console.error('Error loading user name:', error);
+          setUserName(user.email?.split('@')[0] || 'User');
+        }
+      }
+      
       setLoading(false);
     });
 
@@ -71,7 +90,7 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
         <h1 className="text-xl font-bold">Admin Panel</h1>
       </div>
       <div className="flex items-center gap-4">
-        <span className="text-sm">{user.email}</span>
+        <span className="text-sm font-medium">{userName || user.email?.split('@')[0] || 'User'}</span>
         <button
           onClick={() => onNavigate && onNavigate('/profile')}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"

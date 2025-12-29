@@ -29,6 +29,10 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
   
+  // Confirm reject modal states
+  const [showConfirmReject, setShowConfirmReject] = useState(false);
+  const [userToReject, setUserToReject] = useState<string | null>(null);
+  
   // Alert modal states
   const [alertModal, setAlertModal] = useState<{
     isOpen: boolean;
@@ -138,6 +142,7 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
         rejectedBy: currentUser?.email || 'admin',
       });
       setUserToReject(null);
+      setShowConfirmReject(false);
       await loadUsers();
       showAlert('success', 'Success', 'User rejected successfully!');
     } catch (error) {
@@ -240,7 +245,7 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
                             Approve
                           </button>
                           <button
-                            onClick={() => handleReject(user.uid)}
+                            onClick={() => handleRejectClick(user.uid)}
                             className="text-red-600 hover:text-red-900"
                           >
                             Reject

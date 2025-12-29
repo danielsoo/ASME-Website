@@ -67,22 +67,55 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNaviga
           {/* Description */}
           <p className="text-gray-700 font-jost mb-8 leading-relaxed">
             {project.description}
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
           </p>
+
+          {/* Project Leader Section */}
+          {(project.leaderEmail || project.leaderId) && (
+            <div className="mb-6 pb-6 border-b border-gray-300">
+              <p className="text-sm text-gray-600 font-jost mb-3 uppercase tracking-wide font-semibold">Project Leader</p>
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 rounded-full bg-gray-400 flex-shrink-0"></div>
+                <div className="flex flex-col">
+                  <span className="text-sm text-gray-800 font-medium font-jost">
+                    {project.leaderName || project.leaderEmail?.split('@')[0] || 'Project Leader'}
+                  </span>
+                  <span className="text-xs text-gray-600 font-jost">Project Leader</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Team Members and Learn More Button */}
           <div className="mb-8">
-            <div className="grid grid-cols-3 gap-4 mb-4">
-              {project.chairs.map((chair, index) => (
-                <div key={index} className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-full bg-gray-400 flex-shrink-0"></div>
-                  <div className="flex flex-col">
-                    <span className="text-sm text-gray-800 font-medium font-jost">{chair.name}</span>
-                    <span className="text-xs text-gray-600 font-jost">{chair.role}</span>
+            {(project.chairs && project.chairs.length > 0) || (project.members && project.members.length > 0) ? (
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                {/* Display members from members array (Firebase managed) */}
+                {project.members?.map((member, index) => (
+                  <div key={`member-${member.userId}-${index}`} className="flex items-center space-x-3">
+                    <div className="w-12 h-12 rounded-full bg-gray-400 flex-shrink-0"></div>
+                    <div className="flex flex-col">
+                      <span className="text-sm text-gray-800 font-medium font-jost">{member.userName}</span>
+                      <span className="text-xs text-gray-600 font-jost">{member.projectRole}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+                
+                {/* Display chairs (legacy data) */}
+                {project.chairs?.map((chair, index) => (
+                  <div key={`chair-${index}`} className="flex items-center space-x-3">
+                    <div className="w-12 h-12 rounded-full bg-gray-400 flex-shrink-0"></div>
+                    <div className="flex flex-col">
+                      <span className="text-sm text-gray-800 font-medium font-jost">{chair.name}</span>
+                      <span className="text-xs text-gray-600 font-jost">{chair.role}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : !(project.leaderEmail || project.leaderId) ? (
+              <div className="text-sm text-gray-500 font-jost italic mb-4">
+                No members assigned yet.
+              </div>
+            ) : null}
             <div className="flex justify-end">
               <button className="px-6 py-2 bg-[#8B0000] text-white font-jost font-medium rounded hover:bg-[#700000] transition-colors">
                 Learn More

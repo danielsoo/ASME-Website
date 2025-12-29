@@ -29,26 +29,61 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavi
           {project.description}
         </p>
 
-        {/* Members Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {project.chairs.map((chair, index) => (
-            <div key={index} className="flex items-center space-x-3">
+        {/* Project Leader Section */}
+        {(project.leaderEmail || project.leaderId) && (
+          <div className="mb-6 pb-4 border-b border-gray-700">
+            <p className="text-xs text-gray-400 font-jost mb-3 uppercase tracking-wide">Project Leader</p>
+            <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-full bg-slate-600 flex-shrink-0"></div>
               <div className="flex flex-col">
-                <span className="text-xs text-white font-medium">{chair.name}</span>
-                <span className="text-[10px] text-blue-300">{chair.role}</span>
+                <span className="text-xs text-white font-medium">
+                  {project.leaderName || project.leaderEmail?.split('@')[0] || 'Project Leader'}
+                </span>
+                <span className="text-[10px] text-blue-300">Project Leader</span>
               </div>
             </div>
-          ))}
-           <div className="flex items-center justify-end w-full col-span-1 md:col-span-2 lg:col-span-3">
-               <button 
-                 onClick={() => onImageClick?.(project)}
-                 className="text-sm text-blue-300 hover:text-white underline decoration-blue-300/50 hover:decoration-white transition-all cursor-pointer"
-               >
-                 Load more...
-               </button>
-           </div>
-        </div>
+          </div>
+        )}
+
+        {/* Members Grid */}
+        {(project.chairs && project.chairs.length > 0) || (project.members && project.members.length > 0) ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Display members from members array (Firebase managed) */}
+            {project.members?.map((member, index) => (
+              <div key={`member-${member.userId}-${index}`} className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-full bg-slate-600 flex-shrink-0"></div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-white font-medium">{member.userName}</span>
+                  <span className="text-[10px] text-blue-300">{member.projectRole}</span>
+                </div>
+              </div>
+            ))}
+            
+            {/* Display chairs (legacy data) */}
+            {project.chairs?.map((chair, index) => (
+              <div key={`chair-${index}`} className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-full bg-slate-600 flex-shrink-0"></div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-white font-medium">{chair.name}</span>
+                  <span className="text-[10px] text-blue-300">{chair.role}</span>
+                </div>
+              </div>
+            ))}
+            
+            <div className="flex items-center justify-end w-full col-span-1 md:col-span-2 lg:col-span-3">
+              <button 
+                onClick={() => onImageClick?.(project)}
+                className="text-sm text-blue-300 hover:text-white underline decoration-blue-300/50 hover:decoration-white transition-all cursor-pointer"
+              >
+                Load more...
+              </button>
+            </div>
+          </div>
+        ) : !(project.leaderEmail || project.leaderId) ? (
+          <div className="text-sm text-gray-400 font-jost italic">
+            No members assigned yet.
+          </div>
+        ) : null}
       </div>
     </div>
   );

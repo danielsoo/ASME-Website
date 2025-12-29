@@ -22,6 +22,7 @@ export interface Project {
   // Project-specific roles (separate from main user role)
   leaderId?: string; // UID of project leader (assigned by President/VP)
   leaderEmail?: string; // Email of project leader
+  leaderName?: string; // Name of project leader (for display)
   members?: ProjectMember[]; // Project members assigned by leader
   projectRoles?: string[]; // Custom project roles defined by leader (e.g., 'Software Lead', 'Hardware Lead')
   createdAt?: string;
