@@ -260,6 +260,9 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Major</th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  {activeTab === 'pending' && (
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Email Verified</th>
+                  )}
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -282,6 +285,21 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
                         <span className="inline-block px-2 py-1 text-xs rounded bg-red-100 text-red-800">Rejected</span>
                       )}
                     </td>
+                    {activeTab === 'pending' && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                        {user.emailVerified ? (
+                          <span className="inline-flex items-center px-2 py-1 text-xs rounded bg-green-100 text-green-800">
+                            <Check className="w-3 h-3 mr-1" />
+                            Verified
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 text-xs rounded bg-red-100 text-red-800">
+                            <X className="w-3 h-3 mr-1" />
+                            Not Verified
+                          </span>
+                        )}
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
                       {user.createdAt?.toDate?.().toLocaleDateString() || 'N/A'}
                     </td>
