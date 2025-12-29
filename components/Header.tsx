@@ -3,7 +3,7 @@ import { signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { NAV_LINKS } from '../constants';
-import { Settings, LogOut } from 'lucide-react';
+import { Settings, LogOut, Menu, X } from 'lucide-react';
 
 interface HeaderProps {
   currentPath: string;
@@ -13,6 +13,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
   const [userData, setUserData] = useState<any>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   
   // Check if a menu item is the current page (so we can underline it)
   // If the link is "/" (home), check if we're exactly on the home page
@@ -42,11 +43,29 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      setMenuOpen(false);
       onNavigate('/');
     } catch (error) {
       console.error('Logout error:', error);
     }
   };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (menuOpen && !target.closest('[data-menu-container]')) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [menuOpen]);
 
   return (
     // The main header container - this is the whole header bar at the top of the page
@@ -158,75 +177,173 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
           );
         })}
 
-        {/* User Menu - Display based on login status */}
-        {user ? (
-          <div style={{ display: "flex", alignItems: "center", gap: "clamp(12px, 2vw, 24px)", flexShrink: 0 }}>
-            {/* Settings Button */}
-            <button
-              onClick={() => onNavigate('/profile')}
-              style={{
-                color: "#FFF",
-                fontFamily: "var(--font-jost, 'Jost', sans-serif)",
-                fontSize: "clamp(12px, 2.29vw, 34.575px)",
-                fontWeight: 400,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 0,
-                whiteSpace: "nowrap",
-                display: "flex",
-                alignItems: "center",
-                gap: "clamp(4px, 0.5vw, 8px)",
-              }}
-              title="Profile Settings"
-            >
-              <Settings style={{ width: "clamp(16px, 2vw, 20px)", height: "clamp(16px, 2vw, 20px)" }} />
-              <span>{userData?.name || user.email?.split('@')[0] || 'Profile'}</span>
-            </button>
-            
-            {/* Logout Button */}
-            <button
-              onClick={handleLogout}
-              style={{
-                color: "#FFF",
-                fontFamily: "var(--font-jost, 'Jost', sans-serif)",
-                fontSize: "clamp(12px, 2.29vw, 34.575px)",
-                fontWeight: 400,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 0,
-                whiteSpace: "nowrap",
-                display: "flex",
-                alignItems: "center",
-                gap: "clamp(4px, 0.5vw, 8px)",
-              }}
-              title="Logout"
-            >
-              <LogOut style={{ width: "clamp(16px, 2vw, 20px)", height: "clamp(16px, 2vw, 20px)" }} />
-              <span>Logout</span>
-            </button>
-          </div>
-        ) : (
-          /* Login Button - When not logged in */
+        {/* User Menu - Hamburger Menu */}
+        <div style={{ position: "relative", flexShrink: 0 }} data-menu-container>
+          {/* Hamburger Menu Button */}
           <button
-            onClick={() => onNavigate('/login')}
+            onClick={() => setMenuOpen(!menuOpen)}
             style={{
               color: "#FFF",
-              fontFamily: "var(--font-jost, 'Jost', sans-serif)",
-              fontSize: "clamp(12px, 2.29vw, 34.575px)",
-              fontWeight: 400,
               background: "none",
               border: "none",
               cursor: "pointer",
-              padding: 0,
-              whiteSpace: "nowrap",
-              flexShrink: 0,
+              padding: "clamp(8px, 1vw, 16px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
+            title="Menu"
           >
-            Login
+            {menuOpen ? (
+              <X style={{ width: "clamp(24px, 2.29vw, 40px)", height: "clamp(24px, 2.29vw, 40px)" }} />
+            ) : (
+              <Menu style={{ width: "clamp(24px, 2.29vw, 40px)", height: "clamp(24px, 2.29vw, 40px)" }} />
+            )}
           </button>
-        )}
+
+          {/* Dropdown Menu */}
+          {menuOpen && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                right: 0,
+                marginTop: "clamp(8px, 1vw, 16px)",
+                backgroundColor: "rgba(0, 0, 0, 0.95)",
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                borderRadius: "clamp(4px, 0.5vw, 8px)",
+                padding: "clamp(8px, 1vw, 16px)",
+                minWidth: "clamp(150px, 20vw, 250px)",
+                zIndex: 1000,
+                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)",
+              }}
+            >
+              {user ? (
+                <>
+                  {/* User Name Display */}
+                  <div
+                    style={{
+                      padding: "clamp(8px, 1vw, 14px)",
+                      borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
+                      marginBottom: "clamp(4px, 0.5vw, 8px)",
+                    }}
+                  >
+                    <span
+                      style={{
+                        color: "#FFF",
+                        fontFamily: "var(--font-jost, 'Jost', sans-serif)",
+                        fontSize: "clamp(14px, 1.5vw, 20px)",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {userData?.name || user.email?.split('@')[0] || 'User'}
+                    </span>
+                  </div>
+
+                  {/* Profile/Settings Button */}
+                  <button
+                    onClick={() => {
+                      onNavigate('/profile');
+                      setMenuOpen(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      color: "#FFF",
+                      fontFamily: "var(--font-jost, 'Jost', sans-serif)",
+                      fontSize: "clamp(12px, 1.5vw, 18px)",
+                      fontWeight: 400,
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "clamp(8px, 1vw, 14px)",
+                      textAlign: "left",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "clamp(8px, 1vw, 14px)",
+                      borderRadius: "clamp(4px, 0.5vw, 6px)",
+                      transition: "background-color 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                  >
+                    <Settings style={{ width: "clamp(16px, 1.5vw, 24px)", height: "clamp(16px, 1.5vw, 24px)" }} />
+                    <span>Settings</span>
+                  </button>
+
+                  {/* Logout Button */}
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setMenuOpen(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      color: "#FFF",
+                      fontFamily: "var(--font-jost, 'Jost', sans-serif)",
+                      fontSize: "clamp(12px, 1.5vw, 18px)",
+                      fontWeight: 400,
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "clamp(8px, 1vw, 14px)",
+                      textAlign: "left",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "clamp(8px, 1vw, 14px)",
+                      borderRadius: "clamp(4px, 0.5vw, 6px)",
+                      transition: "background-color 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                  >
+                    <LogOut style={{ width: "clamp(16px, 1.5vw, 24px)", height: "clamp(16px, 1.5vw, 24px)" }} />
+                    <span>Logout</span>
+                  </button>
+                </>
+              ) : (
+                /* Login Button - When not logged in */
+                <button
+                  onClick={() => {
+                    onNavigate('/login');
+                    setMenuOpen(false);
+                  }}
+                  style={{
+                    width: "100%",
+                    color: "#FFF",
+                    fontFamily: "var(--font-jost, 'Jost', sans-serif)",
+                    fontSize: "clamp(12px, 1.5vw, 18px)",
+                    fontWeight: 400,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "clamp(8px, 1vw, 14px)",
+                    textAlign: "left",
+                    borderRadius: "clamp(4px, 0.5vw, 6px)",
+                    transition: "background-color 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }}
+                >
+                  Login
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
