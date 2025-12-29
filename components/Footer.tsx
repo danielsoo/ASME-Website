@@ -102,11 +102,11 @@ const Footer: React.FC = () => {
             </a>
             {/* GroupMe - TODO: Add link URL when found */}
             <a href="#" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center">
-              <img src="/Linkin.svg" alt="LinkedIn" width={24} height={24} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              <img src="/groupmeLogo.png" alt="GroupMe" width={24} height={24} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
             </a>
             {/* Slack - TODO: Add link URL when found */}
             <a href="#" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center">
-              <img src="/youtube.svg" alt="YouTube" width={24} height={24} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              <img src="/slackLogo.png" alt="Slack" width={24} height={24} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
             </a>
           </div>
     </footer>
