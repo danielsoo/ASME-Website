@@ -13,9 +13,9 @@ const Home: React.FC = () => {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "flex-start",
-          paddingTop: "5vw",
-          paddingLeft: "clamp(16px, 4.23vw, 64px)",
-          paddingRight: "clamp(16px, 4.23vw, 64px)",
+          paddingTop: "0vw",
+          paddingLeft: "clamp(16px, 5.23vw, 80px)",
+          paddingRight: "clamp(16px, 5.23vw, 80px)",
           paddingBottom: "clamp(120px, 8vw, 200px)",
           position: "relative",
         }}
@@ -23,27 +23,14 @@ const Home: React.FC = () => {
         <div
           style={{
             display: "flex",
-            width: "clamp(300px, 100vw, 1512px)",
             flexDirection: "column",
             justifyContent: "center",
             alignItems: "center",
-            minHeight: "clamp(200px, 37.57vw, 568px)",
             aspectRatio: "1512 / 568",
             textAlign: "center",
-            marginTop: "auto",
-            marginBottom: "auto",
+            margin: "auto",
           }}
         >
-          <h1
-            style={{
-              fontSize: responsiveClamp(64, 32, 96),
-              fontWeight: "bold",
-              marginBottom: responsiveClamp(24, 12, 36),
-              color: "#ffffff",
-            }}
-          >
-            WE ARE
-          </h1>
           <h2
             style={{
               fontSize: responsiveClamp(48, 24, 72),
@@ -52,8 +39,18 @@ const Home: React.FC = () => {
               color: "#ffffff",
             }}
           >
-            THE AMERICAN SOCIETY OF MECHANICAL ENGINEERS
+            WE ARE
           </h2>
+          <h1
+            style={{
+              fontSize: responsiveClamp(64, 32, 96),
+              fontWeight: "bold",
+              marginBottom: responsiveClamp(24, 12, 36),
+              color: "#ffffff",
+            }}
+          >
+            THE AMERICAN SOCIETY OF MECHANICAL ENGINEERS
+          </h1>
           <p
             style={{
               fontSize: responsiveClamp(36, 18, 54),
@@ -70,7 +67,7 @@ const Home: React.FC = () => {
       <div 
         className="relative z-20 container mx-auto px-4 mb-24"
         style={{
-          marginTop: "clamp(-80px, -6vw, -96px)",
+          marginTop: "clamp(-90px, -10vw, -96px)",
         }}
       >
         <div className="flex flex-col items-center">

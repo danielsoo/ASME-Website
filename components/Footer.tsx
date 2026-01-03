@@ -91,8 +91,9 @@ const Footer: React.FC = () => {
 
         {/* Right Column - Address */}
         <div className="font-jost font-normal text-right">
+          <p>Office:</p>
           <p>125 Hammond</p>
-          <p>State College, PA</p>
+          <p>University Park, PA 16802</p>
         </div>
       </div>
       <div className="flex gap-1.5">

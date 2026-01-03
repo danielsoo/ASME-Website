@@ -74,7 +74,23 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                   alt="Our General Body" 
                 />
               </div>
-              <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">Our General Body</h2>
+
+            </div>
+
+            {/* Right Column - Our Activities */}
+            <div className="w-full md:w-1/2">
+              <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">Our Activities</h2>
+              <ul className="space-y-4 font-jost">
+                <li className="text-gray-800 text-lg">• THON Fundraisers</li>
+                <li className="text-gray-800 text-lg">• Design Team Meetings</li>
+                <li className="text-gray-800 text-lg">• General Body Meetings</li>
+                <li className="text-gray-800 text-lg">• Project Meetings</li>
+                <li className="text-gray-800 text-lg">• Socials</li>
+              </ul>
+            </div>
+          </div>
+          <div>
+                          <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">Our General Body</h2>
               <div className="space-y-4">
                 <p className="text-gray-800 leading-relaxed font-jost">
                   Established in 1880, the American Society of Mechanical Engineers (ASME) is an international organization comprised of over <span className="text-red-600 font-bold">85,000 members</span> from over 100 countries.
@@ -107,19 +123,6 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                   </ul>
                 </div>
               </div>
-            </div>
-
-            {/* Right Column - Our Activities */}
-            <div className="w-full md:w-1/2">
-              <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">Our Activities</h2>
-              <ul className="space-y-4 font-jost">
-                <li className="text-gray-800 text-lg">• THON Fundraisers</li>
-                <li className="text-gray-800 text-lg">• Design Team Meetings</li>
-                <li className="text-gray-800 text-lg">• General Body Meetings</li>
-                <li className="text-gray-800 text-lg">• Project Meetings</li>
-                <li className="text-gray-800 text-lg">• Socials</li>
-              </ul>
-            </div>
           </div>
         </div>
       </div>
@@ -270,7 +273,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
   // Regular About page view
   return (
     <div 
-      className="min-h-screen bg-[#0f131a] pb-20 relative"
+      className="min-h-screen bg-white pb-20 relative"
       style={{
         minHeight: 'calc(100vh + 140px)',
         marginTop: '-140px',
@@ -278,25 +281,20 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
       }}
     >
         
-      {/* Hero / About Us Text - Clickable to scroll to About Us section */}
+      {/* Hero / About Us Text */}
       <div className="container mx-auto px-4 py-16">
          <div className="flex flex-col md:flex-row gap-12 items-start">
-             <div 
-               className="w-full md:w-1/3 h-64 bg-slate-700 rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-               onClick={scrollToAboutUs}
-             >
+             <div className="w-full md:w-1/3 h-64 bg-slate-700 rounded-lg">
                  {/* Placeholder for About Image */}
                  <img src="https://picsum.photos/seed/about/800/600" className="w-full h-full object-cover rounded-lg opacity-80" alt="About Us" />
              </div>
-             <div 
-               className="w-full md:w-2/3 text-white font-jost cursor-pointer"
-               onClick={scrollToAboutUs}
-             >
-                 <h2 className="text-3xl font-bold mb-6 hover:underline">About Us</h2>
-                 <p className="text-gray-300 leading-relaxed mb-4">
+             
+             <div className="w-full md:w-2/3 text-white font-jost">
+                 <h2 className="text-[#1E2B48] text-3xl font-bold mb-6">About Us</h2>
+                 <p className="text-gray-800 leading-relaxed mb-4">
                      Established in 1880, the American Society of Mechanical Engineers (ASME) is an international organization comprised of over <span className="text-asme-red font-bold">85,000 members</span> from over 100 countries.
                  </p>
-                 <p className="text-gray-300 leading-relaxed">
+                 <p className="text-gray-800 leading-relaxed">
                      ASME serves both mechanical and interdisciplinary engineers in technical standardization, experimental procedures, and development codes to make the engineering landscape safer overall. To learn more about the international ASME organization visit this <a href="#" className="underline">link</a>. WE ARE! the Penn State's chapter of ASME and are looking forward to providing unique opportunities for Mechanical Engineers at PSU.
                  </p>
              </div>
@@ -304,10 +302,10 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
       </div>
 
       {/* Our Teams Section */}
-      <div className="container mx-auto px-4 py-12">
-        <h2 className="text-3xl font-jost font-bold text-white text-center mb-12">Our Teams</h2>
+      <div className="mx-auto px-4 py-16 bg-[#e5e7eb]">
+        <h2 className="text-3xl font-jost font-bold text-[#1E2B48] text-center mb-12">Our Teams</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+        <div className="container grid grid-cols-1 gap-8 mb-16 items-center">
             <div 
               className="relative group cursor-pointer overflow-hidden rounded-xl h-64"
               onClick={scrollToAboutUs}
@@ -326,44 +324,6 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                     <h3 className="text-3xl font-bold font-jost text-white">Design Team</h3>
                 </div>
             </div>
-        </div>
-      </div>
-
-      {/* Team Tabs */}
-      <div className="bg-gray-100 py-4 px-4 shadow-md">
-          <div className="container mx-auto flex justify-center space-x-4">
-              <button 
-                onClick={() => setActiveTab('general')}
-                className={`px-8 py-2 rounded font-jost font-medium transition ${activeTab === 'general' ? 'bg-[#3b4c6b] text-white' : 'text-gray-600 hover:bg-gray-200'}`}
-              >
-                  General Body
-              </button>
-              <button 
-                onClick={() => setActiveTab('design')}
-                className={`px-8 py-2 rounded font-jost font-medium transition ${activeTab === 'design' ? 'bg-[#3b4c6b] text-white' : 'text-gray-600 hover:bg-gray-200'}`}
-              >
-                  Design Team
-              </button>
-          </div>
-      </div>
-
-      {/* Executive Board / Design Team Grid */}
-      <div className="bg-[#e5e7eb] py-16"> {/* Light background container as per mockup */}
-        <div className="container mx-auto px-4">
-             <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-2">
-                 {activeTab === 'general' ? 'Executive Board' : 'Design Team'}
-             </h2>
-             
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                 {/* Rendering specific members based on tab */}
-                 {loading ? (
-                   <div className="col-span-2 text-center py-8">Loading...</div>
-                 ) : (
-                   (activeTab === 'general' ? execBoard : designTeam).map((member) => (
-                     <TeamCard key={member.id} member={member} />
-                   ))
-                 )}
-             </div>
         </div>
       </div>
 
