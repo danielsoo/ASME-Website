@@ -67,7 +67,7 @@ const App: React.FC = () => {
         return <Projects currentPath={currentPath} onNavigate={navigate} />;
       }
       
-      // Check if path starts with /admin (admin pages don't show header/footer)
+      // Check if path starts with /admin
       if (currentPath && currentPath.startsWith('/admin')) {
         return <Admin currentPath={currentPath} onNavigate={navigate} />;
       }
@@ -98,23 +98,18 @@ const App: React.FC = () => {
     }
   };
 
-  // Don't show header/footer on admin pages
-  const isAdminPage = currentPath && currentPath.startsWith('/admin');
-
   return (
     <div className="flex flex-col min-h-screen font-sans" style={{ background: 'transparent' }}>
       {/* Notification Banner - shows at top when user is logged in */}
       {user && <NotificationBanner />}
       
-      {!isAdminPage && (
-        <Header currentPath={currentPath} onNavigate={navigate} user={user} />
-      )}
+      <Header currentPath={currentPath} onNavigate={navigate} user={user} />
       
       <main className="flex-grow">
         {renderPage()}
       </main>
 
-      {!isAdminPage && <Footer />}
+      <Footer />
     </div>
   );
 };

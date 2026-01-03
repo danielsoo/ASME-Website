@@ -177,6 +177,40 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
           );
         })}
 
+        {/* Admin Menu Item - Only show if user is admin or President */}
+        {(userData?.role === 'admin' || userData?.role === 'President') && (
+          <button
+            onClick={() => onNavigate('/admin')}
+            style={{
+              // Make text white
+              color: "#FFF",
+              // Use the Jost font we set up earlier
+              fontFamily: "var(--font-jost, 'Jost', sans-serif)",
+              // Make font size responsive: smallest is 12px, biggest is 34.575px
+              fontSize: "clamp(12px, 2.29vw, 34.575px)",
+              // Make text normal weight (not bold)
+              fontWeight: 400,
+              // If this is the active page, underline it. Otherwise, no underline
+              textDecoration: isActive('/admin') ? "underline" : "none",
+              // Make underline white if it's active, invisible if not
+              textDecorationColor: isActive('/admin') ? "#FFF" : "transparent",
+              // Make the underline a little bit below the text (responsive)
+              textUnderlineOffset: "clamp(2px, 0.26vw, 4px)",
+              // Make the underline thickness responsive
+              textDecorationThickness: "clamp(1px, 0.13vw, 2px)",
+              // Don't let the text wrap to a new line - keep it on one line
+              whiteSpace: "nowrap",
+              // Remove button default styles
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            ADMIN
+          </button>
+        )}
+
         {/* User Menu - Hamburger Menu */}
         <div style={{ position: "relative", flexShrink: 0 }} data-menu-container>
           {/* Hamburger Menu Button */}
