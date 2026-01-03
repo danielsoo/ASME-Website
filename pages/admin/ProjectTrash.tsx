@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, updateDoc, doc, getDoc, deleteDoc, addDoc } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc, getDoc, deleteDoc, addDoc, onSnapshot, query } from 'firebase/firestore';
 import { db, auth } from '../../firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Project } from '../../types';
@@ -16,6 +16,7 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [deletionRequestsCount, setDeletionRequestsCount] = useState(0);
 
   // Alert modal states
   const [alertModal, setAlertModal] = useState<{
@@ -63,6 +64,27 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
           console.error('Error fetching current user role:', error);
         }
       }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Listen for deletion requests count
+  useEffect(() => {
+    const projectsQuery = query(collection(db, 'projects'));
+    const unsubscribe = onSnapshot(projectsQuery, (snapshot) => {
+      let count = 0;
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.permanentDeleteRequest) {
+          const request = data.permanentDeleteRequest;
+          // Count if not fully approved (either leader or exec approval is missing)
+          if (!request.approvedByLeader || !request.approvedByExec) {
+            count++;
+          }
+        }
+      });
+      setDeletionRequestsCount(count);
     });
 
     return () => unsubscribe();
@@ -580,8 +602,15 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">Project Trash</h1>
+          <div className="relative">
+            <h1 className="text-3xl font-bold text-gray-800 inline-block">
+              Project Trash
+              {deletionRequestsCount > 0 && (
+                <span className="ml-3 bg-red-500 text-white rounded-full min-w-[24px] h-6 inline-flex items-center justify-center px-2 text-sm font-bold align-middle">
+                  {deletionRequestsCount > 99 ? '99+' : deletionRequestsCount}
+                </span>
+              )}
+            </h1>
             <p className="text-gray-600 mt-2">Restore or permanently delete deleted projects</p>
           </div>
           <div className="flex gap-3">

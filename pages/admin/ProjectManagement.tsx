@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, query, where, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../../firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Project, ProjectMember } from '../../types';
@@ -21,6 +21,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [pendingProjectsCount, setPendingProjectsCount] = useState(0);
+  const [deletionRequestsCount, setDeletionRequestsCount] = useState(0);
 
   // Form states
   const [projectTitle, setProjectTitle] = useState('');
@@ -70,6 +72,37 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // Listen for pending projects and deletion requests
+  useEffect(() => {
+    // Listen for pending projects
+    const pendingProjectsQuery = query(collection(db, 'projects'), where('approvalStatus', '==', 'pending'));
+    const unsubscribePendingProjects = onSnapshot(pendingProjectsQuery, (snapshot) => {
+      setPendingProjectsCount(snapshot.size);
+    });
+
+    // Listen for deletion requests (projects with permanentDeleteRequest that aren't fully approved)
+    const allProjectsQuery = query(collection(db, 'projects'));
+    const unsubscribeAllProjects = onSnapshot(allProjectsQuery, (snapshot) => {
+      let count = 0;
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.permanentDeleteRequest) {
+          const request = data.permanentDeleteRequest;
+          // Count if not fully approved (either leader or exec approval is missing)
+          if (!request.approvedByLeader || !request.approvedByExec) {
+            count++;
+          }
+        }
+      });
+      setDeletionRequestsCount(count);
+    });
+
+    return () => {
+      unsubscribePendingProjects();
+      unsubscribeAllProjects();
+    };
   }, []);
 
   const loadProjects = async () => {
@@ -393,17 +426,65 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
             {canApproveProjects() && (
               <button
                 onClick={() => onNavigate('/admin/projects/approvals')}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2"
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2 relative"
+                style={{ position: "relative" }}
               >
                 Approve Projects
+                {pendingProjectsCount > 0 && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "-6px",
+                      right: "-6px",
+                      backgroundColor: "#EF4444",
+                      color: "#FFF",
+                      borderRadius: "9999px",
+                      minWidth: "20px",
+                      height: "20px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                      padding: "0 6px",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                    }}
+                  >
+                    {pendingProjectsCount > 99 ? '99+' : pendingProjectsCount}
+                  </span>
+                )}
               </button>
             )}
             {canDeleteProjects() && (
               <button
                 onClick={() => onNavigate('/admin/projects/trash')}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded flex items-center gap-2"
+                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded flex items-center gap-2 relative"
+                style={{ position: "relative" }}
               >
                 Trash
+                {deletionRequestsCount > 0 && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "-6px",
+                      right: "-6px",
+                      backgroundColor: "#EF4444",
+                      color: "#FFF",
+                      borderRadius: "9999px",
+                      minWidth: "20px",
+                      height: "20px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                      padding: "0 6px",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                    }}
+                  >
+                    {deletionRequestsCount > 99 ? '99+' : deletionRequestsCount}
+                  </span>
+                )}
               </button>
             )}
           </div>
