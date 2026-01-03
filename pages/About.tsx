@@ -25,8 +25,18 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
           getExecBoard(),
           getDesignTeam()
         ]);
-        setExecBoard(execData);
-        setDesignTeam(designData);
+        console.log('About: Firebase data loaded - Exec:', execData.length, 'Design:', designData.length);
+        
+        // If Firebase returns empty arrays, fallback to constants
+        if (execData.length === 0 || designData.length === 0) {
+          console.log('About: Firebase returned empty arrays, using constants fallback');
+          const { EXEC_BOARD, DESIGN_TEAM } = await import('../constants');
+          setExecBoard(execData.length === 0 ? EXEC_BOARD : execData);
+          setDesignTeam(designData.length === 0 ? DESIGN_TEAM : designData);
+        } else {
+          setExecBoard(execData);
+          setDesignTeam(designData);
+        }
       } catch (error) {
         console.error('Error loading data:', error);
         // Fallback to constants if Firebase fails
@@ -134,6 +144,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {loading ? (
               <div className="col-span-2 text-center py-8">Loading...</div>
+            ) : execBoard.length === 0 ? (
+              <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
             ) : (
               execBoard.map((member) => (
               <TeamCard key={member.id} member={member} />
@@ -255,6 +267,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {loading ? (
               <div className="col-span-2 text-center py-8">Loading...</div>
+            ) : designTeam.length === 0 ? (
+              <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
             ) : (
               designTeam.map((member) => (
               <TeamCard key={member.id} member={member} />
@@ -358,6 +372,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                  {/* Rendering specific members based on tab */}
                  {loading ? (
                    <div className="col-span-2 text-center py-8">Loading...</div>
+                 ) : (activeTab === 'general' ? execBoard : designTeam).length === 0 ? (
+                   <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
                  ) : (
                    (activeTab === 'general' ? execBoard : designTeam).map((member) => (
                      <TeamCard key={member.id} member={member} />
