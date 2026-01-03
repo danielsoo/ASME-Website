@@ -234,7 +234,7 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
 
         {/* Admin Menu Item - Only show if user is admin or President */}
         {(userData?.role === 'admin' || userData?.role === 'President') && (
-          <div style={{ position: "relative", display: "inline-block" }}>
+          <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
             <button
               onClick={() => onNavigate('/admin')}
               style={{
