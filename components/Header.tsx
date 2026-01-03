@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { NAV_LINKS } from '../constants';
 import { Settings, LogOut, Menu, X } from 'lucide-react';
@@ -14,6 +14,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
   const [userData, setUserData] = useState<any>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [adminNotificationCount, setAdminNotificationCount] = useState(0);
   
   // Check if a menu item is the current page (so we can underline it)
   // If the link is "/" (home), check if we're exactly on the home page
@@ -39,6 +40,60 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
       setUserData(null);
     }
   }, [user]);
+
+  // Fetch admin notification counts (pending users, pending projects, deletion requests)
+  useEffect(() => {
+    const isAdmin = userData?.role === 'admin' || userData?.role === 'President';
+    if (!isAdmin) {
+      setAdminNotificationCount(0);
+      return;
+    }
+
+    let pendingUsersCount = 0;
+    let pendingProjectsCount = 0;
+    let deletionRequestsCount = 0;
+
+    const updateTotalCount = () => {
+      setAdminNotificationCount(pendingUsersCount + pendingProjectsCount + deletionRequestsCount);
+    };
+
+    // Set up real-time listener for pending users
+    const usersQuery = query(collection(db, 'users'), where('status', '==', 'pending'));
+    const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
+      pendingUsersCount = snapshot.size;
+      updateTotalCount();
+    });
+
+    // Set up real-time listener for pending projects
+    const pendingProjectsQuery = query(collection(db, 'projects'), where('approvalStatus', '==', 'pending'));
+    const unsubscribePendingProjects = onSnapshot(pendingProjectsQuery, (snapshot) => {
+      pendingProjectsCount = snapshot.size;
+      updateTotalCount();
+    });
+
+    // Set up real-time listener for all projects (to count deletion requests)
+    const allProjectsQuery = query(collection(db, 'projects'));
+    const unsubscribeAllProjects = onSnapshot(allProjectsQuery, (snapshot) => {
+      deletionRequestsCount = 0;
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.permanentDeleteRequest) {
+          const request = data.permanentDeleteRequest;
+          // Count if not fully approved (either leader or exec approval is missing)
+          if (!request.approvedByLeader || !request.approvedByExec) {
+            deletionRequestsCount++;
+          }
+        }
+      });
+      updateTotalCount();
+    });
+
+    return () => {
+      unsubscribeUsers();
+      unsubscribePendingProjects();
+      unsubscribeAllProjects();
+    };
+  }, [userData?.role]);
 
   const handleLogout = async () => {
     try {
@@ -179,36 +234,64 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
 
         {/* Admin Menu Item - Only show if user is admin or President */}
         {(userData?.role === 'admin' || userData?.role === 'President') && (
-          <button
-            onClick={() => onNavigate('/admin')}
-            style={{
-              // Make text white
-              color: "#FFF",
-              // Use the Jost font we set up earlier
-              fontFamily: "var(--font-jost, 'Jost', sans-serif)",
-              // Make font size responsive: smallest is 12px, biggest is 34.575px
-              fontSize: "clamp(12px, 2.29vw, 34.575px)",
-              // Make text normal weight (not bold)
-              fontWeight: 400,
-              // If this is the active page, underline it. Otherwise, no underline
-              textDecoration: isActive('/admin') ? "underline" : "none",
-              // Make underline white if it's active, invisible if not
-              textDecorationColor: isActive('/admin') ? "#FFF" : "transparent",
-              // Make the underline a little bit below the text (responsive)
-              textUnderlineOffset: "clamp(2px, 0.26vw, 4px)",
-              // Make the underline thickness responsive
-              textDecorationThickness: "clamp(1px, 0.13vw, 2px)",
-              // Don't let the text wrap to a new line - keep it on one line
-              whiteSpace: "nowrap",
-              // Remove button default styles
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: 0,
-            }}
-          >
-            ADMIN
-          </button>
+          <div style={{ position: "relative", display: "inline-block" }}>
+            <button
+              onClick={() => onNavigate('/admin')}
+              style={{
+                // Make text white
+                color: "#FFF",
+                // Use the Jost font we set up earlier
+                fontFamily: "var(--font-jost, 'Jost', sans-serif)",
+                // Make font size responsive: smallest is 12px, biggest is 34.575px
+                fontSize: "clamp(12px, 2.29vw, 34.575px)",
+                // Make text normal weight (not bold)
+                fontWeight: 400,
+                // If this is the active page, underline it. Otherwise, no underline
+                textDecoration: isActive('/admin') ? "underline" : "none",
+                // Make underline white if it's active, invisible if not
+                textDecorationColor: isActive('/admin') ? "#FFF" : "transparent",
+                // Make the underline a little bit below the text (responsive)
+                textUnderlineOffset: "clamp(2px, 0.26vw, 4px)",
+                // Make the underline thickness responsive
+                textDecorationThickness: "clamp(1px, 0.13vw, 2px)",
+                // Don't let the text wrap to a new line - keep it on one line
+                whiteSpace: "nowrap",
+                // Remove button default styles
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              ADMIN
+            </button>
+            {/* Notification Badge */}
+            {adminNotificationCount > 0 && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: "-8px",
+                  right: "-12px",
+                  backgroundColor: "#EF4444",
+                  color: "#FFF",
+                  borderRadius: "50%",
+                  minWidth: "clamp(18px, 2vw, 24px)",
+                  height: "clamp(18px, 2vw, 24px)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "clamp(10px, 1.2vw, 14px)",
+                  fontWeight: "bold",
+                  padding: "0 clamp(4px, 0.5vw, 6px)",
+                  fontFamily: "var(--font-jost, 'Jost', sans-serif)",
+                  border: "2px solid rgba(0, 0, 0, 0.3)",
+                  boxSizing: "border-box",
+                }}
+              >
+                {adminNotificationCount > 99 ? '99+' : adminNotificationCount}
+              </span>
+            )}
+          </div>
         )}
 
         {/* User Menu - Hamburger Menu */}
