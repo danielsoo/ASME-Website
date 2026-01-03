@@ -1,21 +1,35 @@
 import React from 'react';
 import { Project } from '../types';
+import { GripVertical } from 'lucide-react';
 
 interface ProjectCardProps {
   project: Project;
   onImageClick?: (project: Project) => void;
   onNavigate?: (path: string) => void;
+  showDragHandle?: boolean;
+  onDragHandleMouseDown?: (e: React.MouseEvent) => void;
 }
 
-const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavigate }) => {
+const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavigate, showDragHandle, onDragHandleMouseDown }) => {
   return (
-    <div id={`project-${project.id}`} className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden mb-8">
+    <div id={`project-${project.id}`} className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden mb-8 relative">
+      {/* Drag Handle */}
+      {showDragHandle && (
+        <div
+          onMouseDown={onDragHandleMouseDown}
+          className="absolute top-4 right-4 cursor-move hover:opacity-70 transition-opacity z-10 bg-black/50 rounded p-2"
+          title="드래그하여 순서 변경"
+        >
+          <GripVertical size={24} className="text-white" />
+        </div>
+      )}
       {/* Image Header Section */}
       <div className="relative h-64 w-full overflow-hidden">
         <img 
           src={project.imageUrl} 
           alt={project.title} 
           className="w-full h-full object-cover transition-transform duration-700 hover:scale-105 cursor-pointer"
+          draggable={false}
           onClick={() => onImageClick?.(project)}
         />
         <div className="absolute bottom-0 left-0 p-6 bg-gradient-to-t from-black/80 to-transparent w-full">

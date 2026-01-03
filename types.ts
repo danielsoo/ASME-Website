@@ -28,6 +28,7 @@ export interface Project {
   projectRoles?: string[]; // Custom project roles defined by leader (e.g., 'Software Lead', 'Hardware Lead')
   createdAt?: string;
   updatedAt?: string;
+  order?: number; // Display order for sorting
   // Project approval system
   approvalStatus?: 'pending' | 'approved'; // pending: waiting for President/VP approval, approved: active project
   createdBy?: string; // UID of user who created the project

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Project } from '../types';
-import { getProjects } from '../firebase/services';
+import { getProjects, updateProjectOrder } from '../firebase/services';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { auth, db } from '../firebase/config';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import ProjectCard from '../components/ProjectCard';
 import ProjectDetailPage from './ProjectDetailPage';
 
@@ -24,6 +26,29 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userNames, setUserNames] = useState<Record<string, string>>({}); // Map of userId/email to name
+  const [userRole, setUserRole] = useState<string>('');
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  // Check user permissions
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserRole(userData.role || 'member');
+          }
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+        }
+      } else {
+        setUserRole('');
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Update view when currentPath changes
   useEffect(() => {
@@ -101,7 +126,66 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
     loadProjects();
   }, []);
 
-  const filteredProjects = projects.filter(p => p.status === view);
+  const canEdit = userRole === 'President' || userRole === 'Vice President';
+
+  // Use useMemo to properly compute filtered projects
+  const filteredProjects = useMemo(() => {
+    return projects.filter(p => p.status === view);
+  }, [projects, view]);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    // Get current filtered projects for the active view
+    const currentFiltered = projects.filter(p => p.status === view);
+    const newOrder = [...currentFiltered];
+    const draggedItem = newOrder[draggedIndex];
+    
+    // Reorder the filtered array
+    newOrder.splice(draggedIndex, 1);
+    newOrder.splice(index, 0, draggedItem);
+
+    // Separate projects by status
+    const otherStatusProjects = projects.filter(p => p.status !== view);
+    
+    // Combine: other status projects + reordered current view projects
+    const updatedProjects = [...otherStatusProjects, ...newOrder];
+
+    setProjects(updatedProjects);
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = async () => {
+    if (draggedIndex === null) return;
+    
+    setDraggedIndex(null);
+    
+    // Auto-save the new order to Firebase
+    try {
+      const currentFiltered = projects.filter(p => p.status === view);
+      await updateProjectOrder(currentFiltered);
+    } catch (error) {
+      console.error('Error saving order:', error);
+      // Reload data on error
+      try {
+        const allProjects = await getProjects();
+        const activeProjects = allProjects.filter(project => {
+          const isNotDeleted = !project.deletedAt || project.deletedAt === null;
+          const isApproved = !project.approvalStatus || project.approvalStatus === 'approved';
+          return isNotDeleted && isApproved;
+        });
+        setProjects(activeProjects);
+      } catch (reloadError) {
+        console.error('Error reloading data:', reloadError);
+      }
+    }
+  };
 
   // Check if we're on a project detail page (e.g., /projects/solar-panel-optimization)
   const getProjectFromPath = (path: string): Project | null => {
@@ -318,7 +402,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
         {!loading && !error && (
           <div className="space-y-12">
               {filteredProjects.length > 0 ? (
-                  filteredProjects.map((project) => {
+                  filteredProjects.map((project, index) => {
                     // Add leader name to project for display
                     const projectWithLeaderName = {
                       ...project,
@@ -329,16 +413,28 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
                         : undefined
                     };
                     return (
-                      <ProjectCard 
-                        key={project.id} 
-                        project={projectWithLeaderName} 
-                        onImageClick={(project) => {
-                          if (onNavigate) {
-                            const slug = project.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                            onNavigate(`/projects/${slug}`);
-                          }
-                        }}
-                      />
+                      <div
+                        key={project.id}
+                        draggable={canEdit}
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                        style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
+                      >
+                        <ProjectCard 
+                          project={projectWithLeaderName} 
+                          onImageClick={(project) => {
+                            if (onNavigate) {
+                              const slug = project.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                              onNavigate(`/projects/${slug}`);
+                            }
+                          }}
+                          showDragHandle={canEdit}
+                          onDragHandleMouseDown={(e) => {
+                            e.stopPropagation();
+                          }}
+                        />
+                      </div>
                     );
                   })
               ) : (

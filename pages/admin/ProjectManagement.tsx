@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, query, where, onSnapshot } from 'firebase/firestore';
-import { db, auth } from '../../firebase/config';
+import { db, auth, storage } from '../../firebase/config';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Project, ProjectMember } from '../../types';
-import { Plus, Edit, Trash2, Users, UserPlus } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, UserPlus, Upload } from 'lucide-react';
 import AlertModal from '../../components/AlertModal';
 import ConfirmModal from '../../components/ConfirmModal';
 
@@ -29,6 +30,9 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
   const [projectDescription, setProjectDescription] = useState('');
   const [projectStatus, setProjectStatus] = useState<'current' | 'past'>('current');
   const [projectLeaderId, setProjectLeaderId] = useState('');
+  const [projectImageFile, setProjectImageFile] = useState<File | null>(null);
+  const [projectImageUrl, setProjectImageUrl] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Confirm delete modal state
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -235,6 +239,25 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     return isLeader;
   };
 
+  const handleImageUpload = async (file: File): Promise<string> => {
+    try {
+      setUploadingImage(true);
+      const timestamp = Date.now();
+      const fileName = `projects/${timestamp}_${file.name}`;
+      const storageRef = ref(storage, fileName);
+      
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+      
+      return downloadURL;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      throw error;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleCreateProject = async () => {
     if (!projectTitle.trim()) {
       showAlert('warning', 'Validation Error', 'Please enter a project title.');
@@ -246,10 +269,16 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     const needsApproval = !canManageProjects();
 
     try {
+      // Upload image if provided
+      let imageUrl = projectImageUrl;
+      if (projectImageFile) {
+        imageUrl = await handleImageUpload(projectImageFile);
+      }
+
       await addDoc(collection(db, 'projects'), {
         title: projectTitle.trim(),
         description: projectDescription.trim(),
-        imageUrl: '',
+        imageUrl: imageUrl || '',
         chairs: [],
         status: projectStatus,
         // Only President/VP/Admin can assign leader directly
@@ -271,6 +300,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
       setProjectDescription('');
       setProjectStatus('current');
       setProjectLeaderId('');
+      setProjectImageFile(null);
+      setProjectImageUrl('');
       await loadProjects();
       
       if (needsApproval) {
@@ -301,14 +332,27 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     try {
       const leaderUser = projectLeaderId ? allUsers.find(u => u.uid === projectLeaderId) : null;
       
-      await updateDoc(doc(db, 'projects', selectedProject.id), {
+      // Upload image if new file provided
+      let imageUrl = projectImageUrl;
+      if (projectImageFile) {
+        imageUrl = await handleImageUpload(projectImageFile);
+      }
+      
+      const updateData: any = {
         title: projectTitle.trim(),
         description: projectDescription.trim(),
         status: projectStatus,
         leaderId: projectLeaderId || null,
         leaderEmail: leaderUser?.email || '',
         updatedAt: new Date().toISOString(),
-      });
+      };
+
+      // Only update imageUrl if a new image was uploaded
+      if (projectImageFile && imageUrl) {
+        updateData.imageUrl = imageUrl;
+      }
+      
+      await updateDoc(doc(db, 'projects', selectedProject.id), updateData);
 
       setShowEditModal(false);
       setSelectedProject(null);
@@ -362,6 +406,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     setProjectDescription(project.description);
     setProjectStatus(project.status);
     setProjectLeaderId(project.leaderId || '');
+    setProjectImageUrl(project.imageUrl || '');
+    setProjectImageFile(null);
     setShowEditModal(true);
   };
 
@@ -629,6 +675,36 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Project Image
+                  </label>
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setProjectImageFile(file);
+                          // Show preview
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setProjectImageUrl(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    />
+                    {projectImageUrl && (
+                      <div className="mt-2">
+                        <img src={projectImageUrl} alt="Preview" className="w-full h-48 object-cover rounded-md" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Status
                   </label>
                   <select
@@ -676,9 +752,10 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
               <div className="flex gap-4 mt-6">
                 <button
                   onClick={handleCreateProject}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                  disabled={uploadingImage}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  Create Project
+                  {uploadingImage ? 'Uploading...' : 'Create Project'}
                 </button>
                 <button
                   onClick={() => setShowCreateModal(false)}
@@ -726,6 +803,39 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Project Image
+                  </label>
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setProjectImageFile(file);
+                          // Show preview
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setProjectImageUrl(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    />
+                    {projectImageUrl && (
+                      <div className="mt-2">
+                        <img src={projectImageUrl} alt="Preview" className="w-full h-48 object-cover rounded-md" />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {projectImageFile ? 'New image selected' : 'Current image'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Status
                   </label>
                   <select
@@ -764,9 +874,10 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
               <div className="flex gap-4 mt-6">
                 <button
                   onClick={handleEditProject}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                  disabled={uploadingImage}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  Save Changes
+                  {uploadingImage ? 'Uploading...' : 'Save Changes'}
                 </button>
                 <button
                   onClick={() => {
