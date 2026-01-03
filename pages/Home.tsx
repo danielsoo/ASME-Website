@@ -98,7 +98,7 @@ const Home: React.FC = () => {
       savedRangeRef.current = null;
     } catch (error) {
       console.error('Error saving home page content:', error);
-      alert('저장 중 오류가 발생했습니다.');
+      alert('An error occurred while saving.');
     } finally {
       setSaving(false);
     }
@@ -242,7 +242,7 @@ const Home: React.FC = () => {
                       <button
                         onClick={handleEdit}
                         className="bg-blue-600/90 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg transition-all hover:scale-110"
-                        title="편집"
+                        title="Edit"
                       >
                         <Edit2 size={20} />
                       </button>
@@ -252,7 +252,7 @@ const Home: React.FC = () => {
                           onClick={handleSave}
                           disabled={saving}
                           className="bg-green-600/90 hover:bg-green-700 disabled:bg-gray-400 text-white p-2 rounded-full shadow-lg transition-all hover:scale-110"
-                          title="저장"
+                          title="Save"
                         >
                           <Save size={20} />
                         </button>
@@ -260,7 +260,7 @@ const Home: React.FC = () => {
                           onClick={handleCancel}
                           disabled={saving}
                           className="bg-gray-600/90 hover:bg-gray-700 disabled:bg-gray-400 text-white p-2 rounded-full shadow-lg transition-all hover:scale-110"
-                          title="취소"
+                          title="Cancel"
                         >
                           <X size={20} />
                         </button>
@@ -272,7 +272,7 @@ const Home: React.FC = () => {
                   <div className="space-y-4 bg-gray-800/50 p-6 rounded-lg border-2 border-blue-500">
                     {/* Title Editor */}
                     <div>
-                      <label className="block text-sm font-medium text-white mb-2">제목</label>
+                      <label className="block text-sm font-medium text-white mb-2">Title</label>
                       <input
                         type="text"
                         value={editContent.title}
@@ -283,7 +283,7 @@ const Home: React.FC = () => {
 
                     {/* Content Editor */}
                     <div>
-                      <label className="block text-sm font-medium text-white mb-2">내용</label>
+                      <label className="block text-sm font-medium text-white mb-2">Content</label>
                       <div className="bg-gray-700 border border-gray-600 rounded-lg">
                         <div className="flex gap-1 p-2 border-b border-gray-600 flex-wrap items-center">
                           <button
@@ -350,7 +350,7 @@ const Home: React.FC = () => {
                             }}
                             defaultValue="#ffffff"
                             className="h-8 w-12 bg-gray-600 border-0 rounded cursor-pointer"
-                            title="텍스트 색상"
+                            title="Text Color"
                           />
                         </div>
                         <div
@@ -366,14 +366,14 @@ const Home: React.FC = () => {
 
                     {/* Button Editor */}
                     <div>
-                      <label className="block text-sm font-medium text-white mb-2">버튼 텍스트</label>
+                      <label className="block text-sm font-medium text-white mb-2">Button Text</label>
                       <input
                         type="text"
                         value={editContent.buttonText}
                         onChange={(e) => setEditContent({ ...editContent, buttonText: e.target.value })}
                         className="w-full px-4 py-2 bg-gray-700 text-white border border-gray-600 rounded-lg mb-2"
                       />
-                      <label className="block text-sm font-medium text-white mb-2">버튼 링크 (URL)</label>
+                      <label className="block text-sm font-medium text-white mb-2">Button Link (URL)</label>
                       <input
                         type="text"
                         value={editContent.buttonUrl || ''}
