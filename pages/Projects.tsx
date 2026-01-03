@@ -22,7 +22,8 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
   };
 
   const [view, setView] = useState<'current' | 'past'>(() => getViewFromPath(currentPath));
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [currentProjects, setCurrentProjects] = useState<Project[]>([]);
+  const [pastProjects, setPastProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userNames, setUserNames] = useState<Record<string, string>>({}); // Map of userId/email to name
@@ -109,7 +110,9 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
         
         console.log('Filtered active projects:', activeProjects);
         
-        setProjects(activeProjects);
+        // Separate into current and past
+        setCurrentProjects(activeProjects.filter(p => p.status === 'current'));
+        setPastProjects(activeProjects.filter(p => p.status === 'past'));
       } catch (err: any) {
         console.error('Error loading projects:', err);
         console.error('Error details:', {
@@ -128,10 +131,8 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
 
   const canEdit = userRole === 'President' || userRole === 'Vice President';
 
-  // Use useMemo to properly compute filtered projects
-  const filteredProjects = useMemo(() => {
-    return projects.filter(p => p.status === view);
-  }, [projects, view]);
+  // Get the projects for current view
+  const filteredProjects = view === 'current' ? currentProjects : pastProjects;
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
@@ -142,22 +143,18 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
     e.preventDefault();
     if (draggedIndex === null || draggedIndex === index) return;
 
-    // Get current filtered projects for the active view
-    const currentFiltered = projects.filter(p => p.status === view);
-    const newOrder = [...currentFiltered];
+    const currentList = view === 'current' ? currentProjects : pastProjects;
+    const newOrder = [...currentList];
     const draggedItem = newOrder[draggedIndex];
     
-    // Reorder the filtered array
     newOrder.splice(draggedIndex, 1);
     newOrder.splice(index, 0, draggedItem);
 
-    // Separate projects by status
-    const otherStatusProjects = projects.filter(p => p.status !== view);
-    
-    // Combine: other status projects + reordered current view projects
-    const updatedProjects = [...otherStatusProjects, ...newOrder];
-
-    setProjects(updatedProjects);
+    if (view === 'current') {
+      setCurrentProjects(newOrder);
+    } else {
+      setPastProjects(newOrder);
+    }
     setDraggedIndex(index);
   };
 
@@ -168,8 +165,8 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
     
     // Auto-save the new order to Firebase
     try {
-      const currentFiltered = projects.filter(p => p.status === view);
-      await updateProjectOrder(currentFiltered);
+      const projectsToSave = view === 'current' ? currentProjects : pastProjects;
+      await updateProjectOrder(projectsToSave);
     } catch (error) {
       console.error('Error saving order:', error);
       // Reload data on error
@@ -180,7 +177,8 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
           const isApproved = !project.approvalStatus || project.approvalStatus === 'approved';
           return isNotDeleted && isApproved;
         });
-        setProjects(activeProjects);
+        setCurrentProjects(activeProjects.filter(p => p.status === 'current'));
+        setPastProjects(activeProjects.filter(p => p.status === 'past'));
       } catch (reloadError) {
         console.error('Error reloading data:', reloadError);
       }
@@ -208,7 +206,8 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
       
       // Find project by matching slug (title converted to slug)
       // Only search in approved or legacy (no approvalStatus), non-deleted projects
-      const activeProjects = projects.filter(p => {
+      const allProjects = [...currentProjects, ...pastProjects];
+      const activeProjects = allProjects.filter(p => {
         const isNotDeleted = !p.deletedAt || p.deletedAt === null;
         const isApproved = !p.approvalStatus || p.approvalStatus === 'approved';
         return isNotDeleted && isApproved;
@@ -236,7 +235,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
   };
 
   // Use useMemo to ensure projectDetail is recalculated when currentPath or projects change
-  const projectDetail = useMemo(() => getProjectFromPath(currentPath), [currentPath, projects]);
+  const projectDetail = useMemo(() => getProjectFromPath(currentPath), [currentPath, currentProjects, pastProjects]);
 
   // Log when currentPath changes for debugging
   useEffect(() => {

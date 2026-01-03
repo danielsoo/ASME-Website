@@ -4,7 +4,7 @@ import { db, auth, storage } from '../../firebase/config';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Project, ProjectMember } from '../../types';
-import { Plus, Edit, Trash2, Users, UserPlus, Upload } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, UserPlus } from 'lucide-react';
 import AlertModal from '../../components/AlertModal';
 import ConfirmModal from '../../components/ConfirmModal';
 
@@ -30,8 +30,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
   const [projectDescription, setProjectDescription] = useState('');
   const [projectStatus, setProjectStatus] = useState<'current' | 'past'>('current');
   const [projectLeaderId, setProjectLeaderId] = useState('');
-  const [projectImageFile, setProjectImageFile] = useState<File | null>(null);
   const [projectImageUrl, setProjectImageUrl] = useState('');
+  const [projectImageFile, setProjectImageFile] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   // Confirm delete modal state
@@ -239,7 +239,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     return isLeader;
   };
 
-  const handleImageUpload = async (file: File): Promise<string> => {
+  // Upload image to Firebase Storage
+  const uploadToFirebaseStorage = async (file: File): Promise<string> => {
     try {
       setUploadingImage(true);
       const timestamp = Date.now();
@@ -251,7 +252,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
       
       return downloadURL;
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error('Error uploading to Firebase Storage:', error);
       throw error;
     } finally {
       setUploadingImage(false);
@@ -269,10 +270,11 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     const needsApproval = !canManageProjects();
 
     try {
-      // Upload image if provided
-      let imageUrl = projectImageUrl;
+      let imageUrl = projectImageUrl.trim();
+      
+      // If file is selected, upload to Firebase Storage
       if (projectImageFile) {
-        imageUrl = await handleImageUpload(projectImageFile);
+        imageUrl = await uploadToFirebaseStorage(projectImageFile);
       }
 
       await addDoc(collection(db, 'projects'), {
@@ -300,8 +302,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
       setProjectDescription('');
       setProjectStatus('current');
       setProjectLeaderId('');
-      setProjectImageFile(null);
       setProjectImageUrl('');
+      setProjectImageFile(null);
       await loadProjects();
       
       if (needsApproval) {
@@ -332,10 +334,11 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     try {
       const leaderUser = projectLeaderId ? allUsers.find(u => u.uid === projectLeaderId) : null;
       
-      // Upload image if new file provided
-      let imageUrl = projectImageUrl;
+      let imageUrl = projectImageUrl.trim();
+      
+      // If file is selected, upload to Firebase Storage
       if (projectImageFile) {
-        imageUrl = await handleImageUpload(projectImageFile);
+        imageUrl = await uploadToFirebaseStorage(projectImageFile);
       }
       
       const updateData: any = {
@@ -347,8 +350,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
         updatedAt: new Date().toISOString(),
       };
 
-      // Only update imageUrl if a new image was uploaded
-      if (projectImageFile && imageUrl) {
+      // Update imageUrl if provided
+      if (imageUrl) {
         updateData.imageUrl = imageUrl;
       }
       
@@ -677,27 +680,67 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Project Image
                   </label>
-                  <div className="space-y-2">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setProjectImageFile(file);
-                          // Show preview
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setProjectImageUrl(reader.result as string);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                    />
-                    {projectImageUrl && (
+                  <div className="space-y-3">
+                    {/* File Upload Option */}
+                    <div>
+                      <label className="text-sm text-gray-600 mb-1 block">Option 1: Upload Image File</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setProjectImageFile(file);
+                            setProjectImageUrl(''); // Clear URL when file is selected
+                            // Show preview
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              const preview = document.getElementById('create-image-preview') as HTMLImageElement;
+                              if (preview) {
+                                preview.src = reader.result as string;
+                                preview.style.display = 'block';
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Image will be uploaded to Firebase Storage</p>
+                    </div>
+                    
+                    {/* URL Input Option */}
+                    <div>
+                      <label className="text-sm text-gray-600 mb-1 block">Option 2: Paste Image URL</label>
+                      <input
+                        type="text"
+                        value={projectImageUrl}
+                        onChange={(e) => {
+                          setProjectImageUrl(e.target.value);
+                          setProjectImageFile(null); // Clear file when URL is entered
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                        style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                        placeholder="https://drive.google.com/uc?export=view&id=YOUR_FILE_ID"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Or paste a Google Drive link, Imgur link, etc.
+                      </p>
+                    </div>
+                    
+                    {/* Preview */}
+                    {(projectImageFile || projectImageUrl) && (
                       <div className="mt-2">
-                        <img src={projectImageUrl} alt="Preview" className="w-full h-48 object-cover rounded-md" />
+                        <img 
+                          id="create-image-preview"
+                          src={projectImageUrl} 
+                          alt="Preview" 
+                          className="w-full h-48 object-cover rounded-md" 
+                          style={{ display: projectImageFile ? 'block' : (projectImageUrl ? 'block' : 'none') }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }} 
+                        />
                       </div>
                     )}
                   </div>
@@ -755,7 +798,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   disabled={uploadingImage}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  {uploadingImage ? 'Uploading...' : 'Create Project'}
+                  {uploadingImage ? 'Uploading Image...' : 'Create Project'}
                 </button>
                 <button
                   onClick={() => setShowCreateModal(false)}
@@ -805,30 +848,68 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Project Image
                   </label>
-                  <div className="space-y-2">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setProjectImageFile(file);
-                          // Show preview
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setProjectImageUrl(reader.result as string);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                    />
-                    {projectImageUrl && (
+                  <div className="space-y-3">
+                    {/* File Upload Option */}
+                    <div>
+                      <label className="text-sm text-gray-600 mb-1 block">Option 1: Upload Image File</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setProjectImageFile(file);
+                            setProjectImageUrl(''); // Clear URL when file is selected
+                            // Show preview
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              const preview = document.getElementById('edit-image-preview') as HTMLImageElement;
+                              if (preview) {
+                                preview.src = reader.result as string;
+                                preview.style.display = 'block';
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Image will be uploaded to Firebase Storage</p>
+                    </div>
+                    
+                    {/* URL Input Option */}
+                    <div>
+                      <label className="text-sm text-gray-600 mb-1 block">Option 2: Paste Image URL</label>
+                      <input
+                        type="text"
+                        value={projectImageUrl}
+                        onChange={(e) => {
+                          setProjectImageUrl(e.target.value);
+                          setProjectImageFile(null); // Clear file when URL is entered
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                        style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                        placeholder="https://drive.google.com/uc?export=view&id=YOUR_FILE_ID"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Or paste a Google Drive link, Imgur link, etc.
+                      </p>
+                    </div>
+                    
+                    {/* Preview */}
+                    {(projectImageFile || projectImageUrl) && (
                       <div className="mt-2">
-                        <img src={projectImageUrl} alt="Preview" className="w-full h-48 object-cover rounded-md" />
-                        <p className="text-xs text-gray-500 mt-1">
-                          {projectImageFile ? 'New image selected' : 'Current image'}
-                        </p>
+                        <img 
+                          id="edit-image-preview"
+                          src={projectImageUrl} 
+                          alt="Preview" 
+                          className="w-full h-48 object-cover rounded-md" 
+                          style={{ display: projectImageFile ? 'block' : (projectImageUrl ? 'block' : 'none') }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }} 
+                        />
+                        {projectImageFile && <p className="text-xs text-blue-600 mt-1">New image selected</p>}
                       </div>
                     )}
                   </div>
@@ -877,7 +958,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   disabled={uploadingImage}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  {uploadingImage ? 'Uploading...' : 'Save Changes'}
+                  {uploadingImage ? 'Uploading Image...' : 'Save Changes'}
                 </button>
                 <button
                   onClick={() => {
