@@ -10,6 +10,7 @@ export interface TeamMember {
   isExec?: boolean;
   email?: string;
   team?: 'Design Team' | 'General Body'; // Team assignment for Exec Board members
+  order?: number; // Display order for sorting
 }
 
 export interface Project {
@@ -92,4 +93,13 @@ export interface Sponsor {
   name: string;
   logoUrl: string;
   tier?: string;
+}
+
+export interface HomePageWhatWeDo {
+  title: string;
+  content: string; // HTML content for rich text
+  buttonText: string;
+  buttonUrl?: string;
+  updatedAt?: string;
+  updatedBy?: string;
 }

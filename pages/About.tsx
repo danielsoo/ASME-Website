@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { PROJECTS } from '../constants';
-import { getExecBoard, getDesignTeam } from '../firebase/services';
+import { getExecBoard, getDesignTeam, updateTeamMemberOrder } from '../firebase/services';
 import { TeamMember } from '../types';
 import TeamCard from '../components/TeamCard';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase/config';
 
 interface AboutProps {
   currentPath?: string;
@@ -15,6 +18,29 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
   const [execBoard, setExecBoard] = useState<TeamMember[]>([]);
   const [designTeam, setDesignTeam] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string>('');
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  // Check user permissions
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserRole(userData.role || 'member');
+          }
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+        }
+      } else {
+        setUserRole('');
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Load data from Firebase
   useEffect(() => {
@@ -49,6 +75,61 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     };
     loadData();
   }, []);
+
+  const canEdit = userRole === 'President' || userRole === 'Vice President';
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    // Determine which team to reorder based on current path or active tab
+    const currentTeam = (currentPath === '/about/designteam' || activeTab === 'design') ? designTeam : execBoard;
+    const newOrder = [...currentTeam];
+    const draggedItem = newOrder[draggedIndex];
+    newOrder.splice(draggedIndex, 1);
+    newOrder.splice(index, 0, draggedItem);
+
+    if (currentPath === '/about/designteam' || activeTab === 'design') {
+      setDesignTeam(newOrder);
+    } else {
+      setExecBoard(newOrder);
+    }
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = async () => {
+    if (draggedIndex === null) return;
+    
+    setDraggedIndex(null);
+    
+    // Auto-save the new order to Firebase
+    try {
+      if (currentPath === '/about/designteam' || activeTab === 'design') {
+        await updateTeamMemberOrder(designTeam, 'designTeam');
+      } else {
+        await updateTeamMemberOrder(execBoard, 'execBoard');
+      }
+    } catch (error) {
+      console.error('Error saving order:', error);
+      // Reload data on error
+      try {
+        const [execData, designData] = await Promise.all([
+          getExecBoard(),
+          getDesignTeam()
+        ]);
+        setExecBoard(execData);
+        setDesignTeam(designData);
+      } catch (reloadError) {
+        console.error('Error reloading data:', reloadError);
+      }
+    }
+  };
+
 
   const scrollToAboutUs = () => {
     if (onNavigate) {
@@ -147,8 +228,23 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
             ) : execBoard.length === 0 ? (
               <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
             ) : (
-              execBoard.map((member) => (
-              <TeamCard key={member.id} member={member} />
+              execBoard.map((member, index) => (
+                <div
+                  key={member.id}
+                  draggable={canEdit}
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                  style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
+                >
+                  <TeamCard
+                    member={member}
+                    showDragHandle={canEdit}
+                    onDragHandleMouseDown={(e) => {
+                      e.stopPropagation();
+                    }}
+                  />
+                </div>
               ))
             )}
           </div>
@@ -270,8 +366,23 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
             ) : designTeam.length === 0 ? (
               <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
             ) : (
-              designTeam.map((member) => (
-              <TeamCard key={member.id} member={member} />
+              designTeam.map((member, index) => (
+                <div
+                  key={member.id}
+                  draggable={canEdit}
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                  style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
+                >
+                  <TeamCard
+                    member={member}
+                    showDragHandle={canEdit}
+                    onDragHandleMouseDown={(e) => {
+                      e.stopPropagation();
+                    }}
+                  />
+                </div>
               ))
             )}
           </div>
@@ -375,8 +486,23 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                  ) : (activeTab === 'general' ? execBoard : designTeam).length === 0 ? (
                    <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
                  ) : (
-                   (activeTab === 'general' ? execBoard : designTeam).map((member) => (
-                     <TeamCard key={member.id} member={member} />
+                   (activeTab === 'general' ? execBoard : designTeam).map((member, index) => (
+                     <div
+                       key={member.id}
+                       draggable={canEdit}
+                       onDragStart={(e) => handleDragStart(e, index)}
+                       onDragOver={(e) => handleDragOver(e, index)}
+                       onDragEnd={handleDragEnd}
+                       style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
+                     >
+                       <TeamCard
+                         member={member}
+                         showDragHandle={canEdit}
+                         onDragHandleMouseDown={(e) => {
+                           e.stopPropagation();
+                         }}
+                       />
+                     </div>
                    ))
                  )}
              </div>

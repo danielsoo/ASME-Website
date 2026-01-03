@@ -1,15 +1,29 @@
 import React from 'react';
 import { TeamMember } from '../types';
+import { GripVertical } from 'lucide-react';
 
 interface TeamCardProps {
   member: TeamMember;
+  showDragHandle?: boolean;
+  onDragHandleMouseDown?: (e: React.MouseEvent) => void;
 }
 
-const TeamCard: React.FC<TeamCardProps> = ({ member }) => {
+const TeamCard: React.FC<TeamCardProps> = ({ member, showDragHandle, onDragHandleMouseDown }) => {
   return (
-    <div className="bg-asme-red rounded-xl p-6 flex flex-col shadow-lg transform hover:scale-[1.02] transition-transform duration-300">
-      <div className="text-white font-jost font-semibold text-lg mb-4">
-        {member.name}, {member.position}
+    <div className="bg-asme-red rounded-xl p-6 flex flex-col shadow-lg transform hover:scale-[1.02] transition-transform duration-300 relative">
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-white font-jost font-semibold text-lg">
+          {member.name}, {member.position}
+        </div>
+        {showDragHandle && (
+          <div
+            onMouseDown={onDragHandleMouseDown}
+            className="cursor-move hover:opacity-70 transition-opacity"
+            title="드래그하여 순서 변경"
+          >
+            <GripVertical size={20} className="text-white" />
+          </div>
+        )}
       </div>
       <div className="flex flex-row gap-6">
         <div className="w-32 h-32 flex-shrink-0 bg-white rounded-lg overflow-hidden">

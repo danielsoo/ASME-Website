@@ -6,26 +6,57 @@ import {
   addDoc, 
   updateDoc, 
   deleteDoc,
+  setDoc,
   query,
   orderBy 
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from './config';
-import { TeamMember, Project, Event, Sponsor } from '../types';
+import { TeamMember, Project, Event, Sponsor, HomePageWhatWeDo } from '../types';
 
 // ============ Team Members (Exec Board & Design Team) ============
 
 export const getExecBoard = async (): Promise<TeamMember[]> => {
   const execBoardRef = collection(db, 'execBoard');
-  const snapshot = await getDocs(query(execBoardRef, orderBy('id')));
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TeamMember));
+  const snapshot = await getDocs(execBoardRef);
+  const members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TeamMember));
+  // Sort by order field, then by id if order is not set
+  return members.sort((a, b) => {
+    if (a.order !== undefined && b.order !== undefined) {
+      return a.order - b.order;
+    }
+    if (a.order !== undefined) return -1;
+    if (b.order !== undefined) return 1;
+    return a.id.localeCompare(b.id);
+  });
 };
 
 export const getDesignTeam = async (): Promise<TeamMember[]> => {
   const designTeamRef = collection(db, 'designTeam');
-  const snapshot = await getDocs(query(designTeamRef, orderBy('id')));
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TeamMember));
+  const snapshot = await getDocs(designTeamRef);
+  const members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TeamMember));
+  // Sort by order field, then by id if order is not set
+  return members.sort((a, b) => {
+    if (a.order !== undefined && b.order !== undefined) {
+      return a.order - b.order;
+    }
+    if (a.order !== undefined) return -1;
+    if (b.order !== undefined) return 1;
+    return a.id.localeCompare(b.id);
+  });
 };
+
+export const updateTeamMemberOrder = async (
+  members: TeamMember[],
+  collectionName: 'execBoard' | 'designTeam'
+): Promise<void> => {
+  const batch = members.map(async (member, index) => {
+    const docRef = doc(db, collectionName, member.id);
+    await updateDoc(docRef, { order: index });
+  });
+  await Promise.all(batch);
+};
+
 
 export const addTeamMember = async (
   member: Omit<TeamMember, 'id'>, 
@@ -148,4 +179,35 @@ export const uploadImage = async (file: File, path: string): Promise<string> => 
 export const deleteImage = async (path: string): Promise<void> => {
   const storageRef = ref(storage, path);
   await deleteObject(storageRef);
+};
+
+// ============ Home Page What We Do Content ============
+
+const WHAT_WE_DO_DOC_ID = 'whatWeDo';
+
+export const getHomePageWhatWeDo = async (): Promise<HomePageWhatWeDo | null> => {
+  try {
+    const docRef = doc(db, 'homePageContent', WHAT_WE_DO_DOC_ID);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data() as HomePageWhatWeDo;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching home page what we do content:', error);
+    return null;
+  }
+};
+
+export const updateHomePageWhatWeDo = async (content: Partial<HomePageWhatWeDo>, updatedBy?: string): Promise<void> => {
+  const docRef = doc(db, 'homePageContent', WHAT_WE_DO_DOC_ID);
+  const updateData: Partial<HomePageWhatWeDo> = {
+    ...content,
+    updatedAt: new Date().toISOString(),
+  };
+  if (updatedBy) {
+    updateData.updatedBy = updatedBy;
+  }
+  
+  await setDoc(docRef, updateData, { merge: true });
 };
