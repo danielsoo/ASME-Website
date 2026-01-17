@@ -238,7 +238,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
       // Projects loaded but not found - show error
       return (
         <div 
-          className="min-h-screen bg-[#0f131a] flex items-center justify-center relative"
+          className="min-h-screen bg-[#e5e7eb] flex items-center justify-center relative"
           style={{
             minHeight: 'calc(100vh + 140px)',
             marginTop: '-140px',
@@ -261,7 +261,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
 
   return (
     <div 
-      className="min-h-screen bg-[#0f131a] py-12 relative"
+      className="min-h-screen bg-gray-100 py-12 relative"
       style={{
         minHeight: 'calc(100vh + 140px)',
         marginTop: '-140px',

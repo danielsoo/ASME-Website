@@ -8,76 +8,90 @@ interface ProjectCardProps {
 }
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavigate }) => {
+  const [isHovered, setIsHovered] = React.useState(false);
+  const [showChairs, setShowChairs] = React.useState(false);
+
+
   return (
-    <div id={`project-${project.id}`} className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden mb-8">
+    <div id={`project-${project.id}`} className="bg-[#DEE7ED] border border-gray-700 rounded-lg overflow-hidden mb-8 shadow-md"
+    onClick={() => onImageClick?.(project)}>
       {/* Image Header Section */}
-      <div className="relative h-64 w-full overflow-hidden">
+      <div className="relative h-48 w-full overflow-hidden"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         <img 
           src={project.imageUrl} 
           alt={project.title} 
           className="w-full h-full object-cover transition-transform duration-700 hover:scale-105 cursor-pointer"
-          onClick={() => onImageClick?.(project)}
         />
-        <div className="absolute bottom-0 left-0 p-6 bg-gradient-to-t from-black/80 to-transparent w-full">
-          <h3 className="text-2xl font-bold font-jost text-white tracking-wider uppercase">{project.title}</h3>
+        <div className="absolute bottom-0 left-0 p-6 bg-black/25 w-full h-full hover:bg-black/50 transition-all ease-in-out cursor-pointer">
+          <h3 className="flex text-2xl font-bold font-jost text-white tracking-wider uppercase cursor-pointer">
+            {project.title}
+            <span className={`block pl-2 transition-all duration-300 ease-in-out
+              ${isHovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}>
+                ➜
+            </span>
+          </h3>
+          <p className="text-white text-sm leading-relaxed mb-6 font-jost pt-2">
+            {project.description}
+          </p>
         </div>
       </div>
 
       {/* Content Section */}
       <div className="p-6">
-        <p className="text-gray-300 text-sm leading-relaxed mb-6 font-jost">
-          {project.description}
-        </p>
 
         {/* Project Leader Section */}
         {(project.leaderEmail || project.leaderId) && (
-          <div className="mb-6 pb-4 border-b border-gray-700">
-            <p className="text-xs text-gray-400 font-jost mb-3 uppercase tracking-wide">Project Leader</p>
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full bg-slate-600 flex-shrink-0"></div>
+          <div>
+            <p className="text-xs text-[#48597F] font-jost uppercase tracking-wide">Project Leader</p>
+            <div className="flex items-center justify-between">
               <div className="flex flex-col">
-                <span className="text-xs text-white font-medium">
+                <span className="text-xs text-black font-medium">
                   {project.leaderName || project.leaderEmail?.split('@')[0] || 'Project Leader'}
                 </span>
-                <span className="text-[10px] text-blue-300">Project Leader</span>
+                
               </div>
+              <button 
+                onClick={(e) => {
+                e.stopPropagation();
+                setShowChairs(prev => !prev);
+                }}
+                className="text-xs text-[#48597F] hover:underline decoration-[#48597F] transition-all cursor-pointer"
+              >
+                {showChairs ? "Show less" : "Load more..."}
+              </button>
             </div>
           </div>
         )}
 
         {/* Members Grid */}
-        {(project.chairs && project.chairs.length > 0) || (project.members && project.members.length > 0) ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Display members from members array (Firebase managed) */}
-            {project.members?.map((member, index) => (
+        {(project.chairs && project.chairs.length > 0) && showChairs ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 border-t border-gray-700 pt-4 mt-3">
+            {/*not sure if the members are actually implemented or relevent, don't think that they even want members on the project pages, just chairs*/}
+            {/* Display members from members array (Firebase managed)
+            {showChairs && project.members?.map((member, index) => (
               <div key={`member-${member.userId}-${index}`} className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-slate-600 flex-shrink-0"></div>
+                <div className="w-9 h-9 rounded-full bg-slate-600 flex-shrink-0"></div>
                 <div className="flex flex-col">
-                  <span className="text-xs text-white font-medium">{member.userName}</span>
-                  <span className="text-[10px] text-blue-300">{member.projectRole}</span>
+                  <span className="text-xs text-black font-medium">{member.userName}</span>
+                  <span className="text-[10px] text-[#48597F]">{member.projectRole}</span>
                 </div>
               </div>
-            ))}
+            ))}*/}
             
             {/* Display chairs (legacy data) */}
             {project.chairs?.map((chair, index) => (
               <div key={`chair-${index}`} className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-slate-600 flex-shrink-0"></div>
                 <div className="flex flex-col">
-                  <span className="text-xs text-white font-medium">{chair.name}</span>
-                  <span className="text-[10px] text-blue-300">{chair.role}</span>
+                  <span className="text-xs text-black font-medium">{chair.name}</span>
+                  <span className="text-[10px] text-[#48597F]">{chair.role}</span>
                 </div>
               </div>
             ))}
             
-            <div className="flex items-center justify-end w-full col-span-1 md:col-span-2 lg:col-span-3">
-              <button 
-                onClick={() => onImageClick?.(project)}
-                className="text-sm text-blue-300 hover:text-white underline decoration-blue-300/50 hover:decoration-white transition-all cursor-pointer"
-              >
-                Load more...
-              </button>
-            </div>
+            
           </div>
         ) : !(project.leaderEmail || project.leaderId) ? (
           <div className="text-sm text-gray-400 font-jost italic">

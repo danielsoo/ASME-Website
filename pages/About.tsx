@@ -93,15 +93,6 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                           <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">Our General Body</h2>
               <div className="space-y-4">
                 <p className="text-gray-800 leading-relaxed font-jost">
-                  Established in 1880, the American Society of Mechanical Engineers (ASME) is an international organization comprised of over <span className="text-red-600 font-bold">85,000 members</span> from over 100 countries.
-                </p>
-                <p className="text-gray-800 leading-relaxed font-jost">
-                  ASME serves both mechanical and interdisciplinary engineers in technical standardization, experimental procedures, and development codes to make the engineering landscape safer overall. The organization plays a crucial role in establishing safety standards, codes, and best practices that are used worldwide in various industries including manufacturing, energy, aerospace, and biomedical engineering.
-                </p>
-                <p className="text-gray-800 leading-relaxed font-jost">
-                  To learn more about the international ASME organization, visit this <a href="https://www.asme.org" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">link</a>.
-                </p>
-                <p className="text-gray-800 leading-relaxed font-jost">
                   <strong>WE ARE!</strong> the Penn State's chapter of ASME and are looking forward to providing unique opportunities for Mechanical Engineers at PSU. Our chapter is dedicated to fostering professional development, networking opportunities, and hands-on engineering experiences. We organize workshops, technical sessions, industry visits, and social events that help our members grow both academically and professionally.
                 </p>
                 <p className="text-gray-800 leading-relaxed font-jost">
