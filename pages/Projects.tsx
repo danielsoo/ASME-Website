@@ -271,7 +271,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
       <div className="container mx-auto px-4">
         
         {/* Toggle Controls */}
-        <div className="flex space-x-1 bg-gray-800 p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0">
+        <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">
           <button
             onClick={() => {
               setView('current');
@@ -280,7 +280,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
               }
             }}
             className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all ${
-              view === 'current' ? 'bg-[#3b4c6b] text-white shadow' : 'text-gray-400 hover:text-white'
+              view === 'current' ? 'bg-[#3b4c6b] text-white shadow' : 'text-gray-400 hover:text-[#48597F]'
             }`}
           >
             Projects
@@ -293,7 +293,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
               }
             }}
             className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all ${
-              view === 'past' ? 'bg-[#3b4c6b] text-white shadow' : 'text-gray-400 hover:text-white'
+              view === 'past' ? 'bg-[#3b4c6b] text-white shadow' : 'text-gray-400 hover:text-[#48597F]'
             }`}
           >
             Past Projects

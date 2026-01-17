@@ -40,17 +40,17 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     loadData();
   }, []);
 
-  const scrollToAboutUs = () => {
+  const navigateToAbout = () => {
     if (onNavigate) {
-      onNavigate('/about/generalbody');
-    } else {
-      const aboutUsSection = document.getElementById('about-us-section');
-      if (aboutUsSection) {
-        aboutUsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      onNavigate('/about');
     }
   };
-
+  const navigateToGeneralBody = () => {
+    if (onNavigate) {
+      onNavigate('/about/generalbody');
+    }
+  };
+  
   const navigateToDesignTeam = () => {
     if (onNavigate) {
       onNavigate('/about/designteam');
@@ -60,9 +60,34 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
   // If on /about/generalbody route, show only About Us section with Executive Board
   if (currentPath === '/about/generalbody') {
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen bg-gray-100 py-12">
         {/* About Us Section - Full page view */}
-        <div id="about-us-section" className="bg-gray-100 py-16">
+        <div className="container mx-auto px-4">
+                
+          {/* Toggle Controls */}
+          <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">
+            <button
+              onClick={navigateToAbout}
+              className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all text-gray-400 hover:text-[#48597F]`}
+            >
+            Back
+            </button>
+            <button
+              onClick={navigateToGeneralBody}
+              className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all bg-[#3b4c6b] text-white shadow`}
+            >
+            General Body
+            </button>
+            <button
+              onClick={navigateToDesignTeam}
+              className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all text-gray-400 hover:text-[#48597F]`}
+            >
+            Design Team
+            </button>
+          </div>
+        </div>
+
+        <div id="about-us-section" className="bg-gray-100 pb-16">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-12 items-start">
             {/* Left Column - Our General Body */}
@@ -147,9 +172,34 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     const pastProjects = PROJECTS.filter(p => p.status === 'past');
 
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen bg-gray-100 py-12">
         {/* Design Team Section - Full page view */}
-        <div id="about-us-section" className="bg-gray-100 py-16">
+        <div className="container mx-auto px-4">
+                
+          {/* Toggle Controls */}
+          <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">
+            <button
+              onClick={navigateToAbout}
+              className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all text-gray-400 hover:text-[#48597F]`}
+            >
+            Back
+            </button>
+            <button
+              onClick={navigateToGeneralBody}
+              className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all text-gray-400 hover:text-[#48597F]`}
+            >
+            General Body
+            </button>
+            <button
+              onClick={navigateToDesignTeam}
+              className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all bg-[#3b4c6b] text-white shadow`}
+            >
+            Design Team
+            </button>
+          </div>
+        </div> 
+
+        <div id="about-us-section" className="bg-gray-100 pb-16">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-12 items-start">
             {/* Left Column - Our Design Team */}
@@ -240,7 +290,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
       </div>
 
       {/* Design Board Section - Same as regular About page */}
-      <div className="bg-[#e5e7eb] py-16">
+      <div className="bg-[#e5e7eb] py-16 ">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-2">
             Design Board
@@ -271,7 +321,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
         paddingTop: '140px',
       }}
     >
-        
+      
       {/* Hero / About Us Text */}
       <div className="container mx-auto px-4 py-16">
          <div className="flex flex-col md:flex-row gap-12 items-start">
@@ -299,11 +349,11 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
       Our Teams
     </h2>
 
-    <div className="space-y-8">
+    <div className="space-y-8 ">
         {/* General Body */}
         <div
-          className="relative group cursor-pointer overflow-hidden rounded-xl h-48 w-full"
-          onClick={scrollToAboutUs}
+          className="relative group cursor-pointer overflow-hidden rounded-xl h-48 w-full shadow-md"
+          onClick={navigateToGeneralBody}
         >
           <img
             src="https://picsum.photos/seed/team1/800/600"
@@ -319,7 +369,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
 
         {/* Design Team */}
         <div
-          className="relative group cursor-pointer overflow-hidden rounded-xl h-48 w-full"
+          className="relative group cursor-pointer overflow-hidden rounded-xl h-48 w-full shadow-md"
           onClick={navigateToDesignTeam}
         >
           <img
