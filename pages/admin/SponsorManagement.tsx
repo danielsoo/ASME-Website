@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { db, auth } from '../../firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Sponsor } from '../../types';
@@ -18,14 +19,15 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showMemberModal, setShowMemberModal] = useState(false);
   const [selectedSponsor, setSelectedSponsor] = useState<Sponsor | null>(null);
   const [allUsers, setAllUsers] = useState<any[]>([]);
 
   // Form states
   const [sponsorName, setSponsorName] = useState('');
   const [sponsorLink, setSponsorLink] = useState('');
-  const [sponsorLogo, setSponsorLogo] = useState('');
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+
 
   // Confirm delete modal state
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -74,8 +76,8 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   const loadSponsors = async () => {
     try {
       setLoading(true);
-      const projectsRef = collection(db, 'projects');
-      const snapshot = await getDocs(projectsRef);
+      const sponsorsRef = collection(db, 'sponsors');
+      const snapshot = await getDocs(sponsorsRef);
       const sponsorsList: Sponsor[] = [];
       
       snapshot.forEach((docSnap) => {
@@ -183,9 +185,27 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     return currentUserRole === 'President' || currentUserRole === 'Vice President';
   };
 
+  // helper function to upload a file to firebase
+  const uploadSponsorLogo = async (file: File): Promise<string> => {
+    const storage = getStorage();
+    const fileRef = ref(
+      storage,
+      `sponsors/${Date.now()}-${file.name}`
+    );
+
+    await uploadBytes(fileRef, file);
+    return await getDownloadURL(fileRef);
+  }
+
+
   const handleAddSponsor = async () => {
     if (!sponsorName.trim()) {
       showAlert('warning', 'Validation Error', 'Please enter a sponsor name.');
+      return;
+    }
+
+    if (!logoFile) {
+      showAlert('warning', 'Validation Error', 'Please upload a sponsor logo.');
       return;
     }
 
@@ -194,10 +214,12 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     const needsApproval = !canManageSponsors();
 
     try {
+      const uploadedLogoUrl = await uploadSponsorLogo(logoFile);
+
       await addDoc(collection(db, 'sponsors'), {
         name: sponsorName.trim(),
         link: sponsorLink.trim(),
-        logoUrl: sponsorLogo.trim(),
+        logoUrl: uploadedLogoUrl,
         approvalStatus: needsApproval ? 'pending' : 'approved',
         createdBy: currentUserId,
         approvedBy: canManageSponsors() ? currentUserId : null,
@@ -209,7 +231,9 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
       setShowCreateModal(false);
       setSponsorName('');
       setSponsorLink('');
-      setSponsorLogo('');
+      setLogoFile(null);
+      setLogoPreview(null);
+
       await loadSponsors();
       
       if (needsApproval) {
@@ -230,23 +254,27 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
 
     // Only allow editing if user is President/VP/Admin (canManageSponsors)
     // Project leaders cannot edit sponsor details, only manage members
-    if (!canManageSponsors()) {
-      showAlert('error', 'Access Denied', 'Only President, Vice President, or Admin can edit sponsor details.');
-      setShowEditModal(false);
-      setSelectedSponsor(null);
-      return;
-    }
+
 
     try {
+      let updatedLogoUrl = selectedSponsor.logoUrl;
+
+      if (logoFile) {
+        updatedLogoUrl = await uploadSponsorLogo(logoFile)
+      }
+
       await updateDoc(doc(db, 'sponsors', selectedSponsor.id), {
         name: sponsorName.trim(),
         link: sponsorLink.trim(),
-        logoUrl: sponsorLogo.trim(),
+        logoUrl: updatedLogoUrl,
         updatedAt: new Date().toISOString(),
       });
 
       setShowEditModal(false);
       setSelectedSponsor(null);
+      setLogoFile(null);
+      setLogoPreview(null);
+
       await loadSponsors();
       showAlert('success', 'Success', 'Sponsor updated successfully!');
     } catch (error) {
@@ -295,14 +323,21 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     setSelectedSponsor(sponsor);
     setSponsorName(sponsor.name);
     setSponsorLink(sponsor.link);
-    setSponsorLogo(sponsor.logoUrl || '');
+    setLogoFile(null);
+    setLogoPreview(sponsor.logoUrl);
     setShowEditModal(true);
   };
 
-  const openMemberModal = (sponsor: Sponsor) => {
-    setSelectedSponsor(sponsor);
-    setShowMemberModal(true);
-  };
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setLogoFile(file)
+
+    // Optional: preview before upload
+    const previewUrl = URL.createObjectURL(file)
+    setLogoPreview(previewUrl)
+  }
 
   // Check access: Executive Board can create, President/VP/Admin can manage all
   const hasSponsorAccess = isExecBoardMember() || canManageSponsors();
@@ -347,7 +382,8 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                 onClick={() => {
                   setSponsorName('');
                   setSponsorLink('');
-                  setSponsorLogo('');
+                  setLogoFile(null);
+                  setLogoPreview(null);
                   setShowCreateModal(true);
                 }}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
@@ -469,14 +505,20 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Sponsor Logo
                   </label>
-                  <textarea
-                    value={sponsorLogo}
-                    onChange={(e) => setSponsorLogo(e.target.value)}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleLogoUpload(e)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
-                    rows={4}
-                    placeholder="Sponsor Logo Link..."
                   />
+                  {logoPreview && (
+                    <img
+                      src={logoPreview}
+                      alt="Logo preview"
+                      className="mt-4 h-32 object-contain border rounded"
+                    />
+                  )}
+
                 </div>
 
                 {!canManageSponsors() && (
@@ -535,6 +577,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                     className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
                     style={{ color: '#111827', backgroundColor: '#ffffff' }}
                     rows={4}
+                    placeholder="Sponsor Website Link..."
                   />
                 </div>
 
@@ -542,13 +585,19 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Sponsor Logo
                   </label>
-                  <textarea
-                    value={sponsorLink}
-                    onChange={(e) => setSponsorLink(e.target.value)}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleLogoUpload(e)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
-                    rows={4}
                   />
+                  {logoPreview && (
+                    <img
+                      src={logoPreview}
+                      alt="Logo preview"
+                      className="mt-4 h-32 object-contain border rounded"
+                    />
+                  )}
                 </div>
 
               </div>

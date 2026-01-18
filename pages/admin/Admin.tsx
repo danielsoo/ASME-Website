@@ -173,7 +173,7 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
     return (
       <div>
         <AdminHeader/>
-        
+        <SponsorManagement onNavigate={onNavigate || (() => {})} />
       </div>
     )
   }
