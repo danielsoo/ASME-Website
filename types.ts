@@ -90,6 +90,9 @@ export interface Event {
 export interface Sponsor {
   id: string;
   name: string;
+  link: string;
   logoUrl: string;
+  approvalStatus?: 'pending' | 'approved';
+  createdBy?: string;
   tier?: string;
 }

@@ -18,7 +18,7 @@ const Sponsors: React.FC = () => {
           <div className="container mx-auto">
               <h1 className="text-black font-bold text-xl mb-1">Become a Sponsor</h1>
               <p className="text-gray-700 text-sm">
-                  If you're interested in becoming a sponsor, email us at <a href="mailto:gmk5561@psu.edu" className="text-blue-600 font-bold">gmk5561@psu.edu</a> or <a href="mailto:president.asme.psu@gmail.com" className="text-blue-600 font-bold">president.asme.psu@gmail.com</a> to receive our Sponsorship packet!
+                  If you're interested in becoming a sponsor, email us at <a href="mailto:jjn5654@psu.edu" className="text-blue-600 font-bold">jjn5654@psu.edu</a> to receive our Sponsorship packet!
               </p>
           </div>
       </div>
@@ -27,24 +27,25 @@ const Sponsors: React.FC = () => {
       <div className="bg-white py-20 px-4 text-center">
           <div className="container mx-auto max-w-4xl relative">
               {/* Decorative Gears */}
-              <Settings className="absolute left-0 top-1/2 -translate-y-1/2 w-32 h-32 text-[#0f131a] hidden md:block" strokeWidth={1} />
-              <Settings className="absolute right-0 top-1/2 -translate-y-1/2 w-32 h-32 text-[#0f131a] hidden md:block" strokeWidth={1} />
+              <Settings className="absolute left-4 top-1/4 -translate-y-1/2 w-32 h-32 text-[#0f131a] hidden md:block" strokeWidth={1} />
+              <Settings className="absolute right-4 top-1/4 -translate-y-1/2 w-32 h-32 text-[#0f131a] hidden md:block" strokeWidth={1} />
 
               <h2 className="text-[#0f131a] text-4xl font-bold mb-4">Get in Touch!</h2>
               <p className="text-black text-lg mb-8 max-w-xl mx-auto">
                   Looking to provide professional insight and support to ASME? Consider choosing one of the options below to help us out!
               </p>
               
-              <div className="flex justify-center gap-8 flex-wrap">
-                  <button className="bg-[#4a5568] hover:bg-[#2d3748] text-white font-bold py-3 px-8 rounded shadow-lg transition w-48">
-                      Guest Lecturer
-                  </button>
-                  <a href="https://secure.ddar.psu.edu/s/1218/2014/index.aspx?sid=1218&gid=1&pgid=658&cid=2321&dids=17094&bledit=1&appealcode=AZZ1K" target="_blank" rel="noopener noreferrer" className="bg-[#4a5568] hover:bg-[#2d3748] text-white font-bold py-3 px-8 rounded shadow-lg transition w-48 text-center">
+              <div className="flex justify-center gap-12 flex-wrap">
+                  <a href="https://secure.ddar.psu.edu/s/1218/2014/index.aspx?sid=1218&gid=1&pgid=658&cid=2321&dids=17094&bledit=1&appealcode=AZZ1K" target="_blank" rel="noopener noreferrer" className="bg-[#840131] hover:bg-[#4D021E] text-white font-bold py-3 px-8 rounded shadow-lg transition w-48 text-center">
                       Donate
                   </a>
                   <a href="https://donate.thon.org/events/4542" target="_blank" rel="noopener noreferrer" className="bg-[#4a5568] hover:bg-[#2d3748] text-white font-bold py-3 px-8 rounded shadow-lg transition w-48 text-center">
                       Donate to THON
                   </a>
+              </div>
+              <div className="text-black mt-2">
+                <p>OR</p>
+                <p>Become a guest speaker by emailing us at <a href="mailto:jjn5654@psu.edu" className="text-blue-600 font-bold">jjn5654@psu.edu</a></p>
               </div>
           </div>
       </div>

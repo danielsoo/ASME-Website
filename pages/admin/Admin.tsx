@@ -6,6 +6,7 @@ import Login from './Login';
 import Dashboard from './Dashboard';
 import UserApproval from './UserApproval';
 import SetupAdmin from './SetupAdmin';
+import SponsorManagement from './SponsorManagement';
 import ProjectManagement from './ProjectManagement';
 import ProjectApprovals from './ProjectApprovals';
 import ProjectTrash from './ProjectTrash';
@@ -165,6 +166,16 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
         <MemberManagement onNavigate={onNavigate || (() => {})} />
       </div>
     );
+  }
+
+  // Sponsors Management page
+  if (currentPath === '/admin/sponsors') {
+    return (
+      <div>
+        <AdminHeader/>
+        
+      </div>
+    )
   }
 
   // Default to dashboard
