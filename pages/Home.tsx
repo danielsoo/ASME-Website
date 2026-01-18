@@ -74,7 +74,7 @@ const Home: React.FC = () => {
             <h3 className="text-3xl font-jost font-bold mb-6 text-white text-center">Next Meeting</h3>
             
             {/* Simple Mock Calendar Card */}
-            <div className="bg-white rounded-3xl p-6 shadow-2xl w-full max-w-4xl overflow-hidden">
+            <div className="bg-white rounded-2xl p-4 shadow-2xl w-full md:w-1/2 max-w-4xl overflow-hidden">
                 <div className="flex justify-between items-center mb-6 px-4">
                     <div className="flex gap-4 items-center">
                         <span className="text-4xl font-light text-gray-800">19</span>
@@ -85,37 +85,54 @@ const Home: React.FC = () => {
                     </div>
                 </div>
                 {/* Visual Grid for Calendar */}
-                <div className="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden">
-                    {['SUN','MON','TUE','WED','THU','FRI','SAT'].map(d => (
-                        <div key={d} className="bg-white py-2 text-center text-xs font-semibold text-gray-500">{d}</div>
-                    ))}
-                    {/* Mock Days */}
-                    {Array.from({length: 31}).map((_, i) => (
-                        <div key={i} className={`bg-white h-24 p-1 relative ${i === 20 ? 'bg-blue-50' : ''}`}>
-                             <span className={`text-sm ${i===20 ? 'bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center' : 'text-gray-700'}`}>{i+1}</span>
-                             {i === 20 && (
-                                 <div className="absolute top-1/2 left-2 right-2 h-1 bg-red-500 rounded-full"></div>
-                             )}
+                <div className="aspect-square w-full">
+                  <div className="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden">
+                      {['SUN','MON','TUE','WED','THU','FRI','SAT'].map(d => (
+                          <div key={d} className="bg-white py-2 text-center text-xs font-semibold text-gray-500">{d}</div>
+                      ))}
+                      {/* Mock Days */}
+                      {Array.from({ length: 31 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className={`bg-white aspect-square p-1 relative ${
+                            i === 20 ? 'bg-blue-50' : ''
+                          }`}
+                        >
+                          <span
+                            className={`text-sm ${
+                              i === 20
+                                ? 'bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center'
+                                : 'text-gray-700'
+                            }`}
+                          >
+                            {i + 1}
+                          </span>
+
+                          {i === 20 && (
+                            <div className="absolute top-1/2 left-2 right-2 h-1 bg-red-500 rounded-full"></div>
+                          )}
                         </div>
-                    ))}
+                      ))}
+                  </div>
                 </div>
+                
             </div>
         </div>
       </div>
 
       {/* What we do Section */}
       <div className="container mx-auto px-4 mb-24">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-center">
             <div className="space-y-6">
-                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4 hover:w-full transition-all duration-300 group cursor-pointer">
+                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4">
                     <div className="w-10 h-10 rounded-full border-2 border-asme-dark flex items-center justify-center font-bold text-asme-dark mr-4">1</div>
                     <span className="font-jost font-bold text-asme-dark tracking-widest text-lg">PROJECTS</span>
                 </div>
-                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4 hover:w-full transition-all duration-300 group cursor-pointer ml-8">
+                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4">
                     <div className="w-10 h-10 rounded-full border-2 border-asme-dark flex items-center justify-center font-bold text-asme-dark mr-4">2</div>
                     <span className="font-jost font-bold text-asme-dark tracking-widest text-lg">WORKSHOPS</span>
                 </div>
-                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4 hover:w-full transition-all duration-300 group cursor-pointer ml-16">
+                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4">
                     <div className="w-10 h-10 rounded-full border-2 border-asme-dark flex items-center justify-center font-bold text-asme-dark mr-4">3</div>
                     <span className="font-jost font-bold text-asme-dark tracking-widest text-lg">SOCIALS</span>
                 </div>
@@ -129,19 +146,19 @@ const Home: React.FC = () => {
                 <p>
                     Everyone is welcome (not just Mechanical engineers), and there are no membership requirements or dues. Just show up!
                 </p>
-                <button className="bg-[#4a5568] hover:bg-[#2d3748] text-white font-bold py-2 px-6 rounded shadow transition">
+                <button className="bg-[#212C47] hover:bg-[#111828] text-white font-bold py-2 px-6 rounded shadow transition">
                     Join our GroupMe
                 </button>
             </div>
         </div>
       </div>
 
-      {/* Embedded Linktree Placeholder */}
+      {/* Embedded Linktree Placeholder
       <div className="container mx-auto px-4 mb-24">
           <div className="w-full h-64 bg-asme-red flex items-center justify-center rounded-lg shadow-inner">
               <span className="text-white font-jost font-bold text-xl tracking-widest uppercase">Embedded Linktree</span>
           </div>
-      </div>
+      </div>*/}
 
     </div>
   );
