@@ -49,6 +49,25 @@
           -ms-overflow-style: none;  /* IE and Edge */
           scrollbar-width: none;  /* Firefox */
       }
+      /* Remove border from footer */
+      footer {
+          border: none !important;
+          border-top: none !important;
+          border-bottom: none !important;
+          border-left: none !important;
+          border-right: none !important;
+          outline: none !important;
+          box-shadow: none !important;
+          margin-bottom: 0 !important;
+          padding-bottom: 0 !important;
+      }
+      /* Ensure footer covers bottom completely */
+      footer::after {
+          display: none !important;
+      }
+      footer::before {
+          display: none !important;
+      }
     </style>
   <script type="importmap">
 {
