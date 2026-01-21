@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Project } from '../types';
 import { GripVertical } from 'lucide-react';
 
@@ -11,8 +11,10 @@ interface ProjectCardProps {
 }
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavigate, showDragHandle, onDragHandleMouseDown }) => {
+  const [showAllMembers, setShowAllMembers] = useState(false);
+
   return (
-    <div id={`project-${project.id}`} className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden mb-8 relative">
+    <div id={`project-${project.id}`} className="bg-[#DEE7ED] border border-gray-700 rounded-lg overflow-hidden mb-8 shadow-md relative">
       {/* Drag Handle */}
       {showDragHandle && (
         <div
@@ -39,36 +41,44 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavi
 
       {/* Content Section */}
       <div className="p-6">
-        <p className="text-gray-300 text-sm leading-relaxed mb-6 font-jost">
+        <p className="text-gray-700 text-sm leading-relaxed mb-6 font-jost">
           {project.description}
         </p>
 
         {/* Project Leader Section */}
         {(project.leaderEmail || project.leaderId) && (
-          <div className="mb-6 pb-4 border-b border-gray-700">
-            <p className="text-xs text-gray-400 font-jost mb-3 uppercase tracking-wide">Project Leader</p>
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full bg-slate-600 flex-shrink-0"></div>
+          <div>
+            <p className="text-xs text-[#48597F] font-jost uppercase tracking-wide">Project Leader</p>
+            <div className="flex items-center justify-between">
               <div className="flex flex-col">
-                <span className="text-xs text-white font-medium">
+                <span className="text-xs text-black font-medium">
                   {project.leaderName || project.leaderEmail?.split('@')[0] || 'Project Leader'}
                 </span>
-                <span className="text-[10px] text-blue-300">Project Leader</span>
               </div>
+              {((project.chairs && project.chairs.length > 0) || (project.members && project.members.length > 0)) && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAllMembers(!showAllMembers);
+                  }}
+                  className="text-xs text-[#48597F] hover:underline decoration-[#48597F] transition-all cursor-pointer"
+                >
+                  {showAllMembers ? "Show less" : "Load more..."}
+                </button>
+              )}
             </div>
           </div>
         )}
 
         {/* Members Grid */}
-        {(project.chairs && project.chairs.length > 0) || (project.members && project.members.length > 0) ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {((project.chairs && project.chairs.length > 0) || (project.members && project.members.length > 0)) && showAllMembers ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 border-t border-gray-700 pt-4 mt-3">
             {/* Display members from members array (Firebase managed) */}
             {project.members?.map((member, index) => (
               <div key={`member-${member.userId}-${index}`} className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-slate-600 flex-shrink-0"></div>
                 <div className="flex flex-col">
-                  <span className="text-xs text-white font-medium">{member.userName}</span>
-                  <span className="text-[10px] text-blue-300">{member.projectRole}</span>
+                  <span className="text-xs text-black font-medium">{member.userName}</span>
+                  <span className="text-[10px] text-[#48597F]">{member.projectRole}</span>
                 </div>
               </div>
             ))}
@@ -76,22 +86,12 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavi
             {/* Display chairs (legacy data) */}
             {project.chairs?.map((chair, index) => (
               <div key={`chair-${index}`} className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-slate-600 flex-shrink-0"></div>
                 <div className="flex flex-col">
-                  <span className="text-xs text-white font-medium">{chair.name}</span>
-                  <span className="text-[10px] text-blue-300">{chair.role}</span>
+                  <span className="text-xs text-black font-medium">{chair.name}</span>
+                  <span className="text-[10px] text-[#48597F]">{chair.role}</span>
                 </div>
               </div>
             ))}
-            
-            <div className="flex items-center justify-end w-full col-span-1 md:col-span-2 lg:col-span-3">
-              <button 
-                onClick={() => onImageClick?.(project)}
-                className="text-sm text-blue-300 hover:text-white underline decoration-blue-300/50 hover:decoration-white transition-all cursor-pointer"
-              >
-                Load more...
-              </button>
-            </div>
           </div>
         ) : !(project.leaderEmail || project.leaderId) ? (
           <div className="text-sm text-gray-400 font-jost italic">
