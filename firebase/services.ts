@@ -144,6 +144,90 @@ export const getEvents = async (): Promise<Event[]> => {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Event));
 };
 
+// Google Calendar API
+interface GoogleCalendarEvent {
+  id: string;
+  summary?: string;
+  description?: string;
+  start?: {
+    date?: string;
+    dateTime?: string;
+  };
+  end?: {
+    date?: string;
+    dateTime?: string;
+  };
+  location?: string;
+  htmlLink?: string;
+}
+
+export const getGoogleCalendarEvents = async (): Promise<Event[]> => {
+  try {
+    // Calendar ID from the provided URL (URL encoded)
+    const calendarId = 'ODJlM2NhNzNlYjEzZGZhNDk1Y2YxOGQyMjNhYWYxNDE0MjBkYzg3ZWE4NjcwMDRjOWI4MGY5NzhkMzNiNjBhYUBncm91cC5jYWxlbmRhci5nb29nbGUuY29t';
+    
+    // Decode the calendar ID
+    const decodedCalendarId = decodeURIComponent(calendarId);
+    
+    const now = new Date();
+    const timeMin = now.toISOString();
+    const timeMax = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString(); // 1 year from now
+    
+    // Fetch events from Google Calendar API (public calendar)
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(decodedCalendarId)}/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime&maxResults=2500`;
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.error('Error fetching Google Calendar events:', response.statusText);
+      return [];
+    }
+    
+    const data = await response.json();
+    
+    // Transform Google Calendar events to our Event format
+    const events: Event[] = (data.items || []).map((item: GoogleCalendarEvent) => {
+      const startDate = item.start?.dateTime || item.start?.date || '';
+      const endDate = item.end?.dateTime || item.end?.date || '';
+      
+      // Parse date
+      const eventDate = new Date(startDate);
+      const now = new Date();
+      const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      
+      // Determine event type
+      let type: 'upcoming' | 'past' | 'this_week' = 'upcoming';
+      if (eventDate < now) {
+        type = 'past';
+      } else if (eventDate <= weekFromNow) {
+        type = 'this_week';
+      }
+      
+      // Format date for display
+      const formattedDate = eventDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      
+      return {
+        id: item.id,
+        title: item.summary || 'Untitled Event',
+        description: item.description || '',
+        date: formattedDate,
+        dateTime: startDate, // Store original date string for accurate parsing
+        type: type,
+        location: item.location || undefined
+      } as Event & { dateTime?: string };
+    });
+    
+    return events;
+  } catch (error) {
+    console.error('Error fetching Google Calendar events:', error);
+    return [];
+  }
+};
+
 export const addEvent = async (event: Omit<Event, 'id'>): Promise<string> => {
   const docRef = await addDoc(collection(db, 'events'), event);
   return docRef.id;
