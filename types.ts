@@ -104,3 +104,13 @@ export interface HomePageWhatWeDo {
   updatedAt?: string;
   updatedBy?: string;
 }
+
+export interface InstagramPost {
+  id: string;
+  caption?: string;
+  mediaUrl: string;
+  permalink: string;
+  timestamp: string;
+  mediaType: 'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM';
+  thumbnailUrl?: string;
+}

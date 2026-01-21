@@ -12,7 +12,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from './config';
-import { TeamMember, Project, Event, Sponsor, HomePageWhatWeDo } from '../types';
+import { TeamMember, Project, Event, Sponsor, HomePageWhatWeDo, InstagramPost } from '../types';
 
 // ============ Team Members (Exec Board & Design Team) ============
 
@@ -307,4 +307,87 @@ export const updateHomePageWhatWeDo = async (content: Partial<HomePageWhatWeDo>,
   }
   
   await setDoc(docRef, updateData, { merge: true });
+};
+
+// ============ Instagram Feed ============
+
+interface InstagramMediaResponse {
+  id: string;
+  caption?: string;
+  media_type: 'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM';
+  media_url: string;
+  permalink: string;
+  thumbnail_url?: string;
+  timestamp: string;
+}
+
+/**
+ * Fetches Instagram posts using Instagram Basic Display API or Graph API
+ * Note: Requires an Access Token. You can get one from:
+ * - Instagram Basic Display API: https://developers.facebook.com/docs/instagram-basic-display-api
+ * - Instagram Graph API: https://developers.facebook.com/docs/instagram-api
+ * 
+ * For now, this function expects the access token to be stored in Firebase or environment variables.
+ * You'll need to set up the access token separately.
+ */
+export const getInstagramPosts = async (limit: number = 6): Promise<InstagramPost[]> => {
+  try {
+    // Try to get access token from environment variables first
+    let accessToken = import.meta.env.VITE_INSTAGRAM_ACCESS_TOKEN;
+    
+    // If not found in env, try to get from Firebase Firestore
+    if (!accessToken) {
+      try {
+        const settingsRef = doc(db, 'settings', 'instagram');
+        const settingsSnap = await getDoc(settingsRef);
+        if (settingsSnap.exists()) {
+          const settings = settingsSnap.data();
+          accessToken = settings.accessToken;
+        }
+      } catch (error) {
+        console.warn('Could not fetch Instagram token from Firestore:', error);
+      }
+    }
+    
+    if (!accessToken) {
+      console.warn('Instagram Access Token not found. Please set VITE_INSTAGRAM_ACCESS_TOKEN in your environment variables or add it to Firestore at settings/instagram with field "accessToken".');
+      return [];
+    }
+
+    // Instagram Graph API endpoint
+    // For Basic Display API, use: https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,permalink,thumbnail_url,timestamp&access_token={access-token}
+    const url = `https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,permalink,thumbnail_url,timestamp&limit=${limit}&access_token=${accessToken}`;
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Error fetching Instagram posts:', response.statusText, errorData);
+      
+      // If CORS error or other issues, return empty array
+      if (response.status === 0 || response.status === 401) {
+        console.warn('Instagram API access denied. This might be a CORS issue. Consider using Firebase Functions.');
+      }
+      
+      return [];
+    }
+    
+    const data = await response.json();
+    
+    // Transform Instagram API response to our InstagramPost format
+    const posts: InstagramPost[] = (data.data || []).map((item: InstagramMediaResponse) => ({
+      id: item.id,
+      caption: item.caption || '',
+      mediaUrl: item.media_url,
+      permalink: item.permalink,
+      timestamp: item.timestamp,
+      mediaType: item.media_type,
+      thumbnailUrl: item.thumbnail_url || item.media_url
+    }));
+    
+    return posts;
+  } catch (error) {
+    console.error('Error fetching Instagram posts:', error);
+    return [];
+  }
 };
