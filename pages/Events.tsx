@@ -9,7 +9,7 @@ const Events: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen bg-[#0f131a] text-[#1E2B48] font-jost pb-20 relative"
+      className="min-h-screen bg-white text-[#1E2B48] font-jost pb-20 relative"
       style={{
         minHeight: 'calc(100vh + 140px)',
         marginTop: '-140px',
