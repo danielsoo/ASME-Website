@@ -399,9 +399,9 @@ const Home: React.FC = () => {
                         {content.buttonText}
                       </a>
                     ) : (
-                      <button className="bg-[#4a5568] hover:bg-[#2d3748] text-white font-bold py-2 px-6 rounded shadow transition">
+                <button className="bg-[#4a5568] hover:bg-[#2d3748] text-white font-bold py-2 px-6 rounded shadow transition">
                         {content.buttonText}
-                      </button>
+                </button>
                     )}
                   </>
                 )}
