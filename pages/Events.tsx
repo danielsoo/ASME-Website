@@ -8,14 +8,7 @@ const Events: React.FC = () => {
   const thisWeekEvents = EVENTS.filter(e => e.type === 'this_week');
 
   return (
-    <div 
-      className="min-h-screen bg-[#0f131a] text-[#1E2B48] font-jost pb-20 relative"
-      style={{
-        minHeight: 'calc(100vh + 140px)',
-        marginTop: '-140px',
-        paddingTop: '140px',
-      }}
-    >
+    <div className="min-h-screen bg-[#0f131a] text-[#1E2B48] font-jost pb-20 relative">
       
       {/* Calendar Section */}
       <div className="bg-white py-20 px-4">

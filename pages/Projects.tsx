@@ -238,7 +238,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
       // Projects loaded but not found - show error
       return (
         <div 
-          className="min-h-screen bg-[#e5e7eb] flex items-center justify-center relative"
+          className="min-h-screen bg-[#0f131a] flex items-center justify-center relative"
           style={{
             minHeight: 'calc(100vh + 140px)',
             marginTop: '-140px',
@@ -260,96 +260,93 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
   }
 
   return (
-    <div 
-      className="min-h-screen bg-gray-100 py-12 relative"
-      style={{
-        minHeight: 'calc(100vh + 140px)',
-        marginTop: '-140px',
-        paddingTop: 'calc(140px + 3rem)',
-      }}
-    >
-      <div className="container mx-auto px-4">
-        
-        {/* Toggle Controls */}
-        <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">
-          <button
-            onClick={() => {
-              setView('current');
-              if (onNavigate) {
-                onNavigate('/projects?view=current');
-              }
-            }}
-            className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all ${
-              view === 'current' ? 'bg-[#3b4c6b] text-white shadow' : 'text-gray-400 hover:text-[#48597F]'
-            }`}
-          >
-            Projects
-          </button>
-          <button
-            onClick={() => {
-              setView('past');
-              if (onNavigate) {
-                onNavigate('/projects?view=past');
-              }
-            }}
-            className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all ${
-              view === 'past' ? 'bg-[#3b4c6b] text-white shadow' : 'text-gray-400 hover:text-[#48597F]'
-            }`}
-          >
-            Past Projects
-          </button>
+    <div className="min-h-screen bg-[#0f131a] relative">
+      {/* Content */}
+      <div className="bg-gray-100 min-h-screen py-12 relative">
+        <div className="container mx-auto px-4">
+          
+          {/* Toggle Controls */}
+          <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">
+            <button
+              onClick={() => {
+                setView('current');
+                if (onNavigate) {
+                  onNavigate('/projects?view=current');
+                }
+              }}
+              className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all ${
+                view === 'current' ? 'bg-[#3b4c6b] text-white shadow' : 'text-gray-400 hover:text-[#48597F]'
+              }`}
+            >
+              Projects
+            </button>
+            <button
+              onClick={() => {
+                setView('past');
+                if (onNavigate) {
+                  onNavigate('/projects?view=past');
+                }
+              }}
+              className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all ${
+                view === 'past' ? 'bg-[#3b4c6b] text-white shadow' : 'text-gray-400 hover:text-[#48597F]'
+              }`}
+            >
+              Past Projects
+            </button>
+          </div>
+
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center text-gray-500 py-20 font-jost">
+              Loading projects...
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !loading && (
+            <div className="text-center text-red-500 py-20 font-jost">
+              {error}
+            </div>
+          )}
+
+          {/* Project List */}
+          {!loading && !error && (
+            <div className="space-y-12">
+                {filteredProjects.length > 0 ? (
+                    filteredProjects.map((project) => {
+                      // Add leader name to project for display
+                      const projectWithLeaderName = {
+                        ...project,
+                        leaderName: project.leaderId 
+                          ? userNames[project.leaderId] 
+                          : project.leaderEmail 
+                          ? userNames[project.leaderEmail] || project.leaderEmail.split('@')[0]
+                          : undefined
+                      };
+                      return (
+                        <ProjectCard 
+                          key={project.id} 
+                          project={projectWithLeaderName} 
+                          onImageClick={(project) => {
+                            if (onNavigate) {
+                              const slug = project.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                              onNavigate(`/projects/${slug}`);
+                            }
+                          }}
+                        />
+                      );
+                    })
+                ) : (
+                    <div className="text-center text-gray-500 py-20 font-jost">
+                        No projects found for this category.
+                    </div>
+                )}
+            </div>
+          )}
+
         </div>
-
-        {/* Loading State */}
-        {loading && (
-          <div className="text-center text-gray-500 py-20 font-jost">
-            Loading projects...
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && !loading && (
-          <div className="text-center text-red-500 py-20 font-jost">
-            {error}
-          </div>
-        )}
-
-        {/* Project List */}
-        {!loading && !error && (
-          <div className="space-y-12">
-              {filteredProjects.length > 0 ? (
-                  filteredProjects.map((project) => {
-                    // Add leader name to project for display
-                    const projectWithLeaderName = {
-                      ...project,
-                      leaderName: project.leaderId 
-                        ? userNames[project.leaderId] 
-                        : project.leaderEmail 
-                        ? userNames[project.leaderEmail] || project.leaderEmail.split('@')[0]
-                        : undefined
-                    };
-                    return (
-                      <ProjectCard 
-                        key={project.id} 
-                        project={projectWithLeaderName} 
-                        onImageClick={(project) => {
-                          if (onNavigate) {
-                            const slug = project.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                            onNavigate(`/projects/${slug}`);
-                          }
-                        }}
-                      />
-                    );
-                  })
-              ) : (
-                  <div className="text-center text-gray-500 py-20 font-jost">
-                      No projects found for this category.
-                  </div>
-              )}
-          </div>
-        )}
-
       </div>
+      
     </div>
   );
 };

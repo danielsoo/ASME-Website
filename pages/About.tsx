@@ -115,7 +115,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
             </div>
           </div>
           <div>
-                          <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">Our General Body</h2>
+            <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">Our General Body</h2>
               <div className="space-y-4">
                 <p className="text-gray-800 leading-relaxed font-jost">
                   <strong>WE ARE!</strong> the Penn State's chapter of ASME and are looking forward to providing unique opportunities for Mechanical Engineers at PSU. Our chapter is dedicated to fostering professional development, networking opportunities, and hands-on engineering experiences. We organize workshops, technical sessions, industry visits, and social events that help our members grow both academically and professionally.
@@ -313,14 +313,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
 
   // Regular About page view
   return (
-    <div 
-      className="min-h-screen bg-white pb-20 relative"
-      style={{
-        minHeight: 'calc(100vh + 140px)',
-        marginTop: '-140px',
-        paddingTop: '140px',
-      }}
-    >
+    <div className="min-h-screen bg-white pb-20 relative">
       
       {/* Hero / About Us Text */}
       <div className="container mx-auto px-4 py-16">
