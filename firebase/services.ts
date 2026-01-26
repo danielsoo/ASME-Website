@@ -246,8 +246,12 @@ export const deleteEvent = async (id: string): Promise<void> => {
 
 export const getSponsors = async (): Promise<Sponsor[]> => {
   const sponsorsRef = collection(db, 'sponsors');
-  const snapshot = await getDocs(query(sponsorsRef, orderBy('id')));
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sponsor));
+  const snapshot = await getDocs(sponsorsRef);
+  const sponsors = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sponsor));
+  // Filter out deleted sponsors and sort by name
+  return sponsors
+    .filter(sponsor => !sponsor.deletedAt)
+    .sort((a, b) => a.name.localeCompare(b.name));
 };
 
 export const addSponsor = async (sponsor: Omit<Sponsor, 'id'>): Promise<string> => {

@@ -10,6 +10,8 @@ import ProjectManagement from './ProjectManagement';
 import ProjectApprovals from './ProjectApprovals';
 import ProjectTrash from './ProjectTrash';
 import MemberManagement from './MemberManagement';
+import SponsorManagement from './SponsorManagement';
+import SponsorTrash from './SponsorTrash';
 
 interface AdminProps {
   currentPath?: string;
@@ -76,6 +78,16 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
   // Members Management page
   if (currentPath === '/admin/members') {
     return <MemberManagement onNavigate={onNavigate || (() => {})} />;
+  }
+
+  // Sponsor Management page
+  if (currentPath === '/admin/sponsors') {
+    return <SponsorManagement onNavigate={onNavigate || (() => {})} />;
+  }
+
+  // Sponsor Trash page
+  if (currentPath === '/admin/sponsors/trash') {
+    return <SponsorTrash onNavigate={onNavigate || (() => {})} />;
   }
 
   // Default to dashboard

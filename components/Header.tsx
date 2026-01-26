@@ -41,37 +41,48 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
     }
   }, [user]);
 
-  // Fetch admin notification counts (pending users, pending projects, deletion requests)
+  // Fetch admin notification counts (pending users, pending projects, deletion requests, sponsor deletion requests)
+  // Same logic as Dashboard
   useEffect(() => {
-    const isAdmin = userData?.role === 'admin' || userData?.role === 'President';
+    const isAdmin = userData?.role === 'admin' || userData?.role === 'President' || userData?.role === 'Vice President';
     if (!isAdmin) {
       setAdminNotificationCount(0);
       return;
     }
 
+    // Use state variables to match Dashboard logic exactly
     let pendingUsersCount = 0;
     let pendingProjectsCount = 0;
     let deletionRequestsCount = 0;
+    let sponsorDeletionRequestsCount = 0;
 
     const updateTotalCount = () => {
-      setAdminNotificationCount(pendingUsersCount + pendingProjectsCount + deletionRequestsCount);
+      // Exact same calculation as Dashboard: pendingUsersCount + pendingProjectsCount + deletionRequestsCount + sponsorDeletionRequestsCount
+      const total = pendingUsersCount + pendingProjectsCount + deletionRequestsCount + sponsorDeletionRequestsCount;
+      setAdminNotificationCount(total);
     };
 
-    // Set up real-time listener for pending users
+    // Listen for pending users - same as Dashboard
     const usersQuery = query(collection(db, 'users'), where('status', '==', 'pending'));
-    const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
-      pendingUsersCount = snapshot.size;
-      updateTotalCount();
-    });
+    const unsubscribeUsers = onSnapshot(
+      usersQuery,
+      (snapshot) => {
+        pendingUsersCount = snapshot.size;
+        updateTotalCount();
+      },
+      (error) => {
+        console.error('Header - Error fetching pending users:', error);
+      }
+    );
 
-    // Set up real-time listener for pending projects
+    // Listen for pending projects - same as Dashboard
     const pendingProjectsQuery = query(collection(db, 'projects'), where('approvalStatus', '==', 'pending'));
     const unsubscribePendingProjects = onSnapshot(pendingProjectsQuery, (snapshot) => {
       pendingProjectsCount = snapshot.size;
       updateTotalCount();
     });
 
-    // Set up real-time listener for all projects (to count deletion requests)
+    // Listen for deletion requests (projects with permanentDeleteRequest that aren't fully approved) - same as Dashboard
     const allProjectsQuery = query(collection(db, 'projects'));
     const unsubscribeAllProjects = onSnapshot(allProjectsQuery, (snapshot) => {
       deletionRequestsCount = 0;
@@ -79,9 +90,26 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
         const data = docSnap.data();
         if (data.permanentDeleteRequest) {
           const request = data.permanentDeleteRequest;
-          // Count if not fully approved (either leader or exec approval is missing)
+          // Count if not fully approved (either leader or exec approval is missing) - same logic as Dashboard
           if (!request.approvedByLeader || !request.approvedByExec) {
             deletionRequestsCount++;
+          }
+        }
+      });
+      updateTotalCount();
+    });
+
+    // Listen for sponsor deletion requests (sponsors with permanentDeleteRequest that aren't fully approved) - same as Dashboard
+    const allSponsorsQuery = query(collection(db, 'sponsors'));
+    const unsubscribeAllSponsors = onSnapshot(allSponsorsQuery, (snapshot) => {
+      sponsorDeletionRequestsCount = 0;
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.permanentDeleteRequest) {
+          const request = data.permanentDeleteRequest;
+          // Count if not fully approved (both exec approvals are missing) - same logic as Dashboard
+          if (!request.approvedByExec1 || !request.approvedByExec2) {
+            sponsorDeletionRequestsCount++;
           }
         }
       });
@@ -92,6 +120,7 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
       unsubscribeUsers();
       unsubscribePendingProjects();
       unsubscribeAllProjects();
+      unsubscribeAllSponsors();
     };
   }, [userData?.role]);
 

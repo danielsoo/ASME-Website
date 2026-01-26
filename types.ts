@@ -93,7 +93,35 @@ export interface Sponsor {
   id: string;
   name: string;
   logoUrl: string;
+  link?: string;
   tier?: string;
+  // Approval system
+  approvalStatus?: 'pending' | 'approved';
+  createdBy?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  // Soft delete system
+  deletedAt?: string | null;
+  deletedBy?: string;
+  // Permanent delete approval system
+  permanentDeleteRequest?: {
+    requestedBy: string; // UID of President/VP who requested permanent delete
+    requestedAt: string; // Timestamp
+    approvedByExec1?: boolean; // Whether first President/VP approved
+    approvedByExec1At?: string; // When first exec approved
+    approvedByExec1By?: string; // UID of first exec who approved
+    rejectedByExec1?: boolean; // Whether first President/VP rejected
+    rejectedByExec1At?: string; // When first exec rejected
+    rejectedByExec1By?: string; // UID of first exec who rejected
+    approvedByExec2?: boolean; // Whether second President/VP approved
+    approvedByExec2At?: string; // When second exec approved
+    approvedByExec2By?: string; // UID of second exec who approved
+    rejectedByExec2?: boolean; // Whether second President/VP rejected
+    rejectedByExec2At?: string; // When second exec rejected
+    rejectedByExec2By?: string; // UID of second exec who rejected
+  };
 }
 
 export interface HomePageWhatWeDo {
