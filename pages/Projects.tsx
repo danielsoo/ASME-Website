@@ -321,7 +321,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
       // Projects loaded but not found - show error
       return (
         <div 
-          className="min-h-screen bg-[#e5e7eb] flex items-center justify-center relative"
+          className="min-h-screen bg-[#0f131a] flex items-center justify-center relative"
           style={{
             minHeight: 'calc(100vh + 140px)',
             marginTop: '-140px',
@@ -344,7 +344,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
 
   return (
     <div 
-      className="min-h-screen bg-gray-100 py-12 relative"
+      className="min-h-screen bg-[#0f131a] py-12 relative"
       style={{
         minHeight: 'calc(100vh + 140px)',
         marginTop: '-140px',
@@ -354,7 +354,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
       <div className="container mx-auto px-4">
         
         {/* Toggle Controls */}
-        <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">
+        <div className="flex space-x-1 bg-gray-800 p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0">
           <button
             onClick={() => {
               setView('current');
@@ -363,7 +363,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
               }
             }}
             className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all ${
-              view === 'current' ? 'bg-[#3b4c6b] text-white shadow' : 'text-gray-400 hover:text-[#48597F]'
+              view === 'current' ? 'bg-[#3b4c6b] text-white shadow' : 'text-gray-400 hover:text-white'
             }`}
           >
             Projects
@@ -376,7 +376,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
               }
             }}
             className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all ${
-              view === 'past' ? 'bg-[#3b4c6b] text-white shadow' : 'text-gray-400 hover:text-[#48597F]'
+              view === 'past' ? 'bg-[#3b4c6b] text-white shadow' : 'text-gray-400 hover:text-white'
             }`}
           >
             Past Projects
