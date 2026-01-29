@@ -51,18 +51,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
           getExecBoard(),
           getDesignTeam()
         ]);
-        console.log('About: Firebase data loaded - Exec:', execData.length, 'Design:', designData.length);
-        
-        // If Firebase returns empty arrays, fallback to constants
-        if (execData.length === 0 || designData.length === 0) {
-          console.log('About: Firebase returned empty arrays, using constants fallback');
-          const { EXEC_BOARD, DESIGN_TEAM } = await import('../constants');
-          setExecBoard(execData.length === 0 ? EXEC_BOARD : execData);
-          setDesignTeam(designData.length === 0 ? DESIGN_TEAM : designData);
-        } else {
-          setExecBoard(execData);
-          setDesignTeam(designData);
-        }
+        setExecBoard(execData);
+        setDesignTeam(designData);
       } catch (error) {
         console.error('Error loading data:', error);
         // Fallback to constants if Firebase fails
@@ -87,14 +77,14 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     e.preventDefault();
     if (draggedIndex === null || draggedIndex === index) return;
 
-    // Determine which team to reorder based on current path or active tab
-    const currentTeam = (currentPath === '/about/designteam' || activeTab === 'design') ? designTeam : execBoard;
+    // Determine which team to reorder based on current path
+    const currentTeam = (currentPath === '/about/designteam') ? designTeam : execBoard;
     const newOrder = [...currentTeam];
     const draggedItem = newOrder[draggedIndex];
     newOrder.splice(draggedIndex, 1);
     newOrder.splice(index, 0, draggedItem);
 
-    if (currentPath === '/about/designteam' || activeTab === 'design') {
+    if (currentPath === '/about/designteam') {
       setDesignTeam(newOrder);
     } else {
       setExecBoard(newOrder);
@@ -109,7 +99,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     
     // Auto-save the new order to Firebase
     try {
-      if (currentPath === '/about/designteam' || activeTab === 'design') {
+      if (currentPath === '/about/designteam') {
         await updateTeamMemberOrder(designTeam, 'designTeam');
       } else {
         await updateTeamMemberOrder(execBoard, 'execBoard');
@@ -130,18 +120,17 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     }
   };
 
-
-  const scrollToAboutUs = () => {
+  const navigateToAbout = () => {
     if (onNavigate) {
-      onNavigate('/about/generalbody');
-    } else {
-      const aboutUsSection = document.getElementById('about-us-section');
-      if (aboutUsSection) {
-        aboutUsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      onNavigate('/about');
     }
   };
-
+  const navigateToGeneralBody = () => {
+    if (onNavigate) {
+      onNavigate('/about/generalbody');
+    }
+  };
+  
   const navigateToDesignTeam = () => {
     if (onNavigate) {
       onNavigate('/about/designteam');
@@ -151,9 +140,34 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
   // If on /about/generalbody route, show only About Us section with Executive Board
   if (currentPath === '/about/generalbody') {
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen bg-gray-100 py-12">
         {/* About Us Section - Full page view */}
-        <div id="about-us-section" className="bg-gray-100 py-16">
+        <div className="container mx-auto px-4">
+                
+          {/* Toggle Controls */}
+          <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">
+            <button
+              onClick={navigateToAbout}
+              className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all text-gray-400 hover:text-[#48597F]`}
+            >
+            Back
+            </button>
+            <button
+              onClick={navigateToGeneralBody}
+              className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all bg-[#3b4c6b] text-white shadow`}
+            >
+            General Body
+            </button>
+            <button
+              onClick={navigateToDesignTeam}
+              className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all text-gray-400 hover:text-[#48597F]`}
+            >
+            Design Team
+            </button>
+          </div>
+        </div>
+
+        <div id="about-us-section" className="bg-gray-100 pb-16">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-12 items-start">
             {/* Left Column - Our General Body */}
@@ -165,17 +179,24 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                   alt="Our General Body" 
                 />
               </div>
-              <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">Our General Body</h2>
+
+            </div>
+
+            {/* Right Column - Our Activities */}
+            <div className="w-full md:w-1/2">
+              <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">Our Activities</h2>
+              <ul className="space-y-4 font-jost">
+                <li className="text-gray-800 text-lg">• THON Fundraisers</li>
+                <li className="text-gray-800 text-lg">• Design Team Meetings</li>
+                <li className="text-gray-800 text-lg">• General Body Meetings</li>
+                <li className="text-gray-800 text-lg">• Project Meetings</li>
+                <li className="text-gray-800 text-lg">• Socials</li>
+              </ul>
+            </div>
+          </div>
+          <div>
+                          <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">Our General Body</h2>
               <div className="space-y-4">
-                <p className="text-gray-800 leading-relaxed font-jost">
-                  Established in 1880, the American Society of Mechanical Engineers (ASME) is an international organization comprised of over <span className="text-red-600 font-bold">85,000 members</span> from over 100 countries.
-                </p>
-                <p className="text-gray-800 leading-relaxed font-jost">
-                  ASME serves both mechanical and interdisciplinary engineers in technical standardization, experimental procedures, and development codes to make the engineering landscape safer overall. The organization plays a crucial role in establishing safety standards, codes, and best practices that are used worldwide in various industries including manufacturing, energy, aerospace, and biomedical engineering.
-                </p>
-                <p className="text-gray-800 leading-relaxed font-jost">
-                  To learn more about the international ASME organization, visit this <a href="https://www.asme.org" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">link</a>.
-                </p>
                 <p className="text-gray-800 leading-relaxed font-jost">
                   <strong>WE ARE!</strong> the Penn State's chapter of ASME and are looking forward to providing unique opportunities for Mechanical Engineers at PSU. Our chapter is dedicated to fostering professional development, networking opportunities, and hands-on engineering experiences. We organize workshops, technical sessions, industry visits, and social events that help our members grow both academically and professionally.
                 </p>
@@ -198,19 +219,6 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                   </ul>
                 </div>
               </div>
-            </div>
-
-            {/* Right Column - Our Activities */}
-            <div className="w-full md:w-1/2">
-              <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">Our Activities</h2>
-              <ul className="space-y-4 font-jost">
-                <li className="text-gray-800 text-lg">• THON Fundraisers</li>
-                <li className="text-gray-800 text-lg">• Design Team Meetings</li>
-                <li className="text-gray-800 text-lg">• General Body Meetings</li>
-                <li className="text-gray-800 text-lg">• Project Meetings</li>
-                <li className="text-gray-800 text-lg">• Socials</li>
-              </ul>
-            </div>
           </div>
         </div>
       </div>
@@ -261,9 +269,34 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     const pastProjects = PROJECTS.filter(p => p.status === 'past');
 
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen bg-gray-100 py-12">
         {/* Design Team Section - Full page view */}
-        <div id="about-us-section" className="bg-gray-100 py-16">
+        <div className="container mx-auto px-4">
+                
+          {/* Toggle Controls */}
+          <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">
+            <button
+              onClick={navigateToAbout}
+              className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all text-gray-400 hover:text-[#48597F]`}
+            >
+            Back
+            </button>
+            <button
+              onClick={navigateToGeneralBody}
+              className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all text-gray-400 hover:text-[#48597F]`}
+            >
+            General Body
+            </button>
+            <button
+              onClick={navigateToDesignTeam}
+              className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all bg-[#3b4c6b] text-white shadow`}
+            >
+            Design Team
+            </button>
+          </div>
+        </div> 
+
+        <div id="about-us-section" className="bg-gray-100 pb-16">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-12 items-start">
             {/* Left Column - Our Design Team */}
@@ -354,7 +387,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
       </div>
 
       {/* Design Board Section - Same as regular About page */}
-      <div className="bg-[#e5e7eb] py-16">
+      <div className="bg-[#e5e7eb] py-16 ">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-2">
             Design Board
@@ -395,33 +428,28 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
   // Regular About page view
   return (
     <div 
-      className="min-h-screen bg-[#0f131a] pb-20 relative"
+      className="min-h-screen bg-white pb-20 relative"
       style={{
         minHeight: 'calc(100vh + 140px)',
         marginTop: '-140px',
         paddingTop: '140px',
       }}
     >
-        
-      {/* Hero / About Us Text - Clickable to scroll to About Us section */}
+      
+      {/* Hero / About Us Text */}
       <div className="container mx-auto px-4 py-16">
          <div className="flex flex-col md:flex-row gap-12 items-start">
-             <div 
-               className="w-full md:w-1/3 h-64 bg-slate-700 rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-               onClick={scrollToAboutUs}
-             >
+             <div className="w-full md:w-1/3 h-64 bg-slate-700 rounded-lg">
                  {/* Placeholder for About Image */}
                  <img src="https://picsum.photos/seed/about/800/600" className="w-full h-full object-cover rounded-lg opacity-80" alt="About Us" />
              </div>
-             <div 
-               className="w-full md:w-2/3 text-white font-jost cursor-pointer"
-               onClick={scrollToAboutUs}
-             >
-                 <h2 className="text-3xl font-bold mb-6 hover:underline">About Us</h2>
-                 <p className="text-gray-300 leading-relaxed mb-4">
+             
+             <div className="w-full md:w-2/3 text-white font-jost">
+                 <h2 className="text-[#1E2B48] text-3xl font-bold mb-6">About Us</h2>
+                 <p className="text-gray-800 leading-relaxed mb-4">
                      Established in 1880, the American Society of Mechanical Engineers (ASME) is an international organization comprised of over <span className="text-asme-red font-bold">85,000 members</span> from over 100 countries.
                  </p>
-                 <p className="text-gray-300 leading-relaxed">
+                 <p className="text-gray-800 leading-relaxed">
                      ASME serves both mechanical and interdisciplinary engineers in technical standardization, experimental procedures, and development codes to make the engineering landscape safer overall. To learn more about the international ASME organization visit this <a href="#" className="underline">link</a>. WE ARE! the Penn State's chapter of ASME and are looking forward to providing unique opportunities for Mechanical Engineers at PSU.
                  </p>
              </div>
@@ -429,85 +457,50 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
       </div>
 
       {/* Our Teams Section */}
-      <div className="container mx-auto px-4 py-12">
-        <h2 className="text-3xl font-jost font-bold text-white text-center mb-12">Our Teams</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-            <div 
-              className="relative group cursor-pointer overflow-hidden rounded-xl h-64"
-              onClick={scrollToAboutUs}
-            >
-                <img src="https://picsum.photos/seed/team1/800/600" alt="General Body" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                    <h3 className="text-3xl font-bold font-jost text-white">General Body</h3>
-                </div>
-            </div>
-            <div 
-              className="relative group cursor-pointer overflow-hidden rounded-xl h-64"
-              onClick={navigateToDesignTeam}
-            >
-                <img src="https://picsum.photos/seed/team2/800/600" alt="Design Team" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                    <h3 className="text-3xl font-bold font-jost text-white">Design Team</h3>
-                </div>
-            </div>
-        </div>
-      </div>
+      <div className="bg-[#e5e7eb] py-16">
+  <div className="container mx-auto px-4">
+    <h2 className="text-3xl font-jost font-bold text-[#1E2B48] text-center mb-12">
+      Our Teams
+    </h2>
 
-      {/* Team Tabs */}
-      <div className="bg-gray-100 py-4 px-4 shadow-md">
-          <div className="container mx-auto flex justify-center space-x-4">
-              <button 
-                onClick={() => setActiveTab('general')}
-                className={`px-8 py-2 rounded font-jost font-medium transition ${activeTab === 'general' ? 'bg-[#3b4c6b] text-white' : 'text-gray-600 hover:bg-gray-200'}`}
-              >
-                  General Body
-              </button>
-              <button 
-                onClick={() => setActiveTab('design')}
-                className={`px-8 py-2 rounded font-jost font-medium transition ${activeTab === 'design' ? 'bg-[#3b4c6b] text-white' : 'text-gray-600 hover:bg-gray-200'}`}
-              >
-                  Design Team
-              </button>
+    <div className="space-y-8 ">
+        {/* General Body */}
+        <div
+          className="relative group cursor-pointer overflow-hidden rounded-xl h-48 w-full shadow-md"
+          onClick={navigateToGeneralBody}
+        >
+          <img
+            src="https://picsum.photos/seed/team1/800/600"
+            alt="General Body"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          />
+          <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+            <h3 className="text-3xl font-bold font-jost text-white">
+              General Body
+            </h3>
           </div>
-      </div>
-
-      {/* Executive Board / Design Team Grid */}
-      <div className="bg-[#e5e7eb] py-16"> {/* Light background container as per mockup */}
-        <div className="container mx-auto px-4">
-             <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-2">
-                 {activeTab === 'general' ? 'Executive Board' : 'Design Team'}
-             </h2>
-             
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                 {/* Rendering specific members based on tab */}
-                 {loading ? (
-                   <div className="col-span-2 text-center py-8">Loading...</div>
-                 ) : (activeTab === 'general' ? execBoard : designTeam).length === 0 ? (
-                   <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
-                 ) : (
-                   (activeTab === 'general' ? execBoard : designTeam).map((member, index) => (
-                     <div
-                       key={member.id}
-                       draggable={canEdit}
-                       onDragStart={(e) => handleDragStart(e, index)}
-                       onDragOver={(e) => handleDragOver(e, index)}
-                       onDragEnd={handleDragEnd}
-                       style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
-                     >
-                       <TeamCard
-                         member={member}
-                         showDragHandle={canEdit}
-                         onDragHandleMouseDown={(e) => {
-                           e.stopPropagation();
-                         }}
-                       />
-                     </div>
-                   ))
-                 )}
-             </div>
         </div>
-      </div>
+
+        {/* Design Team */}
+        <div
+          className="relative group cursor-pointer overflow-hidden rounded-xl h-48 w-full shadow-md"
+          onClick={navigateToDesignTeam}
+        >
+          <img
+            src="https://picsum.photos/seed/team2/800/600"
+            alt="Design Team"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          />
+          <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+            <h3 className="text-3xl font-bold font-jost text-white">
+              Design Team
+            </h3>
+          </div>
+        </div>
+    </div>
+  </div>
+</div>
+
 
     </div>
   );

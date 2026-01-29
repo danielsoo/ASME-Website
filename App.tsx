@@ -103,7 +103,7 @@ const App: React.FC = () => {
       {/* Notification Banner - shows at top when user is logged in */}
       {user && <NotificationBanner />}
       
-      <Header currentPath={currentPath} onNavigate={navigate} user={user} />
+        <Header currentPath={currentPath} onNavigate={navigate} user={user} />
       
       <main className="flex-grow">
         {renderPage()}
