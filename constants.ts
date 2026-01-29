@@ -279,10 +279,10 @@ export const EVENTS: Event[] = [
 ];
 
 export const SPONSORS: Sponsor[] = [
-    { id: '1', name: 'Autodesk', logoUrl: 'https://picsum.photos/seed/autodesk/200/200' },
-    { id: '2', name: 'Boeing', logoUrl: 'https://picsum.photos/seed/boeing/200/200' },
-    { id: '3', name: 'Lockheed Martin', logoUrl: 'https://picsum.photos/seed/lockheed/200/200' },
-    { id: '4', name: 'Shell', logoUrl: 'https://picsum.photos/seed/shell/200/200' },
-    { id: '5', name: 'Williams', logoUrl: 'https://picsum.photos/seed/williams/200/200' },
-    { id: '6', name: 'Naval Nuclear Lab', logoUrl: 'https://picsum.photos/seed/naval/200/200' },
+    { id: '1', name: 'Autodesk', link:'', logoUrl: 'https://picsum.photos/seed/autodesk/200/200' },
+    { id: '2', name: 'Boeing', link:'', logoUrl: 'https://picsum.photos/seed/boeing/200/200' },
+    { id: '3', name: 'Lockheed Martin', link:'', logoUrl: 'https://picsum.photos/seed/lockheed/200/200' },
+    { id: '4', name: 'Shell', link:'', logoUrl: 'https://picsum.photos/seed/shell/200/200' },
+    { id: '5', name: 'Williams', link:'', logoUrl: 'https://picsum.photos/seed/williams/200/200' },
+    { id: '6', name: 'Naval Nuclear Lab', link:'', logoUrl: 'https://picsum.photos/seed/naval/200/200' },
 ];
