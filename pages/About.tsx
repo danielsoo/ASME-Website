@@ -66,13 +66,6 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     loadData();
   }, []);
 
-<<<<<<< HEAD
-  const navigateToAbout = () => {
-    if (onNavigate) {
-      onNavigate('/about');
-    }
-  };
-=======
   const canEdit = userRole === 'President' || userRole === 'Vice President';
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
@@ -132,7 +125,6 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
       onNavigate('/about');
     }
   };
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
   const navigateToGeneralBody = () => {
     if (onNavigate) {
       onNavigate('/about/generalbody');
@@ -203,11 +195,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
             </div>
           </div>
           <div>
-<<<<<<< HEAD
             <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">Our General Body</h2>
-=======
-                          <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">Our General Body</h2>
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
               <div className="space-y-4">
                 <p className="text-gray-800 leading-relaxed font-jost">
                   <strong>WE ARE!</strong> the Penn State's chapter of ASME and are looking forward to providing unique opportunities for Mechanical Engineers at PSU. Our chapter is dedicated to fostering professional development, networking opportunities, and hands-on engineering experiences. We organize workshops, technical sessions, industry visits, and social events that help our members grow both academically and professionally.
@@ -439,18 +427,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
 
   // Regular About page view
   return (
-<<<<<<< HEAD
     <div className="min-h-screen bg-white pb-20 relative">
-=======
-    <div 
-      className="min-h-screen bg-white pb-20 relative"
-      style={{
-        minHeight: 'calc(100vh + 140px)',
-        marginTop: '-140px',
-        paddingTop: '140px',
-      }}
-    >
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
       
       {/* Hero / About Us Text */}
       <div className="container mx-auto px-4 py-16">

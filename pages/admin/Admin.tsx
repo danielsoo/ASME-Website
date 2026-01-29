@@ -11,7 +11,6 @@ import ProjectManagement from './ProjectManagement';
 import ProjectApprovals from './ProjectApprovals';
 import ProjectTrash from './ProjectTrash';
 import MemberManagement from './MemberManagement';
-import SponsorManagement from './SponsorManagement';
 import SponsorTrash from './SponsorTrash';
 
 interface AdminProps {
@@ -95,7 +94,7 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
   if (currentPath === '/admin/sponsors') {
     return (
       <div>
-        <AdminHeader/>
+        {/*<AdminHeader/>*/}
         <SponsorManagement onNavigate={onNavigate || (() => {})} />
       </div>
     )

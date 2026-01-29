@@ -443,7 +443,8 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
           </div>
         )}
 
-        {/* Project List */}
+
+        {/* Project List 
         {!loading && !error && (
           <div className="space-y-12">
               {filteredProjects.length > 0 ? (
@@ -488,7 +489,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
                   </div>
               )}
           </div>
-        )}
+        )}*/}
 
       </div>
       

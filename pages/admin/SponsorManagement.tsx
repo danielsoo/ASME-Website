@@ -1,19 +1,10 @@
 import React, { useState, useEffect } from 'react';
-<<<<<<< HEAD
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { db, auth } from '../../firebase/config';
-import { onAuthStateChanged } from 'firebase/auth';
-import { Sponsor } from '../../types';
-import { Plus, Edit, Trash2, Users, UserPlus } from 'lucide-react';
-=======
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, onSnapshot, query } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { db, auth, storage } from '../../firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Sponsor } from '../../types';
 import { Plus, Edit, Trash2 } from 'lucide-react';
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
 import AlertModal from '../../components/AlertModal';
 import ConfirmModal from '../../components/ConfirmModal';
 
@@ -29,11 +20,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedSponsor, setSelectedSponsor] = useState<Sponsor | null>(null);
-<<<<<<< HEAD
-  const [allUsers, setAllUsers] = useState<any[]>([]);
-=======
   const [deletionRequestsCount, setDeletionRequestsCount] = useState(0);
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
 
   // Form states
   const [sponsorName, setSponsorName] = useState('');
@@ -41,10 +28,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
 
-<<<<<<< HEAD
-
-=======
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
   // Confirm delete modal state
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [sponsorToDelete, setSponsorToDelete] = useState<string | null>(null);
@@ -68,10 +51,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
 
   useEffect(() => {
     loadSponsors();
-<<<<<<< HEAD
-    loadAllUsers();
-=======
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
 
     // Get current user's role
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -92,8 +71,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     return () => unsubscribe();
   }, []);
 
-<<<<<<< HEAD
-=======
   // Listen for deletion requests count
   useEffect(() => {
     const sponsorsQuery = query(collection(db, 'sponsors'));
@@ -115,7 +92,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     return () => unsubscribe();
   }, []);
 
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
   const loadSponsors = async () => {
     try {
       setLoading(true);
@@ -147,82 +123,10 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     }
   };
 
-<<<<<<< HEAD
-  const loadAllUsers = async () => {
-    try {
-      const usersRef = collection(db, 'users');
-      const snapshot = await getDocs(usersRef);
-      const usersList: any[] = [];
-      
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        if (data.status === 'approved') {
-          usersList.push({
-            uid: docSnap.id,
-            ...data,
-          });
-        }
-      });
-
-      setAllUsers(usersList);
-    } catch (error) {
-      console.error('Error loading users:', error);
-    }
-  };
-
-  const [execPositions, setExecPositions] = useState<string[]>([]);
-
-  useEffect(() => {
-    loadExecPositions();
-  }, []);
-
-  const loadExecPositions = async () => {
-    try {
-      const positionsRef = collection(db, 'execPositions');
-      const snapshot = await getDocs(positionsRef);
-      const positionsList: string[] = ['admin']; // Always include admin
-      
-      snapshot.forEach((docSnap) => {
-        const positionName = docSnap.data().name;
-        if (positionName) {
-          positionsList.push(positionName);
-        }
-      });
-
-      setExecPositions(positionsList);
-    } catch (error) {
-      console.error('Error loading exec positions:', error);
-      // Fallback to default positions if collection doesn't exist
-      setExecPositions([
-        'President',
-        'Vice President',
-        'Treasurer',
-        'Secretary',
-        'Corporate Outreach Lead',
-        'THON Chair',
-        'Design Director',
-        'Internal Outreach',
-        'Events Coordinator',
-        'Logistics Officer',
-        'admin',
-      ]);
-    }
-  };
-
-  // Check if user is Executive Board member
-  const isExecBoardMember = (): boolean => {
-    return execPositions.includes(currentUserRole);
-  };
-
-  // Check if user can manage/approve sponsors (President/VP/Admin only)
-  const canManageSponsors = (): boolean => {
-    return currentUserRole === 'President' || currentUserRole === 'Vice President' || currentUserRole === 'admin';
-=======
 
   // Check if user can manage sponsors (President/VP only)
   const canManageSponsors = (): boolean => {
     return currentUserRole === 'President' || currentUserRole === 'Vice President';
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
   };
 
   // Check if user can delete sponsors (President/VP only)
@@ -230,19 +134,8 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     return currentUserRole === 'President' || currentUserRole === 'Vice President';
   };
 
-<<<<<<< HEAD
-  // Check if user can approve sponsors (President/VP only)
-  const canApproveSponsors = (): boolean => {
-    return currentUserRole === 'President' || currentUserRole === 'Vice President';
-  };
-
   // helper function to upload a file to firebase
   const uploadSponsorLogo = async (file: File): Promise<string> => {
-    const storage = getStorage();
-=======
-  // helper function to upload a file to firebase
-  const uploadSponsorLogo = async (file: File): Promise<string> => {
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
     const fileRef = ref(
       storage,
       `sponsors/${Date.now()}-${file.name}`
@@ -252,10 +145,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     return await getDownloadURL(fileRef);
   }
 
-<<<<<<< HEAD
-
-=======
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
   const handleAddSponsor = async () => {
     if (!sponsorName.trim()) {
       showAlert('warning', 'Validation Error', 'Please enter a sponsor name.');
@@ -267,35 +156,20 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
       return;
     }
 
-<<<<<<< HEAD
-    // Executive Board members can create sponsors, but need approval
-    // President/VP/Admin can create approved sponsors directly
-    const needsApproval = !canManageSponsors();
-=======
     // President/VP can create approved sponsors directly
     const needsApproval = false;
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
 
     try {
       const uploadedLogoUrl = await uploadSponsorLogo(logoFile);
 
       await addDoc(collection(db, 'sponsors'), {
         name: sponsorName.trim(),
-<<<<<<< HEAD
-        link: sponsorLink.trim(),
-        logoUrl: uploadedLogoUrl,
-        approvalStatus: needsApproval ? 'pending' : 'approved',
-        createdBy: currentUserId,
-        approvedBy: canManageSponsors() ? currentUserId : null,
-        approvedAt: canManageSponsors() ? new Date().toISOString() : null,
-=======
         link: sponsorLink.trim() || '',
         logoUrl: uploadedLogoUrl,
         approvalStatus: 'approved',
         createdBy: currentUserId,
         approvedBy: currentUserId,
         approvedAt: new Date().toISOString(),
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
@@ -307,16 +181,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
       setLogoPreview(null);
 
       await loadSponsors();
-<<<<<<< HEAD
-      
-      if (needsApproval) {
-        showAlert('success', 'Sponsor Added', 'Sponsor added successfully! It is pending approval from President or Vice President.');
-      } else {
-        showAlert('success', 'Success', 'Sponsor added successfully!');
-      }
-=======
       showAlert('success', 'Success', 'Sponsor added successfully!');
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
     } catch (error) {
       console.error('Error adding sponsor:', error);
       showAlert('error', 'Error', 'Failed to add sponsor. Please try again.');
@@ -328,13 +193,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
       return;
     }
 
-<<<<<<< HEAD
-    // Only allow editing if user is President/VP/Admin (canManageSponsors)
-    // Project leaders cannot edit sponsor details, only manage members
-
-
-=======
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
     try {
       let updatedLogoUrl = selectedSponsor.logoUrl;
 
@@ -344,11 +202,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
 
       await updateDoc(doc(db, 'sponsors', selectedSponsor.id), {
         name: sponsorName.trim(),
-<<<<<<< HEAD
-        link: sponsorLink.trim(),
-=======
         link: sponsorLink.trim() || '',
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
         logoUrl: updatedLogoUrl,
         updatedAt: new Date().toISOString(),
       });
@@ -398,24 +252,14 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   };
 
   const openEditModal = (sponsor: Sponsor) => {
-<<<<<<< HEAD
-    // Only allow editing if user is President/VP/Admin
-    if (!canManageSponsors()) {
-      showAlert('error', 'Access Denied', 'Only President, Vice President, or Admin can edit sponsor details.');
-=======
     // Only allow editing if user is President/VP
     if (!canManageSponsors()) {
       showAlert('error', 'Access Denied', 'Only President and Vice President can edit sponsor details.');
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
       return;
     }
     setSelectedSponsor(sponsor);
     setSponsorName(sponsor.name);
-<<<<<<< HEAD
-    setSponsorLink(sponsor.link);
-=======
     setSponsorLink(sponsor.link || '');
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
     setLogoFile(null);
     setLogoPreview(sponsor.logoUrl);
     setShowEditModal(true);
@@ -432,45 +276,20 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     setLogoPreview(previewUrl)
   }
 
-<<<<<<< HEAD
-  // Check access: Executive Board can create, President/VP/Admin can manage all
-  const hasSponsorAccess = isExecBoardMember() || canManageSponsors();
-  
-  if (!hasSponsorAccess) {
-=======
   // Check access: Only President/VP can manage sponsors
   if (!canManageSponsors()) {
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
     return (
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-<<<<<<< HEAD
-          <p className="text-gray-600">You do not have permission to manage sponsors.</p>
-=======
           <p className="text-gray-600">Only President and Vice President can manage sponsors.</p>
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
         </div>
       </div>
     );
   }
 
-<<<<<<< HEAD
-  // Filter projects based on user role
-  let visibleSponsors: Sponsor[] = [];
-  if (canManageSponsors()) {
-    // President/VP/Admin: see all projects
-    visibleSponsors = sponsors;
-  } else {
-    // Executive Board members: see projects they created or are leaders of
-    visibleSponsors = sponsors.filter(s => 
-      s.createdBy === currentUserId
-    );
-  }
-=======
   // President/VP can see all sponsors
   const visibleSponsors = sponsors;
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -484,11 +303,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
             >
               ← Back to Dashboard
             </button>
-<<<<<<< HEAD
-            {isExecBoardMember() && (
-=======
             {canManageSponsors() && (
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
               <button
                 onClick={() => {
                   setSponsorName('');
@@ -503,22 +318,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                 Add Sponsor
               </button>
             )}
-<<<<<<< HEAD
-            {canApproveSponsors() && (
-              <button
-                onClick={() => onNavigate('/admin/sponsors/approvals')}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2"
-              >
-                Approve Sponsors
-              </button>
-            )}
-            {canDeleteSponsors() && (
-              <button
-                onClick={() => onNavigate('/admin/sponsors/trash')}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded flex items-center gap-2"
-              >
-                Trash
-=======
             {canDeleteSponsors() && (
               <button
                 onClick={() => onNavigate('/admin/sponsors/trash')}
@@ -549,7 +348,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                     {deletionRequestsCount > 99 ? '99+' : deletionRequestsCount}
                   </span>
                 )}
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
               </button>
             )}
           </div>
@@ -564,26 +362,15 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
             {visibleSponsors.map((sponsor) => (
               <div key={sponsor.id} className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex justify-between items-start mb-4">
-<<<<<<< HEAD
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-800 mb-1">{sponsor.name}</h2>
-                    <div className="flex gap-2 flex-wrap">
-=======
                   <div className="flex-1">
                     <h2 className="text-xl font-bold text-gray-800 mb-1">{sponsor.name}</h2>
                     <div className="flex gap-2 flex-wrap mb-2">
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
                       {sponsor.approvalStatus === 'pending' && (
                         <span className="inline-block px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-800">
                           Pending Approval
                         </span>
                       )}
                     </div>
-<<<<<<< HEAD
-                  </div>
-                  {canManageSponsors() && (
-                    <div className="flex gap-2">
-=======
                     {sponsor.logoUrl && (
                       <div className="mb-3">
                         <img
@@ -606,7 +393,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                   </div>
                   {canManageSponsors() && (
                     <div className="flex gap-2 ml-4">
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
                       <button
                         onClick={() => openEditModal(sponsor)}
                         className="text-blue-600 hover:text-blue-800"
@@ -627,18 +413,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                   )}
                 </div>
 
-<<<<<<< HEAD
-                <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                  {sponsor.link}
-                </p>
-
-                {sponsor.approvalStatus === 'pending' && sponsor.createdBy === currentUserId && (
-                  <div className="text-sm text-yellow-600 text-center">
-                    Waiting for approval
-                  </div>
-                )}
-=======
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
               </div>
             ))}
           </div>
@@ -669,32 +443,19 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Sponsor Website
                   </label>
-<<<<<<< HEAD
-                  <textarea
-=======
                   <input
                     type="text"
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
                     value={sponsorLink}
                     onChange={(e) => setSponsorLink(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
                     style={{ color: '#111827', backgroundColor: '#ffffff' }}
-<<<<<<< HEAD
-                    rows={4}
-                    placeholder="Sponsor Website Link..."
-=======
                     placeholder="https://example.com"
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-<<<<<<< HEAD
-                    Sponsor Logo
-=======
                     Sponsor Logo *
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
                   </label>
                   <input
                     type="file"
@@ -709,20 +470,8 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                       className="mt-4 h-32 object-contain border rounded"
                     />
                   )}
-<<<<<<< HEAD
-
                 </div>
 
-                {!canManageSponsors() && (
-                  <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800">
-                    <p className="font-semibold mb-1">Note:</p>
-                    <p>Your sponsor will be added and sent for approval.</p>
-                  </div>
-                )}
-=======
-                </div>
-
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
               </div>
 
               <div className="flex gap-4 mt-6">
@@ -767,22 +516,13 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Sponsor Website Link
                   </label>
-<<<<<<< HEAD
-                  <textarea
-=======
                   <input
                     type="text"
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
                     value={sponsorLink}
                     onChange={(e) => setSponsorLink(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
                     style={{ color: '#111827', backgroundColor: '#ffffff' }}
-<<<<<<< HEAD
-                    rows={4}
-                    placeholder="Sponsor Website Link..."
-=======
                     placeholder="https://example.com"
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
                   />
                 </div>
 
@@ -804,10 +544,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                     />
                   )}
                 </div>
-<<<<<<< HEAD
-
-=======
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
               </div>
 
               <div className="flex gap-4 mt-6">

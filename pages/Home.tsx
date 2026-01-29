@@ -164,13 +164,8 @@ const Home: React.FC = () => {
         <div className="flex flex-col items-center">
             <h3 className="text-3xl font-jost font-bold mb-6 text-white text-center">Next Meeting</h3>
             
-<<<<<<< HEAD
             {/* Simple Mock Calendar Card */}
             <div className="bg-white rounded-2xl p-4 shadow-2xl w-full md:w-1/2 max-w-4xl overflow-hidden">
-=======
-            {/* Calendar Card */}
-            <div className="bg-white rounded-3xl p-6 shadow-2xl w-full max-w-4xl overflow-hidden">
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
                 <div className="flex justify-between items-center mb-6 px-4">
                     <div className="flex gap-4 items-center">
                         {loading ? (
@@ -200,37 +195,6 @@ const Home: React.FC = () => {
                     </div>
                 </div>
                 {/* Visual Grid for Calendar */}
-<<<<<<< HEAD
-                <div className="aspect-square w-full">
-                  <div className="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden">
-                      {['SUN','MON','TUE','WED','THU','FRI','SAT'].map(d => (
-                          <div key={d} className="bg-white py-2 text-center text-xs font-semibold text-gray-500">{d}</div>
-                      ))}
-                      {/* Mock Days */}
-                      {Array.from({ length: 31 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className={`bg-white aspect-square p-1 relative ${
-                            i === 20 ? 'bg-blue-50' : ''
-                          }`}
-                        >
-                          <span
-                            className={`text-sm ${
-                              i === 20
-                                ? 'bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center'
-                                : 'text-gray-700'
-                            }`}
-                          >
-                            {i + 1}
-                          </span>
-
-                          {i === 20 && (
-                            <div className="absolute top-1/2 left-2 right-2 h-1 bg-red-500 rounded-full"></div>
-                          )}
-                        </div>
-                      ))}
-                  </div>
-=======
                 <div className="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden">
                     {['SUN','MON','TUE','WED','THU','FRI','SAT'].map(d => (
                         <div key={d} className="bg-white py-2 text-center text-xs font-semibold text-gray-500">{d}</div>
@@ -286,7 +250,6 @@ const Home: React.FC = () => {
                             </div>
                         );
                     })}
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
                 </div>
                 
             </div>

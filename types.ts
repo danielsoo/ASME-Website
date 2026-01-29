@@ -92,14 +92,8 @@ export interface Event {
 export interface Sponsor {
   id: string;
   name: string;
-  link: string;
   logoUrl: string;
-<<<<<<< HEAD
-  approvalStatus?: 'pending' | 'approved';
-  createdBy?: string;
-=======
   link?: string;
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
   tier?: string;
   // Approval system
   approvalStatus?: 'pending' | 'approved';

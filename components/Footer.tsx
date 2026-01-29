@@ -23,21 +23,7 @@ const Footer: React.FC = () => {
         lineHeight: 'normal',
         color: '#FFF',
         margin: 0,
-<<<<<<< HEAD
         marginBottom: '4px',
-=======
-        marginBottom: 0,
-        padding: 0,
-        border: 'none',
-        borderTop: 'none',
-        borderBottom: 'none',
-        borderLeft: 'none',
-        borderRight: 'none',
-        outline: 'none',
-        boxShadow: 'none',
-        position: 'relative',
-        overflow: 'hidden',
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
       }}
     >
       {/* Inner container: keeps space on left and right sides */}

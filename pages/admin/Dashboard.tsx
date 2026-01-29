@@ -191,15 +191,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </button>
           </div>
 
-<<<<<<< HEAD
-          {/* Sponsor Management Card */}
-          <div 
-            className="bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-shadow"
-            onClick={() => onNavigate('/admin/sponsors')}
-          >
-            <h2 className="text-xl font-bold mb-2 text-gray-800">Sponsors</h2>
-            <p className="text-gray-600 mb-4">Manage sponsors</p>
-=======
           {/* Sponsors Management Card */}
           <div 
             className="bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-shadow"
@@ -232,7 +223,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             )}
             <h2 className="text-xl font-bold mb-2 text-gray-800">Sponsors</h2>
             <p className="text-gray-600 mb-4">Manage sponsor information and logos</p>
->>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
             <button className="text-blue-600 hover:text-blue-800 font-medium">
               Manage →
             </button>
