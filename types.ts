@@ -10,6 +10,7 @@ export interface TeamMember {
   isExec?: boolean;
   email?: string;
   team?: 'Design Team' | 'General Body'; // Team assignment for Exec Board members
+  order?: number; // Display order for sorting
 }
 
 export interface Project {
@@ -27,6 +28,7 @@ export interface Project {
   projectRoles?: string[]; // Custom project roles defined by leader (e.g., 'Software Lead', 'Hardware Lead')
   createdAt?: string;
   updatedAt?: string;
+  order?: number; // Display order for sorting
   // Project approval system
   approvalStatus?: 'pending' | 'approved'; // pending: waiting for President/VP approval, approved: active project
   createdBy?: string; // UID of user who created the project
@@ -92,7 +94,57 @@ export interface Sponsor {
   name: string;
   link: string;
   logoUrl: string;
+<<<<<<< HEAD
   approvalStatus?: 'pending' | 'approved';
   createdBy?: string;
+=======
+  link?: string;
+>>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
   tier?: string;
+  // Approval system
+  approvalStatus?: 'pending' | 'approved';
+  createdBy?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  // Soft delete system
+  deletedAt?: string | null;
+  deletedBy?: string;
+  // Permanent delete approval system
+  permanentDeleteRequest?: {
+    requestedBy: string; // UID of President/VP who requested permanent delete
+    requestedAt: string; // Timestamp
+    approvedByExec1?: boolean; // Whether first President/VP approved
+    approvedByExec1At?: string; // When first exec approved
+    approvedByExec1By?: string; // UID of first exec who approved
+    rejectedByExec1?: boolean; // Whether first President/VP rejected
+    rejectedByExec1At?: string; // When first exec rejected
+    rejectedByExec1By?: string; // UID of first exec who rejected
+    approvedByExec2?: boolean; // Whether second President/VP approved
+    approvedByExec2At?: string; // When second exec approved
+    approvedByExec2By?: string; // UID of second exec who approved
+    rejectedByExec2?: boolean; // Whether second President/VP rejected
+    rejectedByExec2At?: string; // When second exec rejected
+    rejectedByExec2By?: string; // UID of second exec who rejected
+  };
+}
+
+export interface HomePageWhatWeDo {
+  title: string;
+  content: string; // HTML content for rich text
+  buttonText: string;
+  buttonUrl?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export interface InstagramPost {
+  id: string;
+  caption?: string;
+  mediaUrl: string;
+  permalink: string;
+  timestamp: string;
+  mediaType: 'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM';
+  thumbnailUrl?: string;
 }

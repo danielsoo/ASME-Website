@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Project } from '../types';
-import { getProjects } from '../firebase/services';
+import { getProjects, updateProjectOrder } from '../firebase/services';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { auth, db } from '../firebase/config';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import ProjectCard from '../components/ProjectCard';
 import ProjectDetailPage from './ProjectDetailPage';
 
@@ -20,10 +22,34 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
   };
 
   const [view, setView] = useState<'current' | 'past'>(() => getViewFromPath(currentPath));
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [currentProjects, setCurrentProjects] = useState<Project[]>([]);
+  const [pastProjects, setPastProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userNames, setUserNames] = useState<Record<string, string>>({}); // Map of userId/email to name
+  const [userRole, setUserRole] = useState<string>('');
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  // Check user permissions
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserRole(userData.role || 'member');
+          }
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+        }
+      } else {
+        setUserRole('');
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Update view when currentPath changes
   useEffect(() => {
@@ -84,7 +110,9 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
         
         console.log('Filtered active projects:', activeProjects);
         
-        setProjects(activeProjects);
+        // Separate into current and past
+        setCurrentProjects(activeProjects.filter(p => p.status === 'current'));
+        setPastProjects(activeProjects.filter(p => p.status === 'past'));
       } catch (err: any) {
         console.error('Error loading projects:', err);
         console.error('Error details:', {
@@ -101,7 +129,61 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
     loadProjects();
   }, []);
 
-  const filteredProjects = projects.filter(p => p.status === view);
+  const canEdit = userRole === 'President' || userRole === 'Vice President';
+
+  // Get the projects for current view
+  const filteredProjects = view === 'current' ? currentProjects : pastProjects;
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const currentList = view === 'current' ? currentProjects : pastProjects;
+    const newOrder = [...currentList];
+    const draggedItem = newOrder[draggedIndex];
+    
+    newOrder.splice(draggedIndex, 1);
+    newOrder.splice(index, 0, draggedItem);
+
+    if (view === 'current') {
+      setCurrentProjects(newOrder);
+    } else {
+      setPastProjects(newOrder);
+    }
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = async () => {
+    if (draggedIndex === null) return;
+    
+    setDraggedIndex(null);
+    
+    // Auto-save the new order to Firebase
+    try {
+      const projectsToSave = view === 'current' ? currentProjects : pastProjects;
+      await updateProjectOrder(projectsToSave);
+    } catch (error) {
+      console.error('Error saving order:', error);
+      // Reload data on error
+      try {
+        const allProjects = await getProjects();
+        const activeProjects = allProjects.filter(project => {
+          const isNotDeleted = !project.deletedAt || project.deletedAt === null;
+          const isApproved = !project.approvalStatus || project.approvalStatus === 'approved';
+          return isNotDeleted && isApproved;
+        });
+        setCurrentProjects(activeProjects.filter(p => p.status === 'current'));
+        setPastProjects(activeProjects.filter(p => p.status === 'past'));
+      } catch (reloadError) {
+        console.error('Error reloading data:', reloadError);
+      }
+    }
+  };
 
   // Check if we're on a project detail page (e.g., /projects/solar-panel-optimization)
   const getProjectFromPath = (path: string): Project | null => {
@@ -124,7 +206,8 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
       
       // Find project by matching slug (title converted to slug)
       // Only search in approved or legacy (no approvalStatus), non-deleted projects
-      const activeProjects = projects.filter(p => {
+      const allProjects = [...currentProjects, ...pastProjects];
+      const activeProjects = allProjects.filter(p => {
         const isNotDeleted = !p.deletedAt || p.deletedAt === null;
         const isApproved = !p.approvalStatus || p.approvalStatus === 'approved';
         return isNotDeleted && isApproved;
@@ -152,7 +235,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
   };
 
   // Use useMemo to ensure projectDetail is recalculated when currentPath or projects change
-  const projectDetail = useMemo(() => getProjectFromPath(currentPath), [currentPath, projects]);
+  const projectDetail = useMemo(() => getProjectFromPath(currentPath), [currentPath, currentProjects, pastProjects]);
 
   // Log when currentPath changes for debugging
   useEffect(() => {
@@ -234,7 +317,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
     } : null;
     
     return projectDetailWithLeaderName ? <ProjectDetailPage project={projectDetailWithLeaderName} onNavigate={onNavigate} /> : null;
-    } else if (!loading && projects.length > 0) {
+    } else if (!loading && Projects.length > 0) {
       // Projects loaded but not found - show error
       return (
         <div 
@@ -345,6 +428,68 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
           )}
 
         </div>
+
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center text-gray-500 py-20 font-jost">
+            Loading projects...
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="text-center text-red-500 py-20 font-jost">
+            {error}
+          </div>
+        )}
+
+        {/* Project List */}
+        {!loading && !error && (
+          <div className="space-y-12">
+              {filteredProjects.length > 0 ? (
+                  filteredProjects.map((project, index) => {
+                    // Add leader name to project for display
+                    const projectWithLeaderName = {
+                      ...project,
+                      leaderName: project.leaderId 
+                        ? userNames[project.leaderId] 
+                        : project.leaderEmail 
+                        ? userNames[project.leaderEmail] || project.leaderEmail.split('@')[0]
+                        : undefined
+                    };
+                    return (
+                      <div
+                        key={project.id}
+                        draggable={canEdit}
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                        style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
+                      >
+                        <ProjectCard 
+                          project={projectWithLeaderName} 
+                          onImageClick={(project) => {
+                            if (onNavigate) {
+                              const slug = project.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                              onNavigate(`/projects/${slug}`);
+                            }
+                          }}
+                          showDragHandle={canEdit}
+                          onDragHandleMouseDown={(e) => {
+                            e.stopPropagation();
+                          }}
+                        />
+                      </div>
+                    );
+                  })
+              ) : (
+                  <div className="text-center text-gray-500 py-20 font-jost">
+                      No projects found for this category.
+                  </div>
+              )}
+          </div>
+        )}
+
       </div>
       
     </div>

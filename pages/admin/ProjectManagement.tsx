@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from 'firebase/firestore';
-import { db, auth } from '../../firebase/config';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, query, where, onSnapshot } from 'firebase/firestore';
+import { db, auth, storage } from '../../firebase/config';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Project, ProjectMember } from '../../types';
 import { Plus, Edit, Trash2, Users, UserPlus } from 'lucide-react';
@@ -21,12 +22,17 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [pendingProjectsCount, setPendingProjectsCount] = useState(0);
+  const [deletionRequestsCount, setDeletionRequestsCount] = useState(0);
 
   // Form states
   const [projectTitle, setProjectTitle] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [projectStatus, setProjectStatus] = useState<'current' | 'past'>('current');
   const [projectLeaderId, setProjectLeaderId] = useState('');
+  const [projectImageUrl, setProjectImageUrl] = useState('');
+  const [projectImageFile, setProjectImageFile] = useState<File | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Confirm delete modal state
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -70,6 +76,37 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // Listen for pending projects and deletion requests
+  useEffect(() => {
+    // Listen for pending projects
+    const pendingProjectsQuery = query(collection(db, 'projects'), where('approvalStatus', '==', 'pending'));
+    const unsubscribePendingProjects = onSnapshot(pendingProjectsQuery, (snapshot) => {
+      setPendingProjectsCount(snapshot.size);
+    });
+
+    // Listen for deletion requests (projects with permanentDeleteRequest that aren't fully approved)
+    const allProjectsQuery = query(collection(db, 'projects'));
+    const unsubscribeAllProjects = onSnapshot(allProjectsQuery, (snapshot) => {
+      let count = 0;
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.permanentDeleteRequest) {
+          const request = data.permanentDeleteRequest;
+          // Count if not fully approved (either leader or exec approval is missing)
+          if (!request.approvedByLeader || !request.approvedByExec) {
+            count++;
+          }
+        }
+      });
+      setDeletionRequestsCount(count);
+    });
+
+    return () => {
+      unsubscribePendingProjects();
+      unsubscribeAllProjects();
+    };
   }, []);
 
   const loadProjects = async () => {
@@ -202,6 +239,26 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     return isLeader;
   };
 
+  // Upload image to Firebase Storage
+  const uploadToFirebaseStorage = async (file: File): Promise<string> => {
+    try {
+      setUploadingImage(true);
+      const timestamp = Date.now();
+      const fileName = `projects/${timestamp}_${file.name}`;
+      const storageRef = ref(storage, fileName);
+      
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+      
+      return downloadURL;
+    } catch (error) {
+      console.error('Error uploading to Firebase Storage:', error);
+      throw error;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleCreateProject = async () => {
     if (!projectTitle.trim()) {
       showAlert('warning', 'Validation Error', 'Please enter a project title.');
@@ -213,10 +270,17 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     const needsApproval = !canManageProjects();
 
     try {
+      let imageUrl = projectImageUrl.trim();
+      
+      // If file is selected, upload to Firebase Storage
+      if (projectImageFile) {
+        imageUrl = await uploadToFirebaseStorage(projectImageFile);
+      }
+
       await addDoc(collection(db, 'projects'), {
         title: projectTitle.trim(),
         description: projectDescription.trim(),
-        imageUrl: '',
+        imageUrl: imageUrl || '',
         chairs: [],
         status: projectStatus,
         // Only President/VP/Admin can assign leader directly
@@ -238,6 +302,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
       setProjectDescription('');
       setProjectStatus('current');
       setProjectLeaderId('');
+      setProjectImageUrl('');
+      setProjectImageFile(null);
       await loadProjects();
       
       if (needsApproval) {
@@ -268,14 +334,28 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     try {
       const leaderUser = projectLeaderId ? allUsers.find(u => u.uid === projectLeaderId) : null;
       
-      await updateDoc(doc(db, 'projects', selectedProject.id), {
+      let imageUrl = projectImageUrl.trim();
+      
+      // If file is selected, upload to Firebase Storage
+      if (projectImageFile) {
+        imageUrl = await uploadToFirebaseStorage(projectImageFile);
+      }
+      
+      const updateData: any = {
         title: projectTitle.trim(),
         description: projectDescription.trim(),
         status: projectStatus,
         leaderId: projectLeaderId || null,
         leaderEmail: leaderUser?.email || '',
         updatedAt: new Date().toISOString(),
-      });
+      };
+
+      // Update imageUrl if provided
+      if (imageUrl) {
+        updateData.imageUrl = imageUrl;
+      }
+      
+      await updateDoc(doc(db, 'projects', selectedProject.id), updateData);
 
       setShowEditModal(false);
       setSelectedProject(null);
@@ -329,6 +409,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     setProjectDescription(project.description);
     setProjectStatus(project.status);
     setProjectLeaderId(project.leaderId || '');
+    setProjectImageUrl(project.imageUrl || '');
+    setProjectImageFile(null);
     setShowEditModal(true);
   };
 
@@ -393,17 +475,65 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
             {canApproveProjects() && (
               <button
                 onClick={() => onNavigate('/admin/projects/approvals')}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2"
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2 relative"
+                style={{ position: "relative" }}
               >
                 Approve Projects
+                {pendingProjectsCount > 0 && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "-6px",
+                      right: "-6px",
+                      backgroundColor: "#EF4444",
+                      color: "#FFF",
+                      borderRadius: "9999px",
+                      minWidth: "20px",
+                      height: "20px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                      padding: "0 6px",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                    }}
+                  >
+                    {pendingProjectsCount > 99 ? '99+' : pendingProjectsCount}
+                  </span>
+                )}
               </button>
             )}
             {canDeleteProjects() && (
               <button
                 onClick={() => onNavigate('/admin/projects/trash')}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded flex items-center gap-2"
+                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded flex items-center gap-2 relative"
+                style={{ position: "relative" }}
               >
                 Trash
+                {deletionRequestsCount > 0 && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "-6px",
+                      right: "-6px",
+                      backgroundColor: "#EF4444",
+                      color: "#FFF",
+                      borderRadius: "9999px",
+                      minWidth: "20px",
+                      height: "20px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                      padding: "0 6px",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                    }}
+                  >
+                    {deletionRequestsCount > 99 ? '99+' : deletionRequestsCount}
+                  </span>
+                )}
               </button>
             )}
           </div>
@@ -548,6 +678,76 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Project Image
+                  </label>
+                  <div className="space-y-3">
+                    {/* File Upload Option */}
+                    <div>
+                      <label className="text-sm text-gray-600 mb-1 block">Option 1: Upload Image File</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setProjectImageFile(file);
+                            setProjectImageUrl(''); // Clear URL when file is selected
+                            // Show preview
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              const preview = document.getElementById('create-image-preview') as HTMLImageElement;
+                              if (preview) {
+                                preview.src = reader.result as string;
+                                preview.style.display = 'block';
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Image will be uploaded to Firebase Storage</p>
+                    </div>
+                    
+                    {/* URL Input Option */}
+                    <div>
+                      <label className="text-sm text-gray-600 mb-1 block">Option 2: Paste Image URL</label>
+                      <input
+                        type="text"
+                        value={projectImageUrl}
+                        onChange={(e) => {
+                          setProjectImageUrl(e.target.value);
+                          setProjectImageFile(null); // Clear file when URL is entered
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                        style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                        placeholder="https://drive.google.com/uc?export=view&id=YOUR_FILE_ID"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Or paste a Google Drive link, Imgur link, etc.
+                      </p>
+                    </div>
+                    
+                    {/* Preview */}
+                    {(projectImageFile || projectImageUrl) && (
+                      <div className="mt-2">
+                        <img 
+                          id="create-image-preview"
+                          src={projectImageUrl} 
+                          alt="Preview" 
+                          className="w-full h-48 object-cover rounded-md" 
+                          style={{ display: projectImageFile ? 'block' : (projectImageUrl ? 'block' : 'none') }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }} 
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Status
                   </label>
                   <select
@@ -595,9 +795,10 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
               <div className="flex gap-4 mt-6">
                 <button
                   onClick={handleCreateProject}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                  disabled={uploadingImage}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  Create Project
+                  {uploadingImage ? 'Uploading Image...' : 'Create Project'}
                 </button>
                 <button
                   onClick={() => setShowCreateModal(false)}
@@ -645,6 +846,77 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Project Image
+                  </label>
+                  <div className="space-y-3">
+                    {/* File Upload Option */}
+                    <div>
+                      <label className="text-sm text-gray-600 mb-1 block">Option 1: Upload Image File</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setProjectImageFile(file);
+                            setProjectImageUrl(''); // Clear URL when file is selected
+                            // Show preview
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              const preview = document.getElementById('edit-image-preview') as HTMLImageElement;
+                              if (preview) {
+                                preview.src = reader.result as string;
+                                preview.style.display = 'block';
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Image will be uploaded to Firebase Storage</p>
+                    </div>
+                    
+                    {/* URL Input Option */}
+                    <div>
+                      <label className="text-sm text-gray-600 mb-1 block">Option 2: Paste Image URL</label>
+                      <input
+                        type="text"
+                        value={projectImageUrl}
+                        onChange={(e) => {
+                          setProjectImageUrl(e.target.value);
+                          setProjectImageFile(null); // Clear file when URL is entered
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                        style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                        placeholder="https://drive.google.com/uc?export=view&id=YOUR_FILE_ID"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Or paste a Google Drive link, Imgur link, etc.
+                      </p>
+                    </div>
+                    
+                    {/* Preview */}
+                    {(projectImageFile || projectImageUrl) && (
+                      <div className="mt-2">
+                        <img 
+                          id="edit-image-preview"
+                          src={projectImageUrl} 
+                          alt="Preview" 
+                          className="w-full h-48 object-cover rounded-md" 
+                          style={{ display: projectImageFile ? 'block' : (projectImageUrl ? 'block' : 'none') }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }} 
+                        />
+                        {projectImageFile && <p className="text-xs text-blue-600 mt-1">New image selected</p>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Status
                   </label>
                   <select
@@ -683,9 +955,10 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
               <div className="flex gap-4 mt-6">
                 <button
                   onClick={handleEditProject}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                  disabled={uploadingImage}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  Save Changes
+                  {uploadingImage ? 'Uploading Image...' : 'Save Changes'}
                 </button>
                 <button
                   onClick={() => {

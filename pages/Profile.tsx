@@ -228,19 +228,6 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
           </button>
         </div>
 
-        {/* Admin Link (if admin) */}
-        {(userData.role === 'admin' || userData.role === 'President') && (
-          <div className="bg-[#1a1f2e] rounded-lg shadow-xl p-6 mb-6">
-            <h2 className="text-xl font-bold text-white mb-4">Admin Menu</h2>
-            <button
-              onClick={() => onNavigate('/admin')}
-              className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition"
-            >
-              Go to Admin Panel
-            </button>
-          </div>
-        )}
-
         {/* Logout Button */}
         <div className="bg-[#1a1f2e] rounded-lg shadow-xl p-6">
           <h2 className="text-xl font-bold text-white mb-4">Account</h2>

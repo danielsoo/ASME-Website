@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Project } from '../types';
+import { GripVertical } from 'lucide-react';
 
 interface ProjectCardProps {
   project: Project;
   onImageClick?: (project: Project) => void;
   onNavigate?: (path: string) => void;
+  showDragHandle?: boolean;
+  onDragHandleMouseDown?: (e: React.MouseEvent) => void;
 }
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavigate }) => {
   const [isHovered, setIsHovered] = React.useState(false);
-  const [showChairs, setShowChairs] = React.useState(false);
+  const [showAllMembers, setShowAllMembers] = React.useState(false);
 
 
   return (
@@ -24,6 +27,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavi
           src={project.imageUrl} 
           alt={project.title} 
           className="w-full h-full object-cover transition-transform duration-700 hover:scale-105 cursor-pointer"
+          onClick={() => onImageClick?.(project)}
         />
         <div className="absolute bottom-0 left-0 p-6 bg-black/25 w-full h-full hover:bg-black/50 transition-all ease-in-out cursor-pointer">
           <h3 className="flex text-2xl font-bold font-jost text-white tracking-wider uppercase cursor-pointer">
@@ -41,7 +45,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavi
 
       {/* Content Section */}
       <div className="p-6">
-
         {/* Project Leader Section */}
         {(project.leaderEmail || project.leaderId) && (
           <div>
@@ -51,35 +54,34 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavi
                 <span className="text-xs text-black font-medium">
                   {project.leaderName || project.leaderEmail?.split('@')[0] || 'Project Leader'}
                 </span>
-                
               </div>
-              <button 
-                onClick={(e) => {
-                e.stopPropagation();
-                setShowChairs(prev => !prev);
-                }}
-                className="text-xs text-[#48597F] hover:underline decoration-[#48597F] transition-all cursor-pointer"
-              >
-                {showChairs ? "Show less" : "Load more..."}
-              </button>
+              {((project.chairs && project.chairs.length > 0) || (project.members && project.members.length > 0)) && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAllMembers(!showAllMembers);
+                  }}
+                  className="text-xs text-[#48597F] hover:underline decoration-[#48597F] transition-all cursor-pointer"
+                >
+                  {showAllMembers ? "Show less" : "Load more..."}
+                </button>
+              )}
             </div>
           </div>
         )}
 
         {/* Members Grid */}
-        {(project.chairs && project.chairs.length > 0) && showChairs ? (
+        {((project.chairs && project.chairs.length > 0) || (project.members && project.members.length > 0)) && showAllMembers ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 border-t border-gray-700 pt-4 mt-3">
-            {/*not sure if the members are actually implemented or relevent, don't think that they even want members on the project pages, just chairs*/}
-            {/* Display members from members array (Firebase managed)
-            {showChairs && project.members?.map((member, index) => (
+            {/* Display members from members array (Firebase managed) */}
+            {project.members?.map((member, index) => (
               <div key={`member-${member.userId}-${index}`} className="flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-full bg-slate-600 flex-shrink-0"></div>
                 <div className="flex flex-col">
                   <span className="text-xs text-black font-medium">{member.userName}</span>
                   <span className="text-[10px] text-[#48597F]">{member.projectRole}</span>
                 </div>
               </div>
-            ))}*/}
+            ))}
             
             {/* Display chairs (legacy data) */}
             {project.chairs?.map((chair, index) => (
@@ -91,7 +93,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavi
               </div>
             ))}
             
-            
           </div>
         ) : !(project.leaderEmail || project.leaderId) ? (
           <div className="text-sm text-gray-400 font-jost italic">
@@ -102,5 +103,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavi
     </div>
   );
 };
+
 
 export default ProjectCard;

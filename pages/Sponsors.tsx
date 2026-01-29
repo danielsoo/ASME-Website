@@ -4,7 +4,18 @@ import { Settings } from 'lucide-react';
 
 const Sponsors: React.FC = () => {
   return (
+<<<<<<< HEAD
     <div className="min-h-screen bg-[#0f131a] text-white font-jost pb-20 relative">
+=======
+    <div 
+      className="min-h-screen bg-white text-[#1E2B48] font-jost pb-20 relative"
+      style={{
+        minHeight: 'calc(100vh + 140px)',
+        marginTop: '-140px',
+        paddingTop: '140px',
+      }}
+    >
+>>>>>>> b94d497e4c3091d5202899d1ccfdb3637d292578
       
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-gray-200 to-gray-300 py-6 px-4">

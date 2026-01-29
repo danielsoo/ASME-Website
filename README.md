@@ -4,14 +4,14 @@ Official website for the American Society of Mechanical Engineers (ASME) chapter
 
 ## Overview
 
-This is a modern web application built with React, TypeScript, and Firebase that serves as the official website for ASME @ Penn State. The platform includes member management, project tracking, event listings, and an administrative panel for managing the organization.
+This is a modern web application built with React, TypeScript, and Firebase that serves as the official website for ASME @ Penn State. The platform includes member management, project tracking, event listings, content editing capabilities, and an administrative panel for managing the organization.
 
 ## Features
 
 ### Public Features
-- **Home Page**: Welcome page with club description and mission
-- **About Page**: Executive Board and Design Team member profiles
-- **Projects Page**: Current and past project listings with details
+- **Home Page**: Welcome page with club description and mission, editable "What we do" section with rich text editor
+- **About Page**: Executive Board and Design Team member profiles with drag-and-drop reordering
+- **Projects Page**: Current and past project listings with details and drag-and-drop reordering
 - **Events Page**: Upcoming and past events
 - **Sponsors Page**: List of sponsors and supporters
 
@@ -23,6 +23,7 @@ This is a modern web application built with React, TypeScript, and Firebase that
 
 ### Administrative Features
 - **User Approval System**: Approve or reject new member registrations
+- **Real-time Notifications**: Badge indicators for pending approvals and deletion requests
 - **Member Management**: 
   - Manage Executive Board positions (add, edit, delete)
   - Assign roles and teams (Design Team / General Body) to members
@@ -31,6 +32,14 @@ This is a modern web application built with React, TypeScript, and Firebase that
   - Assign project leaders
   - Manage project-specific member roles
   - Project approval system for Executive Board members
+  - **Image Upload Options**:
+    - Firebase Storage (requires payment after free tier)
+    - Google Drive/Imgur links (recommended, free)
+- **Content Editing** (President/Vice President only):
+  - Edit Home page "What we do" section with rich text editor
+  - Reorder Executive Board and Design Team members (drag-and-drop)
+  - Reorder Projects (drag-and-drop)
+  - All changes auto-save to Firebase
 - **Trash System**: Soft-delete projects with restore capability
 - **Permanent Deletion**: Two-approval system (Project Leader + President/VP) required
 - **Notifications**: Real-time notifications for project deletions and cancellations
@@ -41,6 +50,7 @@ This is a modern web application built with React, TypeScript, and Firebase that
 - **Styling**: Tailwind CSS
 - **Backend**: Firebase
   - Firestore (Database)
+  - Storage (for image uploads, optional)
   - Authentication (Email/Password, Google OAuth)
 - **Icons**: Lucide React
 
@@ -67,7 +77,8 @@ This is a modern web application built with React, TypeScript, and Firebase that
    - Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
    - Enable Firestore Database
    - Enable Authentication (Email/Password and Google Sign-in)
-   - Create a `.env.local` file in the root directory:
+   - Enable Storage (optional, for image uploads)
+   - Create a `.env.local` file in the `asme_web` directory:
      ```env
      VITE_FIREBASE_API_KEY=your_api_key
      VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
@@ -79,6 +90,7 @@ This is a modern web application built with React, TypeScript, and Firebase that
 
 4. Run the development server:
    ```bash
+   cd asme_web
    npm run dev
    ```
 
@@ -108,6 +120,7 @@ service cloud.firestore {
 - `projects`: Project information with approval and deletion status
 - `execPositions`: Executive Board position definitions
 - `notifications`: User notifications for deletions and approvals
+- `homePageContent`: Home page editable content (title, content, button)
 
 ### Initial Admin Setup
 
@@ -124,7 +137,9 @@ asme_web/
 │   ├── Footer.tsx
 │   ├── AlertModal.tsx
 │   ├── ConfirmModal.tsx
-│   └── NotificationBanner.tsx
+│   ├── NotificationBanner.tsx
+│   ├── ProjectCard.tsx
+│   └── TeamCard.tsx
 ├── pages/              # Page components
 │   ├── Home.tsx
 │   ├── About.tsx
@@ -165,19 +180,41 @@ asme_web/
 ### Project Leader
 - Manage assigned project members
 - Assign project-specific roles
+- Edit own project information
 
 ### President / Vice President
 - All previous permissions
 - Approve/reject user registrations
 - Manage Executive Board positions
 - Approve/delete projects
-- Access trash and manage permanent deletions
+- Edit all page content (Home, About, Projects, Events, Sponsors)
+- Reorder Executive Board, Design Team, and Projects (drag-and-drop)
+- Access trash and manage permanent deletions (President only for permanent deletion)
 
 ### Admin
 - Full system access
 - All administrative functions
 
 ## Key Features Explained
+
+### Content Editing System
+- **Home Page**: Rich text editor for "What we do" section
+  - Title editing
+  - Content editing with formatting (bold, italic, underline, text color)
+  - Button text and URL editing
+  - Only accessible to President/Vice President
+- **About Page**: Drag-and-drop reordering for Executive Board and Design Team
+- **Projects Page**: Drag-and-drop reordering for current and past projects
+- All changes auto-save to Firebase
+
+### Image Upload Options
+- **Option 1: Firebase Storage**
+  - Requires payment after free tier
+  - Direct file upload
+- **Option 2: Google Drive Links (Recommended)**
+  - Free and unlimited
+  - Set sharing to "Anyone with the link"
+  - Use format: `https://drive.google.com/uc?export=view&id=FILE_ID`
 
 ### Project Approval System
 - Executive Board members can create projects
@@ -193,6 +230,11 @@ asme_web/
   2. Unanimous approval from Project Leader AND another President/VP
   3. Real-time notifications sent to all involved parties
 
+### Real-time Notifications
+- Header badge shows count of pending approvals and deletion requests
+- Dashboard cards show pending counts
+- All notifications update in real-time using Firestore onSnapshot
+
 ### Email Verification
 - All users must verify their PSU email address
 - Email verification required before login
@@ -201,6 +243,7 @@ asme_web/
 ## Building for Production
 
 ```bash
+cd asme_web
 npm run build
 ```
 
@@ -220,6 +263,7 @@ This application can be deployed to:
 npm install -g firebase-tools
 firebase login
 firebase init hosting
+cd asme_web
 npm run build
 firebase deploy
 ```

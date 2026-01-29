@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { NAV_LINKS } from '../constants';
 import { Settings, LogOut, Menu, X } from 'lucide-react';
@@ -14,6 +14,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
   const [userData, setUserData] = useState<any>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [adminNotificationCount, setAdminNotificationCount] = useState(0);
   
   // Check if a menu item is the current page (so we can underline it)
   // If the link is "/" (home), check if we're exactly on the home page
@@ -39,6 +40,89 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
       setUserData(null);
     }
   }, [user]);
+
+  // Fetch admin notification counts (pending users, pending projects, deletion requests, sponsor deletion requests)
+  // Same logic as Dashboard
+  useEffect(() => {
+    const isAdmin = userData?.role === 'admin' || userData?.role === 'President' || userData?.role === 'Vice President';
+    if (!isAdmin) {
+      setAdminNotificationCount(0);
+      return;
+    }
+
+    // Use state variables to match Dashboard logic exactly
+    let pendingUsersCount = 0;
+    let pendingProjectsCount = 0;
+    let deletionRequestsCount = 0;
+    let sponsorDeletionRequestsCount = 0;
+
+    const updateTotalCount = () => {
+      // Exact same calculation as Dashboard: pendingUsersCount + pendingProjectsCount + deletionRequestsCount + sponsorDeletionRequestsCount
+      const total = pendingUsersCount + pendingProjectsCount + deletionRequestsCount + sponsorDeletionRequestsCount;
+      setAdminNotificationCount(total);
+    };
+
+    // Listen for pending users - same as Dashboard
+    const usersQuery = query(collection(db, 'users'), where('status', '==', 'pending'));
+    const unsubscribeUsers = onSnapshot(
+      usersQuery,
+      (snapshot) => {
+        pendingUsersCount = snapshot.size;
+        updateTotalCount();
+      },
+      (error) => {
+        console.error('Header - Error fetching pending users:', error);
+      }
+    );
+
+    // Listen for pending projects - same as Dashboard
+    const pendingProjectsQuery = query(collection(db, 'projects'), where('approvalStatus', '==', 'pending'));
+    const unsubscribePendingProjects = onSnapshot(pendingProjectsQuery, (snapshot) => {
+      pendingProjectsCount = snapshot.size;
+      updateTotalCount();
+    });
+
+    // Listen for deletion requests (projects with permanentDeleteRequest that aren't fully approved) - same as Dashboard
+    const allProjectsQuery = query(collection(db, 'projects'));
+    const unsubscribeAllProjects = onSnapshot(allProjectsQuery, (snapshot) => {
+      deletionRequestsCount = 0;
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.permanentDeleteRequest) {
+          const request = data.permanentDeleteRequest;
+          // Count if not fully approved (either leader or exec approval is missing) - same logic as Dashboard
+          if (!request.approvedByLeader || !request.approvedByExec) {
+            deletionRequestsCount++;
+          }
+        }
+      });
+      updateTotalCount();
+    });
+
+    // Listen for sponsor deletion requests (sponsors with permanentDeleteRequest that aren't fully approved) - same as Dashboard
+    const allSponsorsQuery = query(collection(db, 'sponsors'));
+    const unsubscribeAllSponsors = onSnapshot(allSponsorsQuery, (snapshot) => {
+      sponsorDeletionRequestsCount = 0;
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.permanentDeleteRequest) {
+          const request = data.permanentDeleteRequest;
+          // Count if not fully approved (both exec approvals are missing) - same logic as Dashboard
+          if (!request.approvedByExec1 || !request.approvedByExec2) {
+            sponsorDeletionRequestsCount++;
+          }
+        }
+      });
+      updateTotalCount();
+    });
+
+    return () => {
+      unsubscribeUsers();
+      unsubscribePendingProjects();
+      unsubscribeAllProjects();
+      unsubscribeAllSponsors();
+    };
+  }, [userData?.role]);
 
   const handleLogout = async () => {
     try {
@@ -176,6 +260,68 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
             </button>
           );
         })}
+
+        {/* Admin Menu Item - Only show if user is admin or President */}
+        {(userData?.role === 'admin' || userData?.role === 'President') && (
+          <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+            <button
+              onClick={() => onNavigate('/admin')}
+              style={{
+                // Make text white
+                color: "#FFF",
+                // Use the Jost font we set up earlier
+                fontFamily: "var(--font-jost, 'Jost', sans-serif)",
+                // Make font size responsive: smallest is 12px, biggest is 34.575px
+                fontSize: "clamp(12px, 2.29vw, 34.575px)",
+                // Make text normal weight (not bold)
+                fontWeight: 400,
+                // If this is the active page, underline it. Otherwise, no underline
+                textDecoration: isActive('/admin') ? "underline" : "none",
+                // Make underline white if it's active, invisible if not
+                textDecorationColor: isActive('/admin') ? "#FFF" : "transparent",
+                // Make the underline a little bit below the text (responsive)
+                textUnderlineOffset: "clamp(2px, 0.26vw, 4px)",
+                // Make the underline thickness responsive
+                textDecorationThickness: "clamp(1px, 0.13vw, 2px)",
+                // Don't let the text wrap to a new line - keep it on one line
+                whiteSpace: "nowrap",
+                // Remove button default styles
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              ADMIN
+            </button>
+            {/* Notification Badge */}
+            {adminNotificationCount > 0 && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: "-8px",
+                  right: "-12px",
+                  backgroundColor: "#EF4444",
+                  color: "#FFF",
+                  borderRadius: "50%",
+                  minWidth: "clamp(18px, 2vw, 24px)",
+                  height: "clamp(18px, 2vw, 24px)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "clamp(10px, 1.2vw, 14px)",
+                  fontWeight: "bold",
+                  padding: "0 clamp(4px, 0.5vw, 6px)",
+                  fontFamily: "var(--font-jost, 'Jost', sans-serif)",
+                  border: "2px solid rgba(0, 0, 0, 0.3)",
+                  boxSizing: "border-box",
+                }}
+              >
+                {adminNotificationCount > 99 ? '99+' : adminNotificationCount}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* User Menu - Hamburger Menu */}
         <div style={{ position: "relative", flexShrink: 0 }} data-menu-container>
