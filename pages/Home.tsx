@@ -165,7 +165,7 @@ const Home: React.FC = () => {
             <h3 className="text-3xl font-jost font-bold mb-6 text-white text-center">Next Meeting</h3>
             
             {/* Simple Mock Calendar Card */}
-            <div className="bg-white rounded-2xl p-4 shadow-2xl w-full md:w-1/2 max-w-4xl overflow-hidden">
+            <div className="bg-white rounded-2xl p-4 shadow-2xl w-full md:w-3/4 max-w-4xl overflow-hidden">
                 <div className="flex justify-between items-center mb-6 px-4">
                     <div className="flex gap-4 items-center">
                         {loading ? (
