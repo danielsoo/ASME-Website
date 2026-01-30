@@ -243,7 +243,8 @@ export const EVENTS: Event[] = [
     title: 'General Body Meeting',
     date: 'Coming Soon',
     description: 'Join us for updates on projects and upcoming events.',
-    type: 'this_week',
+    type: 'upcoming',
+    imageUrl: 'https://picsum.photos/seed/general/300/300',
   },
   {
     id: '3',
@@ -275,6 +276,7 @@ export const EVENTS: Event[] = [
     date: '2024-2025',
     description: 'Thank you to everyone who participated in our past events.',
     type: 'past',
+    imageUrl: 'https://picsum.photos/seed/past-event/300/300',
   },
 ];
 

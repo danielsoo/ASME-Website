@@ -12,6 +12,8 @@ import ProjectApprovals from './ProjectApprovals';
 import ProjectTrash from './ProjectTrash';
 import MemberManagement from './MemberManagement';
 import SponsorTrash from './SponsorTrash';
+import EventManagement from './EventManagement';
+import EventTrash from './EventTrash';
 
 interface AdminProps {
   currentPath?: string;
@@ -90,14 +92,17 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
     return <SponsorTrash onNavigate={onNavigate || (() => {})} />;
   }
 
-  // Sponsors Management page
-  if (currentPath === '/admin/sponsors') {
+  // Events Management page
+  if (currentPath === '/admin/events') {
     return (
       <div>
-        {/*<AdminHeader/>*/}
-        <SponsorManagement onNavigate={onNavigate || (() => {})} />
+        <EventManagement onNavigate={onNavigate || (() => {})} />
       </div>
     )
+  }
+  // Event Trash page
+  if (currentPath === '/admin/events/trash') {
+    return <EventTrash onNavigate={onNavigate || (() => {})} />;
   }
 
   // Default to dashboard
