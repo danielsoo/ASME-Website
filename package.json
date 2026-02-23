@@ -9,7 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@imagekit/react": "^5.0.2",
     "firebase": "^11.10.0",
+    "imagekit-javascript": "^4.0.1",
+    "imagekitio-react": "^4.3.0",
     "lucide-react": "^0.561.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
