@@ -3,34 +3,36 @@ import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, onSnaps
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { db, auth, storage } from '../../firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Sponsor } from '../../types';
+import { Event } from '../../types';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import AlertModal from '../../components/AlertModal';
 import ConfirmModal from '../../components/ConfirmModal';
 
-interface SponsorManagementProps {
+interface EventManagementProps {
   onNavigate: (path: string) => void;
 }
 
-const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => {
-  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedSponsor, setSelectedSponsor] = useState<Sponsor | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [deletionRequestsCount, setDeletionRequestsCount] = useState(0);
 
   // Form states
-  const [sponsorName, setSponsorName] = useState('');
-  const [sponsorLink, setSponsorLink] = useState('');
-  const [logoFile, setLogoFile] = useState<File | null>(null)
-  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [eventTitle, setEventTitle] = useState('');
+  const [eventDate, setEventDate] = useState('');
+  const [eventDescription, setEventDescription] = useState('');
+  const [eventType, setEventType] = useState<'upcoming' | 'past' >('upcoming');
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   // Confirm delete modal state
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [sponsorToDelete, setSponsorToDelete] = useState<string | null>(null);
+  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
 
   // Alert modal states
   const [alertModal, setAlertModal] = useState<{
@@ -50,7 +52,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   };
 
   useEffect(() => {
-    loadSponsors();
+    loadEvents();
 
     // Get current user's role
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -73,8 +75,8 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
 
   // Listen for deletion requests count
   useEffect(() => {
-    const sponsorsQuery = query(collection(db, 'sponsors'));
-    const unsubscribe = onSnapshot(sponsorsQuery, (snapshot) => {
+    const eventsQuery = query(collection(db, 'events'));
+    const unsubscribe = onSnapshot(eventsQuery, (snapshot) => {
       let count = 0;
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
@@ -92,80 +94,82 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     return () => unsubscribe();
   }, []);
 
-  const loadSponsors = async () => {
+  const loadEvents = async () => {
     try {
       setLoading(true);
-      const sponsorsRef = collection(db, 'sponsors');
-      const snapshot = await getDocs(sponsorsRef);
-      const sponsorsList: Sponsor[] = [];
+      const eventsRef = collection(db, 'events');
+      const snapshot = await getDocs(eventsRef);
+      const eventsList: Event[] = [];
       
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        // Only show sponsors that are not deleted (deletedAt is null or undefined)
+        // Only show events that are not deleted (deletedAt is null or undefined)
         if (!data.deletedAt) {
-          sponsorsList.push({
+          eventsList.push({
             id: docSnap.id,
             ...data,
-          } as Sponsor);
+          } as Event);
         }
       });
 
-      // Sort: by name
-      sponsorsList.sort((a, b) => {
-        return a.name.localeCompare(b.name);
+      // Sort: by title
+      eventsList.sort((a, b) => {
+        return a.title.localeCompare(b.title);
       });
 
-      setSponsors(sponsorsList);
+      setEvents(eventsList);
     } catch (error) {
-      console.error('Error loading sponsors:', error);
+      console.error('Error loading events:', error);
     } finally {
       setLoading(false);
     }
   };
 
 
-  // Check if user can manage sponsors (President/VP only)
-  const canManageSponsors = (): boolean => {
+  // Check if user can manage events (President/VP only)
+  const canManageEvents = (): boolean => {
     return currentUserRole === 'President' || currentUserRole === 'Vice President';
   };
 
-  // Check if user can delete sponsors (President/VP only)
-  const canDeleteSponsors = (): boolean => {
+  // Check if user can delete events (President/VP only)
+  const canDeleteEvents = (): boolean => {
     return currentUserRole === 'President' || currentUserRole === 'Vice President';
   };
 
   // helper function to upload a file to firebase
-  const uploadSponsorLogo = async (file: File): Promise<string> => {
+  const uploadEventImage = async (file: File): Promise<string> => {
     const fileRef = ref(
       storage,
-      `sponsors/${Date.now()}-${file.name}`
+      `events/${Date.now()}-${file.name}`
     );
 
     await uploadBytes(fileRef, file);
     return await getDownloadURL(fileRef);
   }
 
-  const handleAddSponsor = async () => {
-    if (!sponsorName.trim()) {
-      showAlert('warning', 'Validation Error', 'Please enter a sponsor name.');
+  const handleAddEvent = async () => {
+    if (!eventTitle.trim()) {
+      showAlert('warning', 'Validation Error', 'Please enter an event title.');
       return;
     }
 
-    if (!logoFile) {
-      showAlert('warning', 'Validation Error', 'Please upload a sponsor logo.');
+    if (!imageFile) {
+      showAlert('warning', 'Validation Error', 'Please upload an event image.');
       return;
     }
 
-    // President/VP can create approved sponsors directly
+    // President/VP can create approved events directly
     const needsApproval = false;
 
     try {
-      const uploadedLogoUrl = await uploadSponsorLogo(logoFile);
+      const uploadedImageUrl = await uploadEventImage(imageFile);
 
-      await addDoc(collection(db, 'sponsors'), {
-        name: sponsorName.trim(),
-        link: sponsorLink.trim() || '',
-        logoUrl: uploadedLogoUrl,
+      await addDoc(collection(db, 'events'), {
+        title: eventTitle.trim(),
+        date: eventDate.trim() || '',
+        description: eventDescription.trim() || '',
+        type: eventType,
+        imageUrl: uploadedImageUrl,
         approvalStatus: 'approved',
         createdBy: currentUserId,
         approvedBy: currentUserId,
@@ -175,127 +179,133 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
       });
 
       setShowCreateModal(false);
-      setSponsorName('');
-      setSponsorLink('');
-      setLogoFile(null);
-      setLogoPreview(null);
+      setEventTitle('');
+      setEventDate('');
+      setEventDescription('');
+      setEventType('upcoming');
+      setImageFile(null);
+      setImagePreview(null);
 
-      await loadSponsors();
-      showAlert('success', 'Success', 'Sponsor added successfully!');
+      await loadEvents();
+      showAlert('success', 'Success', 'Event added successfully!');
     } catch (error) {
-      console.error('Error adding sponsor:', error);
-      showAlert('error', 'Error', 'Failed to add sponsor. Please try again.');
+      console.error('Error adding event:', error);
+      showAlert('error', 'Error', 'Failed to add event. Please try again.');
     }
   };
 
-  const handleEditSponsor = async () => {
-    if (!selectedSponsor || !sponsorName.trim()) {
+  const handleEditEvent = async () => {
+    if (!selectedEvent || !eventTitle.trim()) {
       return;
     }
 
     try {
-      let updatedLogoUrl = selectedSponsor.logoUrl;
+      let updatedImageUrl = selectedEvent.imageUrl;
 
-      if (logoFile) {
-        updatedLogoUrl = await uploadSponsorLogo(logoFile)
+      if (imageFile) {
+        updatedImageUrl = await uploadEventImage(imageFile)
       }
 
-      await updateDoc(doc(db, 'sponsors', selectedSponsor.id), {
-        name: sponsorName.trim(),
-        link: sponsorLink.trim() || '',
-        logoUrl: updatedLogoUrl,
+      await updateDoc(doc(db, 'events', selectedEvent.id), {
+        title: eventTitle.trim(),
+        date: eventDate.trim() || '',
+        description: eventDescription.trim() || '',
+        type: eventType,
+        imageUrl: updatedImageUrl,
         updatedAt: new Date().toISOString(),
       });
 
       setShowEditModal(false);
-      setSelectedSponsor(null);
-      //setLogoFile(null);
-      //setLogoPreview(null);
+      setSelectedEvent(null);
+      //setImageFile(null);
+      //setImagePreview(null);
 
-      await loadSponsors();
-      showAlert('success', 'Success', 'Sponsor updated successfully!');
+      await loadEvents();
+      showAlert('success', 'Success', 'Event updated successfully!');
     } catch (error) {
-      console.error('Error updating sponsor:', error);
-      showAlert('error', 'Error', 'Failed to update sponsor. Please try again.');
+      console.error('Error updating event:', error);
+      showAlert('error', 'Error', 'Failed to update event. Please try again.');
     }
   };
 
-  const handleDeleteClick = (sponsorId: string) => {
-    setSponsorToDelete(sponsorId);
+  const handleDeleteClick = (eventId: string) => {
+    setEventToDelete(eventId);
     setShowConfirmDelete(true);
   };
 
-  const handleDeleteSponsor = async () => {
-    if (!sponsorToDelete) return;
+  const handleDeleteEvent = async () => {
+    if (!eventToDelete) return;
 
-    if (!canDeleteSponsors()) {
-      showAlert('error', 'Access Denied', 'Only President and Vice President can delete sponsors.');
-      setSponsorToDelete(null);
+    if (!canDeleteEvents()) {
+      showAlert('error', 'Access Denied', 'Only President and Vice President can delete events.');
+      setEventToDelete(null);
       setShowConfirmDelete(false);
       return;
     }
 
     try {
       // Soft delete: Set deletedAt timestamp instead of actually deleting
-      await updateDoc(doc(db, 'sponsors', sponsorToDelete), {
+      await updateDoc(doc(db, 'events', eventToDelete), {
         deletedAt: new Date().toISOString(),
         deletedBy: currentUserId,
         updatedAt: new Date().toISOString(),
       });
-      await loadSponsors();
-      setSponsorToDelete(null);
-      showAlert('success', 'Success', 'Sponsor moved to trash successfully!');
+      await loadEvents();
+      setEventToDelete(null);
+      showAlert('success', 'Success', 'Event moved to trash successfully!');
     } catch (error) {
-      console.error('Error deleting sponsor:', error);
-      showAlert('error', 'Error', 'Failed to delete sponsor. Please try again.');
+      console.error('Error deleting event:', error);
+      showAlert('error', 'Error', 'Failed to delete event. Please try again.');
     }
   };
 
-  const openEditModal = (sponsor: Sponsor) => {
+  const openEditModal = (event: Event) => {
     // Only allow editing if user is President/VP
-    if (!canManageSponsors()) {
-      showAlert('error', 'Access Denied', 'Only President and Vice President can edit sponsor details.');
+    if (!canManageEvents()) {
+      showAlert('error', 'Access Denied', 'Only President and Vice President can edit event details.');
       return;
     }
-    setSelectedSponsor(sponsor);
-    setSponsorName(sponsor.name);
-    setSponsorLink(sponsor.link || '');
-    setLogoFile(null);
-    setLogoPreview(sponsor.logoUrl);
+    setSelectedEvent(event);
+    setEventTitle(event.title);
+    setEventDate(event.date || '');
+    setEventDescription(event.description || '');
+    setEventType(event.type);
+    setImageFile(null);
+    setImagePreview(event.imageUrl);
     setShowEditModal(true);
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    setLogoFile(file)
+    setImageFile(file)
 
     // Optional: preview before upload
     const previewUrl = URL.createObjectURL(file)
-    setLogoPreview(previewUrl)
+    setImagePreview(previewUrl)
   }
 
-  // Check access: Only President/VP can manage sponsors
-  if (!canManageSponsors()) {
+  // Check access: Only President/VP can manage events
+  if (!canManageEvents()) {
     return (
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">Only President and Vice President can manage sponsors.</p>
+          <p className="text-gray-600">Only President and Vice President can manage events.</p>
         </div>
       </div>
     );
   }
 
-  // President/VP can see all sponsors
-  const visibleSponsors = sponsors;
+  // President/VP can see all events
+  const visibleEvents = events;
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Sponsor Management</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Event Management</h1>
           <div className="flex gap-2">
             <button
               onClick={() => onNavigate('/admin')}
@@ -303,24 +313,26 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
             >
               ← Back to Dashboard
             </button>
-            {canManageSponsors() && (
+            {canManageEvents() && (
               <button
                 onClick={() => {
-                  setSponsorName('');
-                  setSponsorLink('');
-                  setLogoFile(null);
-                  setLogoPreview(null);
+                  setEventTitle('');
+                  setEventDate('');
+                  setEventDescription('');
+                  setEventType('upcoming');
+                  setImageFile(null);
+                  setImagePreview(null);
                   setShowCreateModal(true);
                 }}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
               >
                 <Plus className="w-5 h-5" />
-                Add Sponsor
+                Add Event
               </button>
             )}
-            {canDeleteSponsors() && (
+            {canDeleteEvents() && (
               <button
-                onClick={() => onNavigate('/admin/sponsors/trash')}
+                onClick={() => onNavigate('/admin/events/trash')}
                 className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded flex items-center gap-2 relative"
                 style={{ position: "relative" }}
               >
@@ -355,58 +367,51 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
 
         {loading ? (
           <div className="text-center py-8">Loading...</div>
-        ) : visibleSponsors.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">No sponsors found.</div>
+        ) : visibleEvents.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">No events found.</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {visibleSponsors.map((sponsor) => (
-              <div key={sponsor.id} className="bg-white rounded-lg shadow-md p-6">
+            {visibleEvents.map((event) => (
+              <div key={event.id} className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
-                    <h2 className="text-xl font-bold text-gray-800 mb-1">{sponsor.name}</h2>
-                    <div className="flex gap-2 flex-wrap mb-2">
-                      {sponsor.approvalStatus === 'pending' && (
+                    <h2 className="text-xl font-bold text-gray-800 mb-1">{event.title}</h2>
+                    <div className="flex gap-2 flex-wrap mb-1">
+                      {event.approvalStatus === 'pending' && (
                         <span className="inline-block px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-800">
                           Pending Approval
                         </span>
                       )}
                     </div>
-                    {sponsor.link && (
-                      <a
-                        href={sponsor.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 text-sm break-all"
-                      >
-                        Visit Sponsor Website →
-                      </a>
-                    )}
-
-                    {sponsor.logoUrl && (
+                    <div className="text-black flex flex-col">
+                      <p className="mb-2 font-semibold text-blue-400">{event.type}</p>
+                      <p>{event.description}</p>
+                    </div>
+                    {event.imageUrl && (
                       <div className="mt-3">
                         <img
-                          src={sponsor.logoUrl}
-                          alt={sponsor.name}
+                          src={event.imageUrl}
+                          alt={event.title}
                           className="h-20 object-contain rounded-lg"
                         />
                       </div>
                     )}
                     
                   </div>
-                  {canManageSponsors() && (
+                  {canManageEvents() && (
                     <div className="flex gap-2 ml-4">
                       <button
-                        onClick={() => openEditModal(sponsor)}
+                        onClick={() => openEditModal(event)}
                         className="text-blue-600 hover:text-blue-800"
-                        title="Edit Sponsor"
+                        title="Edit Event"
                       >
                         <Edit className="w-5 h-5" />
                       </button>
-                      {canDeleteSponsors() && (
+                      {canDeleteEvents() && (
                         <button
-                          onClick={() => handleDeleteClick(sponsor.id)}
+                          onClick={() => handleDeleteClick(event.id)}
                           className="text-red-600 hover:text-red-800"
-                          title="Delete Sponsor"
+                          title="Delete Event"
                         >
                           <Trash2 className="w-5 h-5" />
                         </button>
@@ -420,55 +425,84 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
           </div>
         )}
 
-        {/* Create Sponsor Modal */}
+        {/* Create Event Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-6 text-gray-800">Add New Sponsor</h2>
+              <h2 className="text-2xl font-bold mb-6 text-gray-800">Add New Event</h2>
               
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sponsor Name *
+                    Event Title *
                   </label>
                   <input
                     type="text"
-                    value={sponsorName}
-                    onChange={(e) => setSponsorName(e.target.value)}
+                    value={eventTitle}
+                    onChange={(e) => setEventTitle(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
                     style={{ color: '#111827', backgroundColor: '#ffffff' }}
-                    placeholder="e.g., Lockheed Martin"
+                    placeholder="e.g., Icecream Social"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sponsor Website
+                    Event Date
                   </label>
                   <input
                     type="text"
-                    value={sponsorLink}
-                    onChange={(e) => setSponsorLink(e.target.value)}
+                    value={eventDate}
+                    onChange={(e) => setEventDate(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
                     style={{ color: '#111827', backgroundColor: '#ffffff' }}
-                    placeholder="https://example.com"
+                    placeholder="e.g. January 2025"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sponsor Logo *
+                    Event Description
+                  </label>
+                  <input
+                    type="text"
+                    value={eventDescription}
+                    onChange={(e) => setEventDescription(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                    placeholder="Describe the event here"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Event Type
+                  </label>
+                  <select
+                    value={eventType}
+                    onChange={(e) => setEventType(e.target.value as 'upcoming' | 'past')}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    style={{ color: '#111827', backgroundColor: '#ffffff', appearance: 'menulist' }}
+                  >
+                    <option value="upcoming" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Upcoming</option>
+                    <option value="past" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Past</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Event Image *
                   </label>
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => handleLogoUpload(e)}
+                    onChange={(e) => handleImageUpload(e)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
                   />
-                  {logoPreview && (
+                  {imagePreview && (
                     <img
-                      src={logoPreview}
-                      alt="Logo preview"
+                      src={imagePreview}
+                      alt="Image preview"
                       className="mt-4 h-32 object-contain border rounded"
                     />
                   )}
@@ -478,10 +512,10 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
 
               <div className="flex gap-4 mt-6">
                 <button
-                  onClick={handleAddSponsor}
+                  onClick={handleAddEvent}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
                 >
-                  Add Sponsor
+                  Add Event
                 </button>
                 <button
                   onClick={() => setShowCreateModal(false)}
@@ -494,21 +528,21 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
           </div>
         )}
 
-        {/* Edit Sponsor Modal */}
-        {showEditModal && selectedSponsor && (
+        {/* Edit Event Modal */}
+        {showEditModal && selectedEvent && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-6 text-gray-800">Edit Sponsor</h2>
+              <h2 className="text-2xl font-bold mb-6 text-gray-800">Edit Event</h2>
               
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sponsor Name *
+                    Event Title *
                   </label>
                   <input
                     type="text"
-                    value={sponsorName}
-                    onChange={(e) => setSponsorName(e.target.value)}
+                    value={eventTitle}
+                    onChange={(e) => setEventTitle(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
                     style={{ color: '#111827', backgroundColor: '#ffffff' }}
                   />
@@ -516,32 +550,61 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sponsor Website Link
+                    Event Date
                   </label>
                   <input
                     type="text"
-                    value={sponsorLink}
-                    onChange={(e) => setSponsorLink(e.target.value)}
+                    value={eventDate}
+                    onChange={(e) => setEventDate(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
                     style={{ color: '#111827', backgroundColor: '#ffffff' }}
-                    placeholder="https://example.com"
+                    placeholder="e.g. January 2025"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sponsor Logo
+                    Event Description
+                  </label>
+                  <input
+                    type="text"
+                    value={eventDescription}
+                    onChange={(e) => setEventDescription(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                    placeholder="Describe the event here"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Event Type
+                  </label>
+                  <select
+                    value={eventType}
+                    onChange={(e) => setEventType(e.target.value as 'upcoming' | 'past')}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    style={{ color: '#111827', backgroundColor: '#ffffff', appearance: 'menulist' }}
+                  >
+                    <option value="upcoming" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Upcoming</option>
+                    <option value="past" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Past</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Event Image
                   </label>
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => handleLogoUpload(e)}
+                    onChange={(e) => handleImageUpload(e)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
                   />
-                  {logoPreview && (
+                  {imagePreview && (
                     <img
-                      src={logoPreview}
-                      alt="Logo preview"
+                      src={imagePreview}
+                      alt="Image preview"
                       className="mt-4 h-32 object-contain border rounded"
                     />
                   )}
@@ -550,7 +613,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
 
               <div className="flex gap-4 mt-6">
                 <button
-                  onClick={handleEditSponsor}
+                  onClick={handleEditEvent}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
                 >
                   Save Changes
@@ -558,7 +621,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                 <button
                   onClick={() => {
                     setShowEditModal(false);
-                    setSelectedSponsor(null);
+                    setSelectedEvent(null);
                   }}
                   className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
                 >
@@ -583,11 +646,11 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
           isOpen={showConfirmDelete}
           onClose={() => {
             setShowConfirmDelete(false);
-            setSponsorToDelete(null);
+            setEventToDelete(null);
           }}
-          onConfirm={handleDeleteSponsor}
+          onConfirm={handleDeleteEvent}
           title="Move to Trash"
-          message="Are you sure you want to delete this sponsor? It will be moved to trash and can be restored later."
+          message="Are you sure you want to delete this event? It will be moved to trash and can be restored later."
           confirmText="Move to Trash"
           cancelText="Cancel"
           type="warning"
@@ -597,4 +660,4 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   );
 };
 
-export default SponsorManagement;
+export default EventManagement;

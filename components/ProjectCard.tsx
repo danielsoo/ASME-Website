@@ -10,41 +10,41 @@ interface ProjectCardProps {
   onDragHandleMouseDown?: (e: React.MouseEvent) => void;
 }
 
-const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavigate, showDragHandle, onDragHandleMouseDown }) => {
-  const [showAllMembers, setShowAllMembers] = useState(false);
+const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavigate }) => {
+  const [isHovered, setIsHovered] = React.useState(false);
+  const [showAllMembers, setShowAllMembers] = React.useState(false);
+
 
   return (
-    <div id={`project-${project.id}`} className="bg-[#DEE7ED] border border-gray-700 rounded-lg overflow-hidden mb-8 shadow-md relative">
-      {/* Drag Handle */}
-      {showDragHandle && (
-        <div
-          onMouseDown={onDragHandleMouseDown}
-          className="absolute top-4 right-4 cursor-move hover:opacity-70 transition-opacity z-10 bg-black/50 rounded p-2"
-          title="드래그하여 순서 변경"
-        >
-          <GripVertical size={24} className="text-white" />
-        </div>
-      )}
+    <div id={`project-${project.id}`} className="bg-[#DEE7ED] border border-gray-700 rounded-lg overflow-hidden mb-8 shadow-md"
+    onClick={() => onImageClick?.(project)}>
       {/* Image Header Section */}
-      <div className="relative h-64 w-full overflow-hidden">
+      <div className="relative h-48 w-full overflow-hidden"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         <img 
           src={project.imageUrl} 
           alt={project.title} 
           className="w-full h-full object-cover transition-transform duration-700 hover:scale-105 cursor-pointer"
-          draggable={false}
           onClick={() => onImageClick?.(project)}
         />
-        <div className="absolute bottom-0 left-0 p-6 bg-gradient-to-t from-black/80 to-transparent w-full">
-          <h3 className="text-2xl font-bold font-jost text-white tracking-wider uppercase">{project.title}</h3>
+        <div className="absolute bottom-0 left-0 p-6 bg-black/25 w-full h-full hover:bg-black/50 transition-all ease-in-out cursor-pointer">
+          <h3 className="flex text-2xl font-bold font-jost text-white tracking-wider uppercase cursor-pointer">
+            {project.title}
+            <span className={`block pl-2 transition-all duration-300 ease-in-out
+              ${isHovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}>
+                ➜
+            </span>
+          </h3>
+          <p className="text-white text-sm leading-relaxed mb-6 font-jost pt-2">
+            {project.description}
+          </p>
         </div>
       </div>
 
       {/* Content Section */}
       <div className="p-6">
-        <p className="text-gray-700 text-sm leading-relaxed mb-6 font-jost">
-          {project.description}
-        </p>
-
         {/* Project Leader Section */}
         {(project.leaderEmail || project.leaderId) && (
           <div>
@@ -92,6 +92,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavi
                 </div>
               </div>
             ))}
+            
           </div>
         ) : !(project.leaderEmail || project.leaderId) ? (
           <div className="text-sm text-gray-400 font-jost italic">
@@ -102,5 +103,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavi
     </div>
   );
 };
+
 
 export default ProjectCard;

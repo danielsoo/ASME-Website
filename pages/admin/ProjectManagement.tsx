@@ -8,6 +8,8 @@ import { Plus, Edit, Trash2, Users, UserPlus } from 'lucide-react';
 import AlertModal from '../../components/AlertModal';
 import ConfirmModal from '../../components/ConfirmModal';
 
+import { uploadToImageKit } from '../../server/imagekit';
+
 interface ProjectManagementProps {
   onNavigate: (path: string) => void;
 }
@@ -239,26 +241,6 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     return isLeader;
   };
 
-  // Upload image to Firebase Storage
-  const uploadToFirebaseStorage = async (file: File): Promise<string> => {
-    try {
-      setUploadingImage(true);
-      const timestamp = Date.now();
-      const fileName = `projects/${timestamp}_${file.name}`;
-      const storageRef = ref(storage, fileName);
-      
-      await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
-      
-      return downloadURL;
-    } catch (error) {
-      console.error('Error uploading to Firebase Storage:', error);
-      throw error;
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
   const handleCreateProject = async () => {
     if (!projectTitle.trim()) {
       showAlert('warning', 'Validation Error', 'Please enter a project title.');
@@ -269,18 +251,36 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     // President/VP/Admin can create approved projects directly
     const needsApproval = !canManageProjects();
 
-    try {
+    try { 
       let imageUrl = projectImageUrl.trim();
-      
-      // If file is selected, upload to Firebase Storage
+      let imagekitFileId: string | null = null;
+      let imagekitFilePath: string | null = null;
+      let imageThumbnailUrl: string | null = null;
+
+      //if file selected, upload to ImageKit CDN
       if (projectImageFile) {
-        imageUrl = await uploadToFirebaseStorage(projectImageFile);
+        setUploadingImage(true);
+        try {
+          const uploaded = await uploadToImageKit(projectImageFile, {
+            folder: `/projects/${projectTitle.trim()}`,
+            tags: ['project', projectTitle.trim()],
+          });
+          imageUrl = uploaded.url;
+          imagekitFileId = uploaded.fileId;
+          imagekitFilePath = uploaded.filePath;
+          imageThumbnailUrl = uploaded.thumbnailUrl;
+        } finally {
+          setUploadingImage(false);
+        }
       }
 
       await addDoc(collection(db, 'projects'), {
         title: projectTitle.trim(),
         description: projectDescription.trim(),
         imageUrl: imageUrl || '',
+        imagekitFileId: imagekitFileId,
+        imagekitFilePath: imagekitFilePath,
+        imageThumbnailUrl: imageThumbnailUrl,
         chairs: [],
         status: projectStatus,
         // Only President/VP/Admin can assign leader directly
@@ -335,10 +335,25 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
       const leaderUser = projectLeaderId ? allUsers.find(u => u.uid === projectLeaderId) : null;
       
       let imageUrl = projectImageUrl.trim();
-      
-      // If file is selected, upload to Firebase Storage
+      let imagekitFileId: string | null | undefined = undefined;
+      let imagekitFilePath: string | null | undefined = undefined;
+      let imageThumbnailUrl: string | null | undefined = undefined;
+
+      // If file is selected, upload to ImageKit CDN
       if (projectImageFile) {
-        imageUrl = await uploadToFirebaseStorage(projectImageFile);
+        setUploadingImage(true);
+        try {
+          const uploaded = await uploadToImageKit(projectImageFile, {
+            folder: '/projects',
+            tags: ['project', projectTitle.trim()],
+          });
+          imageUrl = uploaded.url;
+          imagekitFileId = uploaded.fileId;
+          imagekitFilePath = uploaded.filePath;
+          imageThumbnailUrl = uploaded.thumbnailUrl;
+        } finally {
+          setUploadingImage(false);
+        }
       }
       
       const updateData: any = {
@@ -354,6 +369,10 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
       if (imageUrl) {
         updateData.imageUrl = imageUrl;
       }
+
+      if (imagekitFileId !== undefined) updateData.imagekitFileId = imagekitFileId;
+      if (imagekitFilePath !== undefined) updateData.imagekitFilePath = imagekitFilePath;
+      if (imageThumbnailUrl !== undefined) updateData.imageThumbnailUrl = imageThumbnailUrl;
       
       await updateDoc(doc(db, 'projects', selectedProject.id), updateData);
 
@@ -706,7 +725,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                         }}
                         className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Image will be uploaded to Firebase Storage</p>
+                      <p className="text-xs text-gray-500 mt-1">Image will be uploaded to ImageKit CDN</p>
                     </div>
                     
                     {/* URL Input Option */}
@@ -874,7 +893,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                         }}
                         className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Image will be uploaded to Firebase Storage</p>
+                      <p className="text-xs text-gray-500 mt-1">Image will be uploaded to ImageKit CDN</p>
                     </div>
                     
                     {/* URL Input Option */}

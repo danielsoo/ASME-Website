@@ -14,6 +14,8 @@ import Login from './pages/Login';
 import Profile from './pages/Profile';
 import Admin from './pages/admin/Admin';
 
+import { IKContext } from 'imagekitio-react';
+
 const App: React.FC = () => {
   // Simple custom router state using hash
   const [currentPath, setCurrentPath] = useState(() => {
@@ -98,19 +100,25 @@ const App: React.FC = () => {
     }
   };
 
-  return (
-    <div className="flex flex-col min-h-screen font-sans" style={{ background: 'transparent' }}>
-      {/* Notification Banner - shows at top when user is logged in */}
-      {user && <NotificationBanner />}
-      
-        <Header currentPath={currentPath} onNavigate={navigate} user={user} />
-      
-      <main className="flex-grow">
-        {renderPage()}
-      </main>
+  
+return (
+    <IKContext
+      publicKey={import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY}
+      urlEndpoint={import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT}
+    >
+      <div className="flex flex-col min-h-screen font-sans" style={{ background: 'transparent' }}>
+        {/* Notification Banner - shows at top when user is logged in */}
+        {user && <NotificationBanner />}
 
-      <Footer />
-    </div>
+        <Header currentPath={currentPath} onNavigate={navigate} user={user} />
+
+        <main className="flex-grow">
+          {renderPage()}
+        </main>
+
+        <Footer />
+      </div>
+    </IKContext>
   );
 };
 

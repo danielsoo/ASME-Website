@@ -6,12 +6,14 @@ import Login from './Login';
 import Dashboard from './Dashboard';
 import UserApproval from './UserApproval';
 import SetupAdmin from './SetupAdmin';
+import SponsorManagement from './SponsorManagement';
 import ProjectManagement from './ProjectManagement';
 import ProjectApprovals from './ProjectApprovals';
 import ProjectTrash from './ProjectTrash';
 import MemberManagement from './MemberManagement';
-import SponsorManagement from './SponsorManagement';
 import SponsorTrash from './SponsorTrash';
+import EventManagement from './EventManagement';
+import EventTrash from './EventTrash';
 
 interface AdminProps {
   currentPath?: string;
@@ -88,6 +90,19 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
   // Sponsor Trash page
   if (currentPath === '/admin/sponsors/trash') {
     return <SponsorTrash onNavigate={onNavigate || (() => {})} />;
+  }
+
+  // Events Management page
+  if (currentPath === '/admin/events') {
+    return (
+      <div>
+        <EventManagement onNavigate={onNavigate || (() => {})} />
+      </div>
+    )
+  }
+  // Event Trash page
+  if (currentPath === '/admin/events/trash') {
+    return <EventTrash onNavigate={onNavigate || (() => {})} />;
   }
 
   // Default to dashboard

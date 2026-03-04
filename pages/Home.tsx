@@ -158,14 +158,14 @@ const Home: React.FC = () => {
       <div 
         className="relative z-20 container mx-auto px-4 mb-24"
         style={{
-          marginTop: "clamp(-80px, -6vw, -96px)",
+          marginTop: "clamp(-90px, -10vw, -96px)",
         }}
       >
         <div className="flex flex-col items-center">
             <h3 className="text-3xl font-jost font-bold mb-6 text-white text-center">Next Meeting</h3>
             
-            {/* Calendar Card */}
-            <div className="bg-white rounded-3xl p-6 shadow-2xl w-full max-w-4xl overflow-hidden">
+            {/* Simple Mock Calendar Card */}
+            <div className="bg-white rounded-2xl p-4 shadow-2xl w-full md:w-3/4 max-w-4xl overflow-hidden">
                 <div className="flex justify-between items-center mb-6 px-4">
                     <div className="flex gap-4 items-center">
                         {loading ? (
@@ -251,6 +251,7 @@ const Home: React.FC = () => {
                         );
                     })}
                 </div>
+                
             </div>
         </div>
       </div>
