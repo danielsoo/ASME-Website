@@ -9,7 +9,7 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onNavigate }) => {
-  const [email, setEmail] = useState('yqp5187@psu.edu'); // Default email
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [major, setMajor] = useState('');
@@ -74,21 +74,10 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
     return () => unsubscribe();
   }, [onNavigate]);
 
-  const validatePSUEmail = (email: string): boolean => {
-    return email.toLowerCase().endsWith('@psu.edu');
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
-    // Check PSU email domain
-    if (!validatePSUEmail(email)) {
-      setError('Only PSU email (@psu.edu) is allowed.');
-      setLoading(false);
-      return;
-    }
 
     try {
       if (isSignUp) {
@@ -196,16 +185,6 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       
-      // Check PSU email after Google login
-      const userEmail = result.user.email || '';
-      if (!validatePSUEmail(userEmail)) {
-        // Sign out if not PSU email
-        await auth.signOut();
-        setError('Only PSU email (@psu.edu) is allowed.');
-        setLoading(false);
-        return;
-      }
-
       // Google login generally considers email as verified, but check anyway
       if (!result.user.emailVerified) {
         await sendEmailVerification(result.user);
@@ -242,7 +221,7 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
         console.log('Verification email resent:', user.email);
         setEmailVerificationSent(true);
         setError('');
-      } else if (email && validatePSUEmail(email) && password) {
+      } else if (email && password) {
         // Try login then resend if email and password are provided
         try {
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -274,11 +253,6 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
       return;
     }
     
-    if (!validatePSUEmail(email)) {
-      setError('Only PSU email (@psu.edu) is allowed.');
-      return;
-    }
-
     setError('');
     setLoading(true);
     try {
@@ -432,12 +406,9 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     className="w-full pl-12 pr-4 py-3 bg-[#0f131a] border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#3b4c6b] focus:border-transparent transition"
-                    placeholder="yourname@psu.edu"
+                    placeholder="yourname@email.com"
                   />
                 </div>
-                <p className="mt-1 text-xs text-gray-500">
-                  Only PSU email (@psu.edu) is allowed
-                </p>
               </div>
 
               {/* Password Field */}

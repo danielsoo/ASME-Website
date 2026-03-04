@@ -16,7 +16,7 @@ This is a modern web application built with React, TypeScript, and Firebase that
 - **Sponsors Page**: List of sponsors and supporters
 
 ### Member Features
-- **User Registration**: PSU email (@psu.edu) required
+- **User Registration**: Any email allowed (admin approval required)
 - **Email Verification**: Firebase email verification required
 - **Profile Management**: Edit name, major, and year
 - **Status Tracking**: View approval status (pending/approved/rejected)
