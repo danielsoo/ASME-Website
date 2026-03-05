@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SPONSORS } from '../constants';
+import { SPONSORS } from '../src/constants';
 import { Settings } from 'lucide-react';
 import { getSponsorContactEmail } from '../firebase/services';
 
