@@ -161,71 +161,96 @@ interface GoogleCalendarEvent {
   htmlLink?: string;
 }
 
-export const getGoogleCalendarEvents = async (): Promise<Event[]> => {
+let _calendarWarned = false;
+
+const DEFAULT_CALENDAR_ID_BASE64 = 'ODJlM2NhNzNlYjEzZGZhNDk1Y2YxOGQyMjNhYWYxNDE0MjBkYzg3ZWE4NjcwMDRjOWI4MGY5NzhkMzNiNjBhYUBncm91cC5jYWxlbmRhci5nb29nbGUuY29t';
+// Decoded: 82e3ca73eb13dfa495cf18d223aaf141420dc87ea867004c9b80f978d33b60aa@group.calendar.google.com
+
+function decodeCalendarId(encoded: string): string {
   try {
-    // Calendar ID from the provided URL (URL encoded)
-    const calendarId = 'ODJlM2NhNzNlYjEzZGZhNDk1Y2YxOGQyMjNhYWYxNDE0MjBkYzg3ZWE4NjcwMDRjOWI4MGY5NzhkMzNiNjBhYUBncm91cC5jYWxlbmRhci5nb29nbGUuY29t';
-    
-    // Decode the calendar ID
-    const decodedCalendarId = decodeURIComponent(calendarId);
-    
-    const now = new Date();
-    const timeMin = now.toISOString();
-    const timeMax = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString(); // 1 year from now
-    
-    // Fetch events from Google Calendar API (public calendar)
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(decodedCalendarId)}/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime&maxResults=2500`;
-    
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      console.error('Error fetching Google Calendar events:', response.statusText);
-      return [];
-    }
-    
-    const data = await response.json();
-    
-    // Transform Google Calendar events to our Event format
-    const events: Event[] = (data.items || []).map((item: GoogleCalendarEvent) => {
-      const startDate = item.start?.dateTime || item.start?.date || '';
-      const endDate = item.end?.dateTime || item.end?.date || '';
-      
-      // Parse date
-      const eventDate = new Date(startDate);
-      const now = new Date();
-      const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      
-      // Determine event type
-      let type: 'upcoming' | 'past' | 'this_week' = 'upcoming';
-      if (eventDate < now) {
-        type = 'past';
-      } else if (eventDate <= weekFromNow) {
-        type = 'this_week';
-      }
-      
-      // Format date for display
-      const formattedDate = eventDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-      
-      return {
-        id: item.id,
-        title: item.summary || 'Untitled Event',
-        description: item.description || '',
-        date: formattedDate,
-        dateTime: startDate, // Store original date string for accurate parsing
-        type: type,
-        location: item.location || undefined
-      } as Event & { dateTime?: string };
-    });
-    
-    return events;
-  } catch (error) {
-    console.error('Error fetching Google Calendar events:', error);
-    return [];
+    return atob(encoded);
+  } catch {
+    return decodeURIComponent(encoded);
   }
+}
+
+/** Returns list of calendar IDs to fetch. Supports 1) multiple via VITE_GOOGLE_CALENDAR_IDS (comma), 2) single VITE_GOOGLE_CALENDAR_ID, 3) default encoded ID. */
+function getCalendarIds(): string[] {
+  const env = typeof import.meta !== 'undefined' ? import.meta.env : undefined;
+  const multiple = env?.VITE_GOOGLE_CALENDAR_IDS;
+  if (multiple && typeof multiple === 'string') {
+    return multiple.split(',').map((id) => id.trim()).filter(Boolean);
+  }
+  const single = env?.VITE_GOOGLE_CALENDAR_ID;
+  if (single) return [single];
+  return [decodeCalendarId(DEFAULT_CALENDAR_ID_BASE64)];
+}
+
+function mapCalendarItemToEvent(item: GoogleCalendarEvent, calendarId: string): Event & { dateTime?: string } {
+  const startDate = item.start?.dateTime || item.start?.date || '';
+  const eventDate = new Date(startDate);
+  const now = new Date();
+  const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  let type: 'upcoming' | 'past' | 'this_week' = 'upcoming';
+  if (eventDate < now) type = 'past';
+  else if (eventDate <= weekFromNow) type = 'this_week';
+  const formattedDate = eventDate.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+  return {
+    id: `${encodeURIComponent(calendarId)}_${item.id}`,
+    title: item.summary || 'Untitled Event',
+    description: item.description || '',
+    date: formattedDate,
+    dateTime: startDate,
+    type,
+    location: item.location || undefined
+  } as Event & { dateTime?: string };
+}
+
+export const getGoogleCalendarEvents = async (): Promise<Event[]> => {
+  const calendarIds = getCalendarIds();
+  const apiKey = typeof import.meta !== 'undefined' && import.meta.env?.VITE_GOOGLE_CALENDAR_API_KEY;
+  const now = Date.now();
+  const timeMin = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString(); // 30일 전부터 (과거 이벤트도 표시)
+  const timeMax = new Date(now + 365 * 24 * 60 * 60 * 1000).toISOString();
+  const allEvents: Event[] = [];
+
+  for (const calendarId of calendarIds) {
+    try {
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime&maxResults=2500${apiKey ? `&key=${encodeURIComponent(apiKey)}` : ''}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        if (import.meta.env?.DEV && !_calendarWarned) {
+          _calendarWarned = true;
+          const msg = response.status === 404
+            ? 'Google Calendar: calendar not found (404). Check calendar ID or set VITE_GOOGLE_CALENDAR_ID(S) in .env.local.'
+            : `Google Calendar: request failed (${response.status}). For 403, add VITE_GOOGLE_CALENDAR_API_KEY and enable Calendar API.`;
+          console.warn(msg);
+        }
+        continue;
+      }
+
+      const data = await response.json();
+      const events = (data.items || []).map((item: GoogleCalendarEvent) => mapCalendarItemToEvent(item, calendarId));
+      allEvents.push(...events);
+    } catch (error) {
+      if (import.meta.env?.DEV && !_calendarWarned) {
+        _calendarWarned = true;
+        console.warn('Google Calendar error:', error);
+      }
+    }
+  }
+
+  allEvents.sort((a, b) => {
+    const tA = (a as Event & { dateTime?: string }).dateTime || '';
+    const tB = (b as Event & { dateTime?: string }).dateTime || '';
+    return new Date(tA).getTime() - new Date(tB).getTime();
+  });
+  return allEvents;
 };
 
 export const addEvent = async (event: Omit<Event, 'id'>): Promise<string> => {
@@ -348,13 +373,12 @@ export const getInstagramPosts = async (limit: number = 6): Promise<InstagramPos
           const settings = settingsSnap.data();
           accessToken = settings.accessToken;
         }
-      } catch (error) {
-        console.warn('Could not fetch Instagram token from Firestore:', error);
+      } catch {
+        // No token in Firestore - skip Instagram (see INSTAGRAM_SETUP.md to enable)
       }
     }
-    
+
     if (!accessToken) {
-      console.warn('Instagram Access Token not found. Please set VITE_INSTAGRAM_ACCESS_TOKEN in your environment variables or add it to Firestore at settings/instagram with field "accessToken".');
       return [];
     }
 

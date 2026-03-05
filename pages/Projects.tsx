@@ -96,9 +96,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
         setLoading(true);
         setError(null);
         const allProjects = await getProjects();
-        
-        console.log('Loaded projects from Firebase:', allProjects);
-        
+
         // Filter: show approved projects or projects without approvalStatus (legacy projects)
         // Also exclude deleted projects
         const activeProjects = allProjects.filter(project => {
@@ -107,9 +105,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
           
           return isNotDeleted && isApproved;
         });
-        
-        console.log('Filtered active projects:', activeProjects);
-        
+
         // Separate into current and past
         setCurrentProjects(activeProjects.filter(p => p.status === 'current'));
         setPastProjects(activeProjects.filter(p => p.status === 'past'));
@@ -219,14 +215,9 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
       });
       
       if (!project) {
-        console.log('Project not found for slug:', projectSlug);
-        console.log('Available projects:', activeProjects.map(p => ({
-          id: p.id,
-          title: p.title,
-          slug: p.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-        })));
+        // Project not found for slug - return null (404 handled by UI)
       }
-      
+
       return project || null;
     } catch (error) {
       console.error('Error parsing project path:', error);
@@ -236,12 +227,6 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
 
   // Use useMemo to ensure projectDetail is recalculated when currentPath or projects change
   const projectDetail = useMemo(() => getProjectFromPath(currentPath), [currentPath, currentProjects, pastProjects]);
-
-  // Log when currentPath changes for debugging
-  useEffect(() => {
-    console.log('Projects component - currentPath changed:', currentPath);
-    console.log('Projects component - projectDetail:', projectDetail);
-  }, [currentPath, projectDetail]);
 
   // Handle scrolling to specific project from sessionStorage or URL hash
   // IMPORTANT: This useEffect must be called before any conditional return to follow React Hooks rules

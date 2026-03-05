@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@theme {
+  --font-jost: 'Jost', sans-serif;
+  --font-khmer: 'Khmer', serif;
+  --color-asme-dark: #0f131a;
+  --color-asme-card: #1a1f2c;
+  --color-asme-red: #800020;
+  --color-asme-gray: #D1D5DB;
+}
+
+:root {
+  --font-jost: 'Jost', sans-serif;
+}
+
+body {
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.20) 0%, rgba(0, 0, 0, 0.20) 100%), linear-gradient(180deg, rgba(8, 205, 227, 0.00) 0%, #443BA5 100%), url('/Homepage_background.jpg');
+  background-size: 100% auto;
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-blend-mode: normal, overlay, normal;
+  color: white;
+  min-height: 100vh;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+footer {
+  border: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+footer::after,
+footer::before {
+  display: none !important;
+}

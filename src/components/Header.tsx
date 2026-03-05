@@ -261,46 +261,34 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
           );
         })}
 
-        {/* Admin Menu Item - Only show if user is admin or President */}
+        {/* Admin Menu Item - Only show if user is admin or President. Same structure as other nav items (single button) so size/layout match. */}
         {(userData?.role === 'admin' || userData?.role === 'President') && (
-          <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
-            <button
-              onClick={() => onNavigate('/admin')}
-              style={{
-                // Make text white
-                color: "#FFF",
-                // Use the Jost font we set up earlier
-                fontFamily: "var(--font-jost, 'Jost', sans-serif)",
-                // Make font size responsive: smallest is 12px, biggest is 34.575px
-                fontSize: "clamp(12px, 2.29vw, 34.575px)",
-                // Make text normal weight (not bold)
-                fontWeight: 400,
-                // If this is the active page, underline it. Otherwise, no underline
-                textDecoration: isActive('/admin') ? "underline" : "none",
-                // Make underline white if it's active, invisible if not
-                textDecorationColor: isActive('/admin') ? "#FFF" : "transparent",
-                // Make the underline a little bit below the text (responsive)
-                textUnderlineOffset: "clamp(2px, 0.26vw, 4px)",
-                // Make the underline thickness responsive
-                textDecorationThickness: "clamp(1px, 0.13vw, 2px)",
-                // Don't let the text wrap to a new line - keep it on one line
-                whiteSpace: "nowrap",
-                // Remove button default styles
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 0,
-              }}
-            >
-              ADMIN
-            </button>
-            {/* Notification Badge */}
+          <button
+            onClick={() => onNavigate('/admin')}
+            style={{
+              position: "relative",
+              color: "#FFF",
+              fontFamily: "var(--font-jost, 'Jost', sans-serif)",
+              fontSize: "clamp(12px, 2.29vw, 34.575px)",
+              fontWeight: 400,
+              textDecoration: isActive('/admin') ? "underline" : "none",
+              textDecorationColor: isActive('/admin') ? "#FFF" : "transparent",
+              textUnderlineOffset: "clamp(2px, 0.26vw, 4px)",
+              textDecorationThickness: "clamp(1px, 0.13vw, 2px)",
+              whiteSpace: "nowrap",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            ADMIN
             {adminNotificationCount > 0 && (
               <span
                 style={{
                   position: "absolute",
                   top: "-8px",
-                  right: "-12px",
+                  right: "-6px",
                   backgroundColor: "#EF4444",
                   color: "#FFF",
                   borderRadius: "50%",
@@ -320,7 +308,7 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
                 {adminNotificationCount > 99 ? '99+' : adminNotificationCount}
               </span>
             )}
-          </div>
+          </button>
         )}
 
         {/* User Menu - Hamburger Menu */}

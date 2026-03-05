@@ -4,7 +4,7 @@ import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/
 import { db, auth } from '../../src/firebase/config';
 
 const SetupAdmin: React.FC = () => {
-  const [email, setEmail] = useState('yqp5187@psu.edu');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('Admin User');
   const [role, setRole] = useState('admin'); // Default role
@@ -17,13 +17,6 @@ const SetupAdmin: React.FC = () => {
     setLoading(true);
 
     try {
-      // Check PSU email
-      if (!email.toLowerCase().endsWith('@psu.edu')) {
-        setStatus('❌ Only PSU email (@psu.edu) is allowed.');
-        setLoading(false);
-        return;
-      }
-
       // Check password
       if (password.length < 6) {
         setStatus('❌ Password must be at least 6 characters long.');
@@ -147,14 +140,14 @@ const SetupAdmin: React.FC = () => {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address (PSU Email)
+                Email Address
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                placeholder="yqp5187@psu.edu"
+                placeholder="admin@email.com"
               />
             </div>
 
