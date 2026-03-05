@@ -9,9 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@imagekit/nodejs": "^7.3.0",
     "@imagekit/react": "^5.0.2",
     "firebase": "^11.10.0",
-    "imagekit-javascript": "^4.0.1",
+    "firebase-functions": "^7.0.5",
+    "imagekit": "^6.0.0",
     "imagekitio-react": "^4.3.0",
     "lucide-react": "^0.561.0",
     "react": "^19.2.3",

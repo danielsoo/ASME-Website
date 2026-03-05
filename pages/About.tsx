@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { PROJECTS } from '../constants';
-import { getExecBoard, getDesignTeam, updateTeamMemberOrder } from '../firebase/services';
-import { TeamMember } from '../types';
-import TeamCard from '../components/TeamCard';
+import { PROJECTS } from '../src/constants';
+import { getExecBoard, getDesignTeam, updateTeamMemberOrder } from '../src/firebase/services';
+import { TeamMember } from '../src/types';
+import TeamCard from '../src/components/TeamCard';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase/config';
+import { auth, db } from '../src/firebase/config';
 
 interface AboutProps {
   currentPath?: string;
@@ -56,7 +56,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
       } catch (error) {
         console.error('Error loading data:', error);
         // Fallback to constants if Firebase fails
-        const { EXEC_BOARD, DESIGN_TEAM } = await import('../constants');
+        const { EXEC_BOARD, DESIGN_TEAM } = await import('../src/constants');
         setExecBoard(EXEC_BOARD);
         setDesignTeam(DESIGN_TEAM);
       } finally {
@@ -430,7 +430,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     <div className="min-h-screen bg-white pb-20 relative">
       
       {/* Hero / About Us Text */}
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-16 py-16">
          <div className="flex flex-col md:flex-row gap-12 items-start">
              <div className="w-full md:w-1/3 h-64 bg-slate-700 rounded-lg">
                  {/* Placeholder for About Image */}
@@ -450,49 +450,49 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
       </div>
 
       {/* Our Teams Section */}
-      <div className="bg-[#e5e7eb] py-16">
-  <div className="container mx-auto px-4">
-    <h2 className="text-3xl font-jost font-bold text-[#1E2B48] text-center mb-12">
-      Our Teams
-    </h2>
+      <div className="bg-[#e5e7eb] py-16 px-16">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-jost font-bold text-[#1E2B48] text-center mb-12">
+            Our Teams
+          </h2>
 
-    <div className="space-y-8 ">
-        {/* General Body */}
-        <div
-          className="relative group cursor-pointer overflow-hidden rounded-xl h-48 w-full shadow-md"
-          onClick={navigateToGeneralBody}
-        >
-          <img
-            src="https://picsum.photos/seed/team1/800/600"
-            alt="General Body"
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          />
-          <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-            <h3 className="text-3xl font-bold font-jost text-white">
-              General Body
-            </h3>
+          <div className="space-y-8 ">
+          {/* General Body */}
+          <div
+            className="relative group cursor-pointer overflow-hidden rounded-xl h-48 w-full shadow-md"
+            onClick={navigateToGeneralBody}
+          >
+            <img
+              src="https://picsum.photos/seed/team1/800/600"
+              alt="General Body"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+              <h3 className="text-3xl font-bold font-jost text-white">
+                General Body
+              </h3>
+            </div>
+          </div>
+
+          {/* Design Team */}
+          <div
+            className="relative group cursor-pointer overflow-hidden rounded-xl h-48 w-full shadow-md"
+            onClick={navigateToDesignTeam}
+          >
+            <img
+              src="https://picsum.photos/seed/team2/800/600"
+              alt="Design Team"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+              <h3 className="text-3xl font-bold font-jost text-white">
+                Design Team
+              </h3>
+            </div>
           </div>
         </div>
-
-        {/* Design Team */}
-        <div
-          className="relative group cursor-pointer overflow-hidden rounded-xl h-48 w-full shadow-md"
-          onClick={navigateToDesignTeam}
-        >
-          <img
-            src="https://picsum.photos/seed/team2/800/600"
-            alt="Design Team"
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          />
-          <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-            <h3 className="text-3xl font-bold font-jost text-white">
-              Design Team
-            </h3>
-          </div>
-        </div>
+      </div>
     </div>
-  </div>
-</div>
 
 
     </div>

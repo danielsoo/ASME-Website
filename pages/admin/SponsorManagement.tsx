@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, onSnapshot, query } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { db, auth, storage } from '../../firebase/config';
+import { db, auth, storage } from '../../src/firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Sponsor } from '../../types';
+import { Sponsor } from '../../src/types';
 import { Plus, Edit, Trash2 } from 'lucide-react';
-import AlertModal from '../../components/AlertModal';
-import ConfirmModal from '../../components/ConfirmModal';
+import AlertModal from '../../src/components/AlertModal';
+import ConfirmModal from '../../src/components/ConfirmModal';
 
 interface SponsorManagementProps {
   onNavigate: (path: string) => void;

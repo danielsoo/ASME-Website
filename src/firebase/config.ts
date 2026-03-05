@@ -6,7 +6,7 @@ import { getStorage } from "firebase/storage";
 
 // Default Firebase configuration (for shared project use)
 // Can be overridden with .env.local file
-const defaultFirebaseConfig = {
+const DEV_DEFAULTS = {
   apiKey: "AIzaSyAE3XSw5zwAhYnZI25Ukfa_QXeAM6DZ3mI",
   authDomain: "asme-web-20fbb.firebaseapp.com",
   projectId: "asme-web-20fbb",
@@ -19,13 +19,13 @@ const defaultFirebaseConfig = {
 // Your web app's Firebase configuration
 // Use environment variables if provided, otherwise use default (for shared Firebase project)
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || defaultFirebaseConfig.apiKey,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || defaultFirebaseConfig.authDomain,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || defaultFirebaseConfig.projectId,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || defaultFirebaseConfig.storageBucket,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || defaultFirebaseConfig.messagingSenderId,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || defaultFirebaseConfig.appId,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || defaultFirebaseConfig.measurementId,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || DEV_DEFAULTS.apiKey,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || DEV_DEFAULTS.authDomain,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || DEV_DEFAULTS.projectId,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || DEV_DEFAULTS.storageBucket,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || DEV_DEFAULTS.messagingSenderId,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || DEV_DEFAULTS.appId,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || DEV_DEFAULTS.measurementId,
 };
 
 // Initialize Firebase

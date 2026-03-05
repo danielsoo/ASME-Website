@@ -4,17 +4,16 @@ import { auth } from './firebase/config';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import NotificationBanner from './components/NotificationBanner';
-import Home from './pages/Home';
-import About from './pages/About';
-import Projects from './pages/Projects';
-import Events from './pages/Events';
-import Sponsors from './pages/Sponsors';
-import Migrate from './pages/Migrate';
-import Login from './pages/Login';
-import Profile from './pages/Profile';
-import Admin from './pages/admin/Admin';
-
-import { IKContext } from 'imagekitio-react';
+import Home from '../pages/Home';
+import About from '../pages/About';
+import Projects from '../pages/Projects';
+import Events from '../pages/Events';
+import Sponsors from '../pages/Sponsors';
+import Migrate from '../pages/Migrate';
+import Login from '../pages/Login';
+import Profile from '../pages/Profile';
+import Admin from '../pages/admin/Admin';
+import { IKContext} from 'imagekitio-react';
 
 const App: React.FC = () => {
   // Simple custom router state using hash
