@@ -53,7 +53,9 @@ const Footer: React.FC = () => {
           >
             Contact us
           </p>
-          <p>484-268-3741</p>
+          <p>
+            <a href="tel:484-268-3741" className="text-white hover:underline">484-268-3741</a>
+          </p>
           <p>
             <a href="mailto:gmk5561@psu.edu" className="text-white hover:underline">gmk5561@psu.edu</a>
           </p>
@@ -92,8 +94,15 @@ const Footer: React.FC = () => {
         {/* Right Column - Address */}
         <div className="font-jost font-normal text-right">
           <p>Office:</p>
-          <p>125 Hammond</p>
-          <p>University Park, PA 16802</p>
+          <a
+            href="https://www.google.com/maps/search/?api=1&query=125+Hammond+Building+University+Park+PA+16802"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white hover:underline inline-block text-right"
+          >
+            125 Hammond<br />
+            University Park, PA 16802
+          </a>
         </div>
       </div>
       <div className="flex gap-1.5">
