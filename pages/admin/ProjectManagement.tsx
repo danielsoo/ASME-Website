@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, query, where, onSnapshot } from 'firebase/firestore';
-import { db, auth, storage } from '../../firebase/config';
+import { db, auth, storage } from '../../src/firebase/config';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Project, ProjectMember } from '../../types';
+import { Project, ProjectMember } from '../../src/types';
 import { Plus, Edit, Trash2, Users, UserPlus } from 'lucide-react';
-import AlertModal from '../../components/AlertModal';
-import ConfirmModal from '../../components/ConfirmModal';
-
-import { uploadToImageKit } from '../../server/imagekit';
+import AlertModal from '../../src/components/AlertModal';
+import ConfirmModal from '../../src/components/ConfirmModal';
+import Uploader from '@/src/components/Uploader';
 
 interface ProjectManagementProps {
   onNavigate: (path: string) => void;
@@ -32,9 +31,16 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
   const [projectDescription, setProjectDescription] = useState('');
   const [projectStatus, setProjectStatus] = useState<'current' | 'past'>('current');
   const [projectLeaderId, setProjectLeaderId] = useState('');
-  const [projectImageUrl, setProjectImageUrl] = useState('');
+  const [projectImageUrl, setProjectImageUrl] = useState('#');
   const [projectImageFile, setProjectImageFile] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  // IK Upload results from Uploader
+  const [ikUrl, setIkUrl] = useState('');
+  const [ikFileId, setIkFileId] = useState<string | null>(null);
+  const [ikFilePath, setIkFilePath] = useState<string | null>(null);
+  const [ikThumbUrl, setIkThumbUrl] = useState<string | null>(null);
+  const [uploadPct, setUploadPct] = useState<number>(0);
 
   // Confirm delete modal state
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -252,35 +258,15 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     const needsApproval = !canManageProjects();
 
     try { 
-      let imageUrl = projectImageUrl.trim();
-      let imagekitFileId: string | null = null;
-      let imagekitFilePath: string | null = null;
-      let imageThumbnailUrl: string | null = null;
-
-      //if file selected, upload to ImageKit CDN
-      if (projectImageFile) {
-        setUploadingImage(true);
-        try {
-          const uploaded = await uploadToImageKit(projectImageFile, {
-            folder: `/projects/${projectTitle.trim()}`,
-            tags: ['project', projectTitle.trim()],
-          });
-          imageUrl = uploaded.url;
-          imagekitFileId = uploaded.fileId;
-          imagekitFilePath = uploaded.filePath;
-          imageThumbnailUrl = uploaded.thumbnailUrl;
-        } finally {
-          setUploadingImage(false);
-        }
-      }
+      let imageUrl = ikUrl || projectImageUrl.trim() || '';
 
       await addDoc(collection(db, 'projects'), {
         title: projectTitle.trim(),
         description: projectDescription.trim(),
-        imageUrl: imageUrl || '',
-        imagekitFileId: imagekitFileId,
-        imagekitFilePath: imagekitFilePath,
-        imageThumbnailUrl: imageThumbnailUrl,
+        imageUrl,
+        imagekitFileId: ikFileId,
+        imagekitFilePath: ikFilePath,
+        imageThumbnailUrl: ikThumbUrl,
         chairs: [],
         status: projectStatus,
         // Only President/VP/Admin can assign leader directly
@@ -302,7 +288,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
       setProjectDescription('');
       setProjectStatus('current');
       setProjectLeaderId('');
-      setProjectImageUrl('');
+      setProjectImageUrl('#');
       setProjectImageFile(null);
       await loadProjects();
       
@@ -334,27 +320,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     try {
       const leaderUser = projectLeaderId ? allUsers.find(u => u.uid === projectLeaderId) : null;
       
-      let imageUrl = projectImageUrl.trim();
-      let imagekitFileId: string | null | undefined = undefined;
-      let imagekitFilePath: string | null | undefined = undefined;
-      let imageThumbnailUrl: string | null | undefined = undefined;
-
-      // If file is selected, upload to ImageKit CDN
-      if (projectImageFile) {
-        setUploadingImage(true);
-        try {
-          const uploaded = await uploadToImageKit(projectImageFile, {
-            folder: '/projects',
-            tags: ['project', projectTitle.trim()],
-          });
-          imageUrl = uploaded.url;
-          imagekitFileId = uploaded.fileId;
-          imagekitFilePath = uploaded.filePath;
-          imageThumbnailUrl = uploaded.thumbnailUrl;
-        } finally {
-          setUploadingImage(false);
-        }
-      }
+      let imageUrl = ikUrl || projectImageUrl.trim() || '';
       
       const updateData: any = {
         title: projectTitle.trim(),
@@ -370,9 +336,9 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
         updateData.imageUrl = imageUrl;
       }
 
-      if (imagekitFileId !== undefined) updateData.imagekitFileId = imagekitFileId;
-      if (imagekitFilePath !== undefined) updateData.imagekitFilePath = imagekitFilePath;
-      if (imageThumbnailUrl !== undefined) updateData.imageThumbnailUrl = imageThumbnailUrl;
+      if (ikFileId !== null) updateData.imagekitFileId = ikFileId;
+      if (ikFilePath !== null) updateData.imagekitFilePath = ikFilePath;
+      if (ikThumbUrl !== null) updateData.imageThumbnailUrl = ikThumbUrl;
       
       await updateDoc(doc(db, 'projects', selectedProject.id), updateData);
 
@@ -428,7 +394,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     setProjectDescription(project.description);
     setProjectStatus(project.status);
     setProjectLeaderId(project.leaderId || '');
-    setProjectImageUrl(project.imageUrl || '');
+    setProjectImageUrl( project.imageUrl || '#');
     setProjectImageFile(null);
     setShowEditModal(true);
   };
@@ -701,32 +667,27 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   </label>
                   <div className="space-y-3">
                     {/* File Upload Option */}
-                    <div>
-                      <label className="text-sm text-gray-600 mb-1 block">Option 1: Upload Image File</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setProjectImageFile(file);
-                            setProjectImageUrl(''); // Clear URL when file is selected
-                            // Show preview
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              const preview = document.getElementById('create-image-preview') as HTMLImageElement;
-                              if (preview) {
-                                preview.src = reader.result as string;
-                                preview.style.display = 'block';
-                              }
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Image will be uploaded to ImageKit CDN</p>
-                    </div>
+                    <Uploader
+                      folder={`/projects/${(projectTitle || 'untitled').trim()}`}
+                      tags={['project', projectTitle.trim()].filter(Boolean)}
+                      onProgress={(pct) => {
+                        setUploadPct(pct);
+                        setUploadingImage(pct > 0 && pct < 100);
+                      }}
+                      onError={(msg) => showAlert('error', 'Image Upload', msg)}
+                      onComplete={(u) => {
+                        setIkUrl(u.url);
+                        setIkFileId(u.fileId);
+                        setIkFilePath(u.filePath);
+                        setIkThumbUrl(u.thumbnailUrl ?? null);
+                        setProjectImageFile(null);
+                        setProjectImageUrl(u.url);
+                        showAlert('success', 'Image Upload', 'Image uploaded to CDN.');
+                      }}
+                    />
+                    {uploadPct > 0 && uploadPct < 100 && (
+                      <div className="text-xs text-gray-600 mt-1">Uploading... {uploadPct}%</div> 
+                    )}
                     
                     {/* URL Input Option */}
                     <div>
@@ -869,32 +830,27 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   </label>
                   <div className="space-y-3">
                     {/* File Upload Option */}
-                    <div>
-                      <label className="text-sm text-gray-600 mb-1 block">Option 1: Upload Image File</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setProjectImageFile(file);
-                            setProjectImageUrl(''); // Clear URL when file is selected
-                            // Show preview
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              const preview = document.getElementById('edit-image-preview') as HTMLImageElement;
-                              if (preview) {
-                                preview.src = reader.result as string;
-                                preview.style.display = 'block';
-                              }
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Image will be uploaded to ImageKit CDN</p>
-                    </div>
+                    <Uploader
+                      folder={`/projects/${(projectTitle || 'untitled').trim()}`}
+                      tags={['project', projectTitle.trim()].filter(Boolean)}
+                      onProgress={(pct) => {
+                        setUploadPct(pct);
+                        setUploadingImage(pct > 0 && pct < 100);
+                      }}
+                      onError={(msg) => showAlert('error', 'Image Upload', msg)}
+                      onComplete={(u) => {
+                        setIkUrl(u.url);
+                        setIkFileId(u.fileId);
+                        setIkFilePath(u.filePath);
+                        setIkThumbUrl(u.thumbnailUrl ?? null);
+                        setProjectImageFile(null);
+                        setProjectImageUrl(u.url);
+                        showAlert('success', 'Image Upload', 'Image uploaded to CDN.');
+                      }}
+                    />
+                    {uploadPct > 0 && uploadPct < 100 && (
+                      <div className="text-xs text-gray-600 mt-1">Uploading... {uploadPct}%</div> 
+                    )}
                     
                     {/* URL Input Option */}
                     <div>

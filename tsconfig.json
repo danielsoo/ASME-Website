@@ -31,5 +31,5 @@
     "**/*.ts",
     "**/*.tsx",
     "vite-env.d.ts"
-  ]
+, "functions/index.ts"  ]
 }
