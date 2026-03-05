@@ -11,15 +11,15 @@ interface HeaderProps {
   user?: any;
 }
 
+const DEFAULT_ALLOWED_ADMIN_ROLES = ['President', 'Vice President'];
+
 const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
   const [userData, setUserData] = useState<any>(null);
+  const [allowedAdminRoles, setAllowedAdminRoles] = useState<string[]>(DEFAULT_ALLOWED_ADMIN_ROLES);
   const [menuOpen, setMenuOpen] = useState(false);
   const [adminNotificationCount, setAdminNotificationCount] = useState(0);
   
   // Check if a menu item is the current page (so we can underline it)
-  // If the link is "/" (home), check if we're exactly on the home page
-  // Otherwise, check if the current path starts with the link path
-  // Remove hash fragment for comparison
   const basePath = currentPath?.split('#')[0] || currentPath;
   const isActive = (path: string) =>
     path === '/' ? basePath === '/' : basePath?.startsWith(path);
@@ -41,11 +41,22 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
     }
   }, [user]);
 
-  // Fetch admin notification counts (pending users, pending projects, deletion requests, sponsor deletion requests)
-  // Same logic as Dashboard
+  // Fetch which roles can access admin (config/adminAccess)
   useEffect(() => {
-    const isAdmin = userData?.role === 'admin' || userData?.role === 'President' || userData?.role === 'Vice President';
-    if (!isAdmin) {
+    if (!user) return;
+    getDoc(doc(db, 'config', 'adminAccess'))
+      .then((snap) => {
+        const roles = snap.exists() ? (snap.data()?.allowedRoles || DEFAULT_ALLOWED_ADMIN_ROLES) : DEFAULT_ALLOWED_ADMIN_ROLES;
+        setAllowedAdminRoles(Array.isArray(roles) ? roles : DEFAULT_ALLOWED_ADMIN_ROLES);
+      })
+      .catch(() => setAllowedAdminRoles(DEFAULT_ALLOWED_ADMIN_ROLES));
+  }, [user]);
+
+  const canAccessAdmin = userData?.role && allowedAdminRoles.includes(userData.role);
+
+  // Fetch admin notification counts (only when user can access admin)
+  useEffect(() => {
+    if (!canAccessAdmin) {
       setAdminNotificationCount(0);
       return;
     }
@@ -122,7 +133,7 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
       unsubscribeAllProjects();
       unsubscribeAllSponsors();
     };
-  }, [userData?.role]);
+  }, [canAccessAdmin]);
 
   const handleLogout = async () => {
     try {
@@ -261,8 +272,8 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
           );
         })}
 
-        {/* Admin Menu Item - Only show if user is admin or President. Same structure as other nav items (single button) so size/layout match. */}
-        {(userData?.role === 'admin' || userData?.role === 'President') && (
+        {/* Admin Menu Item - Only show if user's role has admin access (Executive Board roles granted by President). */}
+        {canAccessAdmin && (
           <button
             onClick={() => onNavigate('/admin')}
             style={{

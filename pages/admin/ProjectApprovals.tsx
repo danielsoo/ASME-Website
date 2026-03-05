@@ -190,7 +190,7 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
 
   if (!canApproveProjects()) {
     return (
-      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
           <p className="text-gray-600">Only President and Vice President can approve projects.</p>
@@ -200,13 +200,13 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Project Approvals</h1>
+    <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto">
+      <div className="max-w-7xl mx-auto min-w-0">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Project Approvals</h1>
           <button
             onClick={() => onNavigate('/admin/projects')}
-            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"
+            className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base shrink-0"
           >
             ← Back to Projects
           </button>
@@ -220,14 +220,14 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
             <p className="text-sm">All projects have been approved.</p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {pendingProjects.map((project) => {
               const createdByUser = allUsers.find(u => u.uid === project.createdBy);
               return (
-                <div key={project.id} className="bg-white rounded-lg shadow-md p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <h2 className="text-2xl font-bold text-gray-800 mb-2">{project.title}</h2>
+                <div key={project.id} className="bg-white rounded-lg shadow-md p-4 sm:p-6 min-w-0">
+                  <div className="flex flex-wrap justify-between items-start gap-2 mb-3 sm:mb-4">
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-lg sm:text-2xl font-bold text-gray-800 mb-2 break-words">{project.title}</h2>
                       {project.description && (
                         <p className="text-gray-600 mb-3">{project.description}</p>
                       )}
@@ -251,19 +251,19 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
                     </span>
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => openApproveModal(project)}
-                      className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+                      className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base"
                     >
-                      <Check className="w-5 h-5" />
+                      <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                       Approve & Assign Leader
                     </button>
                     <button
                       onClick={() => handleReject(project.id)}
-                      className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+                      className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-4 h-4 sm:w-5 sm:h-5" />
                       Reject
                     </button>
                   </div>
@@ -275,7 +275,7 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
 
         {/* Approve Modal */}
         {showApproveModal && selectedProject && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4">
               <h2 className="text-2xl font-bold mb-6 text-gray-800">
                 Approve Project: {selectedProject.title}

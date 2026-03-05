@@ -245,22 +245,23 @@ const Home: React.FC = () => {
                                 }`}>
                                     {day}
                                 </span>
-                                {/* Stacked event pills (Apple Calendar style) */}
+                                {/* Stacked event pills (Apple Calendar style) - click navigates to Events */}
                                 <div className="mt-0.5 flex flex-col gap-0.5 overflow-hidden flex-1 min-h-0">
                                     {dayEvents.slice(0, 3).map((ev, j) => {
                                         const color = EVENT_COLORS[j % EVENT_COLORS.length];
                                         return (
-                                            <div
+                                            <a
                                                 key={ev.id}
-                                                className={`${color.bg} ${color.text} text-[10px] font-medium rounded px-1 py-0.5 truncate leading-tight shrink-0`}
+                                                href="#/events"
+                                                className={`${color.bg} ${color.text} text-[10px] font-medium rounded px-1 py-0.5 truncate leading-tight shrink-0 block hover:opacity-90 cursor-pointer`}
                                                 title={ev.title}
                                             >
                                                 {ev.title}
-                                            </div>
+                                            </a>
                                         );
                                     })}
                                     {dayEvents.length > 3 && (
-                                        <span className="text-[10px] text-gray-500 shrink-0">+{dayEvents.length - 3}</span>
+                                        <a href="#/events" className="text-[10px] text-gray-500 shrink-0 hover:underline cursor-pointer">+{dayEvents.length - 3}</a>
                                     )}
                                 </div>
                             </div>

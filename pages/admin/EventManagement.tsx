@@ -289,7 +289,7 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
   // Check access: Only President/VP can manage events
   if (!canManageEvents()) {
     return (
-      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
           <p className="text-gray-600">Only President and Vice President can manage events.</p>
@@ -302,14 +302,14 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
   const visibleEvents = events;
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Event Management</h1>
-          <div className="flex gap-2">
+    <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto">
+      <div className="max-w-7xl mx-auto min-w-0">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Event Management</h1>
+          <div className="flex flex-wrap gap-2 shrink-0">
             <button
               onClick={() => onNavigate('/admin')}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"
+              className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base"
             >
               ← Back to Dashboard
             </button>
@@ -324,39 +324,20 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
                   setImagePreview(null);
                   setShowCreateModal(true);
                 }}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                 Add Event
               </button>
             )}
             {canDeleteEvents() && (
               <button
                 onClick={() => onNavigate('/admin/events/trash')}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded flex items-center gap-2 relative"
-                style={{ position: "relative" }}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base relative"
               >
                 Trash
                 {deletionRequestsCount > 0 && (
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: "-6px",
-                      right: "-6px",
-                      backgroundColor: "#EF4444",
-                      color: "#FFF",
-                      borderRadius: "9999px",
-                      minWidth: "20px",
-                      height: "20px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "12px",
-                      fontWeight: "bold",
-                      padding: "0 6px",
-                      boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                    }}
-                  >
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center px-1 shadow">
                     {deletionRequestsCount > 99 ? '99+' : deletionRequestsCount}
                   </span>
                 )}
@@ -370,12 +351,12 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
         ) : visibleEvents.length === 0 ? (
           <div className="text-center py-8 text-gray-500">No events found.</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {visibleEvents.map((event) => (
-              <div key={event.id} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <h2 className="text-xl font-bold text-gray-800 mb-1">{event.title}</h2>
+              <div key={event.id} className="bg-white rounded-lg shadow-md p-4 sm:p-6 min-w-0">
+                <div className="flex flex-wrap justify-between items-start gap-2 mb-3 sm:mb-4">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 break-words">{event.title}</h2>
                     <div className="flex gap-2 flex-wrap mb-1">
                       {event.approvalStatus === 'pending' && (
                         <span className="inline-block px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-800">
@@ -427,7 +408,7 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
 
         {/* Create Event Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-bold mb-6 text-gray-800">Add New Event</h2>
               
@@ -530,7 +511,7 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
 
         {/* Edit Event Modal */}
         {showEditModal && selectedEvent && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-bold mb-6 text-gray-800">Edit Event</h2>
               

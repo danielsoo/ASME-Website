@@ -19,6 +19,7 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
+  const [verificationSentToEmail, setVerificationSentToEmail] = useState(''); // 인증 메일 보낸 주소 고정 표시용
   const [resetEmailSent, setResetEmailSent] = useState(false);
 
   // Check if user is already logged in and email verified
@@ -30,6 +31,7 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
           setError('Email verification not completed. Please check your email.');
           setEmailVerificationSent(true);
           setEmail(user.email || '');
+          setVerificationSentToEmail(user.email || '');
         } else {
           // Check Firestore user status after email verification
           try {
@@ -44,25 +46,25 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
                 });
               }
               
-              // Only approved users can navigate to home
+              // Approved → 홈으로. Pending → 홈으로 (어드민만 차단, 배너로 안내). Rejected → 로그아웃
               if (userData.status === 'approved') {
                 onNavigate('/');
               } else if (userData.status === 'rejected') {
                 await auth.signOut();
                 setError('Registration has been rejected. Please contact us if you have questions.');
               } else {
-                setError('Waiting for admin approval. You can log in after approval.');
+                onNavigate('/'); // pending도 로그인 허용, 어드민 패널만 차단
               }
             } else {
-              // Create user document if it doesn't exist
               await setDoc(doc(db, 'users', user.uid), {
-                email: user.email,
+                name: user.displayName || user.email || '',
+                email: user.email ?? '',
                 emailVerified: true,
                 status: 'pending',
-                role: 'member', // Default: regular member
+                role: 'member',
                 createdAt: new Date(),
               });
-              setError('Waiting for admin approval. You can log in after approval.');
+              onNavigate('/');
             }
           } catch (error) {
             console.error('Error checking user status:', error);
@@ -115,8 +117,9 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
 
         try {
           await sendEmailVerification(userCredential.user);
-          console.log('Email verification sent:', userCredential.user.email);
-          // Keep user logged in (so user can check email)
+          const sentTo = userCredential.user.email || email;
+          console.log('Email verification sent:', sentTo);
+          setVerificationSentToEmail(sentTo);
           setEmailVerificationSent(true);
           setError('');
         } catch (emailError: any) {
@@ -139,7 +142,7 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
           return;
         }
         
-        // Check user approval status
+        // Check user approval status: rejected만 막고, pending/approved 모두 진행
         try {
           const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
           if (userDoc.exists()) {
@@ -148,15 +151,13 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
               await auth.signOut();
               setError('Registration has been rejected. Please contact us if you have questions.');
               return;
-            } else if (userData.status !== 'approved') {
-              setError('Waiting for admin approval. You can log in after approval.');
-              return;
             }
+            // approved / pending 모두 홈으로 (onAuthStateChanged에서 처리되거나 여기서 이동)
           }
         } catch (error) {
           console.error('Error checking user status:', error);
         }
-        // Approved users will be redirected automatically via onAuthStateChanged
+        onNavigate('/');
       }
       // Navigation will happen via onAuthStateChanged
     } catch (error: any) {
@@ -475,7 +476,7 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
               {emailVerificationSent && !error && (
                 <div className="bg-blue-900/30 border border-blue-700 text-blue-300 px-4 py-3 rounded-lg text-sm">
                   <p className="font-semibold mb-2">Verification email sent!</p>
-                  <p className="mb-2">Please check your email at {email} and click the verification link.</p>
+                  <p className="mb-2">Please check your email at {verificationSentToEmail || email} and click the verification link.</p>
                   <p className="text-xs text-blue-400 mb-2">Didn't receive the email?</p>
                   <button
                     onClick={handleResendVerification}
@@ -548,6 +549,7 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
                   setMajor('');
                   setYear('');
                   setEmailVerificationSent(false);
+                  setVerificationSentToEmail('');
                 }}
                 className="text-[#3b4c6b] hover:text-[#4a5f7f] font-semibold text-sm transition"
               >

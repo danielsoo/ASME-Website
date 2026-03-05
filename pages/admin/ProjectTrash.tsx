@@ -589,7 +589,7 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
 
   if (!canManageTrash() && visibleProjects.length === 0 && !loading) {
     return (
-      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
           <p className="text-gray-600">Only President, Vice President, or project leaders can access trash.</p>
@@ -599,32 +599,32 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <div className="relative">
-            <h1 className="text-3xl font-bold text-gray-800 inline-block">
+    <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto">
+      <div className="max-w-7xl mx-auto min-w-0">
+        <div className="flex flex-wrap justify-between items-start gap-3 mb-6">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 inline-block">
               Project Trash
               {deletionRequestsCount > 0 && (
-                <span className="ml-3 bg-red-500 text-white rounded-full min-w-[24px] h-6 inline-flex items-center justify-center px-2 text-sm font-bold align-middle">
+                <span className="ml-2 sm:ml-3 bg-red-500 text-white rounded-full min-w-[22px] h-[22px] sm:min-w-[24px] sm:h-6 inline-flex items-center justify-center px-1.5 sm:px-2 text-xs sm:text-sm font-bold align-middle">
                   {deletionRequestsCount > 99 ? '99+' : deletionRequestsCount}
                 </span>
               )}
             </h1>
-            <p className="text-gray-600 mt-2">Restore or permanently delete deleted projects</p>
+            <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">Restore or permanently delete deleted projects</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-2 shrink-0">
             {canManageTrash() && deletedProjects.length > 0 && (
               <button
                 onClick={() => setShowConfirmRestoreAll(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base"
               >
                 Restore All
               </button>
             )}
             <button
               onClick={() => onNavigate('/admin/projects')}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"
+              className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base"
             >
               ← Back to Projects
             </button>
@@ -641,10 +641,10 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
         ) : (
           <div className="space-y-4">
             {visibleProjects.map((project) => (
-              <div key={project.id} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <h2 className="text-xl font-bold text-gray-800 mb-2">{project.title}</h2>
+              <div key={project.id} className="bg-white rounded-lg shadow-md p-4 sm:p-6 min-w-0">
+                <div className="flex flex-wrap justify-between items-start gap-2 mb-3 sm:mb-4">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-2 break-words">{project.title}</h2>
                     {project.description && (
                       <p className="text-gray-600 mb-3">{project.description}</p>
                     )}

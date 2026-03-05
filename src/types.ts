@@ -169,3 +169,28 @@ export interface InstagramPost {
   mediaType: 'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM';
   thumbnailUrl?: string;
 }
+
+/** Site content: footer (stored in config/footer). More sections (e.g. hero) can be added later. */
+export interface FooterContent {
+  phone?: string;
+  email1?: string;
+  email2?: string;
+  missionStatement?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  instagramUrl?: string;
+  groupmeUrl?: string;
+  slackUrl?: string;
+}
+
+export const DEFAULT_FOOTER: FooterContent = {
+  phone: '484-268-3741',
+  email1: 'gmk5561@psu.edu',
+  email2: 'president.asme.psu@gmail.com',
+  missionStatement: 'Developing & Supporting the next generation of Mechanical Engineers',
+  addressLine1: '125 Hammond',
+  addressLine2: 'University Park, PA 16802',
+  instagramUrl: 'https://www.instagram.com/asmepsu/',
+  groupmeUrl: '',
+  slackUrl: '',
+};

@@ -1,7 +1,45 @@
-import { AlignCenter, TextAlignCenter } from 'lucide-react';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import type { FooterContent } from '../types';
+import { DEFAULT_FOOTER } from '../types';
+
+const FOOTER_CONFIG_PATH = 'config';
+const FOOTER_DOC = 'footer';
 
 const Footer: React.FC = () => {
+  const [content, setContent] = useState<FooterContent>({ ...DEFAULT_FOOTER });
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      doc(db, FOOTER_CONFIG_PATH, FOOTER_DOC),
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data() as FooterContent;
+          setContent({ ...DEFAULT_FOOTER, ...data });
+        }
+      },
+      () => {}
+    );
+    return () => unsubscribe();
+  }, []);
+
+  const phone = content.phone ?? DEFAULT_FOOTER.phone ?? '';
+  const email1 = content.email1 ?? DEFAULT_FOOTER.email1 ?? '';
+  const email2 = content.email2 ?? DEFAULT_FOOTER.email2 ?? '';
+  const missionStatement = content.missionStatement ?? DEFAULT_FOOTER.missionStatement ?? '';
+  const addressLine1 = content.addressLine1 ?? DEFAULT_FOOTER.addressLine1 ?? '';
+  const addressLine2 = content.addressLine2 ?? DEFAULT_FOOTER.addressLine2 ?? '';
+  const instagramUrl = content.instagramUrl ?? DEFAULT_FOOTER.instagramUrl ?? '';
+  const groupmeUrl = content.groupmeUrl ?? DEFAULT_FOOTER.groupmeUrl ?? '';
+  const slackUrl = content.slackUrl ?? DEFAULT_FOOTER.slackUrl ?? '';
+
+  const telHref = phone ? `tel:+1${phone.replace(/\D/g, '')}` : '';
+  const mapsQuery = [addressLine1, addressLine2].filter(Boolean).join(' ');
+  const mapsHref = mapsQuery
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`
+    : '#';
+
   return (
     <footer 
       className="font-jost bg-[#111828] text-white"
@@ -53,13 +91,21 @@ const Footer: React.FC = () => {
           >
             Contact us
           </p>
-          <p>484-268-3741</p>
-          <p>
-            <a href="mailto:gmk5561@psu.edu" className="text-white hover:underline">gmk5561@psu.edu</a>
-          </p>
-          <p>
-            <a href="mailto:president.asme.psu@gmail.com" className="text-white hover:underline">president.asme.psu@gmail.com</a>
-          </p>
+          {phone && (
+            <p>
+              <a href={telHref} className="text-white hover:underline">{phone}</a>
+            </p>
+          )}
+          {email1 && (
+            <p>
+              <a href={`mailto:${email1}`} className="text-white hover:underline">{email1}</a>
+            </p>
+          )}
+          {email2 && (
+            <p>
+              <a href={`mailto:${email2}`} className="text-white hover:underline">{email2}</a>
+            </p>
+          )}
         </div>
 
         {/* Center Column - Mission Statement */}
@@ -85,28 +131,41 @@ const Footer: React.FC = () => {
               justifyContent: "center",
             }}
           >
-            Developing & Supporting the next generation of Mechanical Engineers
+            {missionStatement || 'Developing & Supporting the next generation of Mechanical Engineers'}
           </div>
         </div>
 
-        {/* Right Column - Address */}
+        {/* Right Column - Address (한 주소, 글자에만 링크) */}
         <div className="font-jost font-normal text-right">
           <p>Office:</p>
-          <p>125 Hammond</p>
-          <p>University Park, PA 16802</p>
+          {(addressLine1 || addressLine2) ? (
+            <a
+              href={mapsHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white hover:underline cursor-pointer inline-block text-right"
+            >
+              {addressLine1}
+              {addressLine1 && addressLine2 && <br />}
+              {addressLine2}
+            </a>
+          ) : (
+            <>
+              125 Hammond
+              <br />
+              University Park, PA 16802
+            </>
+          )}
         </div>
       </div>
       <div className="flex gap-1.5">
-            {/* Instagram */}
-            <a href="https://www.instagram.com/asmepsu/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center">
+            <a href={instagramUrl || '#'} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center" onClick={!instagramUrl ? (e) => e.preventDefault() : undefined}>
               <img src="/instagram.svg" alt="Instagram" width={24} height={24} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
             </a>
-            {/* GroupMe - TODO: Add link URL when found */}
-            <a href="#" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center">
+            <a href={groupmeUrl || '#'} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center" onClick={!groupmeUrl ? (e) => e.preventDefault() : undefined}>
               <img src="/groupmeLogo.png" alt="GroupMe" width={24} height={24} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
             </a>
-            {/* Slack - TODO: Add link URL when found */}
-            <a href="#" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center">
+            <a href={slackUrl || '#'} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center" onClick={!slackUrl ? (e) => e.preventDefault() : undefined}>
               <img src="/slackLogo.png" alt="Slack" width={24} height={24} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
             </a>
           </div>

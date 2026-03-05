@@ -4,6 +4,7 @@ import { auth } from './firebase/config';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import NotificationBanner from './components/NotificationBanner';
+import PendingApprovalBanner from './components/PendingApprovalBanner';
 import Home from '../pages/Home';
 import About from '../pages/About';
 import Projects from '../pages/Projects';
@@ -105,8 +106,9 @@ const App: React.FC = () => {
   const content = (
     <div className="flex flex-col min-h-screen font-sans" style={{ background: 'transparent' }}>
       {user && <NotificationBanner />}
+      {user && <PendingApprovalBanner user={user} />}
       <Header currentPath={currentPath} onNavigate={navigate} user={user} />
-      <main className="flex-grow">{renderPage()}</main>
+      <main className="flex-grow min-w-0">{renderPage()}</main>
       <Footer />
     </div>
   );

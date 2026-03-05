@@ -108,13 +108,13 @@ const SetupAdmin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
+    <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-md p-8">
-          <h1 className="text-2xl font-bold mb-6 text-gray-800">Admin Account Setup</h1>
-          
+          <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Admin Account Setup</h1>
+
           {/* Mode Selection */}
-          <div className="mb-6 flex gap-2">
+          <div className="mb-4 sm:mb-6 flex flex-wrap gap-2">
             <button
               onClick={() => setMode('create')}
               className={`flex-1 px-4 py-2 rounded ${

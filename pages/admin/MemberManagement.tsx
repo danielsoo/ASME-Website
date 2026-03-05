@@ -370,7 +370,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
 
   if (!canManage()) {
     return (
-      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
           <p className="text-gray-600">Only President and Vice President can manage members.</p>
@@ -380,22 +380,22 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Member Management</h1>
+    <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto">
+      <div className="max-w-7xl mx-auto min-w-0">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Member Management</h1>
           <button
             onClick={() => onNavigate('/admin')}
-            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"
+            className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base shrink-0"
           >
             ← Back to Dashboard
           </button>
         </div>
 
         {/* Exec Position Management Section */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-gray-800">Executive Board Positions</h2>
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Executive Board Positions</h2>
             <button
               onClick={() => {
                 setEditingPosition(null);
@@ -403,18 +403,18 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                 setPositionTeam('');
                 setShowPositionModal(true);
               }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base shrink-0"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               Add Position
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {execPositions.map((position) => (
-              <div key={position.id} className="border border-gray-200 rounded-lg p-4 flex justify-between items-center">
-                <div>
-                  <h3 className="font-semibold text-gray-800">{position.name}</h3>
+              <div key={position.id} className="border border-gray-200 rounded-lg p-3 sm:p-4 flex flex-wrap justify-between items-center gap-2 min-w-0">
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-gray-800 text-sm sm:text-base break-words">{position.name}</h3>
                   {position.team && (
                     <p className="text-sm text-gray-500">{position.team}</p>
                   )}
@@ -442,11 +442,11 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
 
         {/* Members List */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-gray-800">Members</h2>
+          <div className="p-4 sm:p-6 border-b border-gray-200 flex flex-wrap justify-between items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Members</h2>
             <button
               onClick={openAddMemberModal}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base shrink-0"
               title="Add member manually (President / Vice President only)"
             >
               <Plus className="w-5 h-5" />
@@ -562,7 +562,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
 
         {/* Position Modal */}
         {showPositionModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
               <h2 className="text-2xl font-bold mb-6 text-gray-800">
                 {editingPosition ? 'Edit Position' : 'Add New Position'}
@@ -630,7 +630,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
 
         {/* Add Member Modal */}
         {showAddMemberModal && (
-          <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0,0,0,0.35)' }}>
+          <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-bold mb-6 text-gray-800">Add Member</h2>
 
@@ -730,7 +730,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
 
         {/* Delete Error Modal */}
         {showDeleteErrorModal && deleteErrorPosition && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex-shrink-0 w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">

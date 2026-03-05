@@ -31,7 +31,7 @@ const AlertModal: React.FC<AlertModalProps> = ({
   const Icon = config.icon;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-xl">
         <div className="flex items-center gap-3 mb-4">
           <div className={`flex-shrink-0 w-12 h-12 ${config.color} rounded-full flex items-center justify-center`}>
