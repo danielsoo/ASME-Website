@@ -1,8 +1,66 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin } from 'lucide-react';
+import { Calendar, Clock, MapPin, Download, ChevronDown, ChevronUp } from 'lucide-react';
 import { getGoogleCalendarEvents, getInstagramPosts } from '../src/firebase/services';
 import { Event, InstagramPost } from '../src/types';
 import EmbedSocialHashtag from '@/src/components/EmbedSocial';
+
+type EventWithDateTime = Event & { dateTime?: string };
+
+function escapeIcsText(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+}
+
+function eventsToIcs(events: EventWithDateTime[]): string {
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//ASME PSU//Events//EN',
+    'CALSCALE:GREGORIAN',
+  ];
+  events.forEach((ev) => {
+    const raw = ev.dateTime || ev.date;
+    const isAllDay = /^\d{4}-\d{2}-\d{2}$/.test(raw);
+    const start = new Date(raw);
+    if (isNaN(start.getTime())) return;
+    const uid = `asme-${ev.id.replace(/[^a-zA-Z0-9]/g, '')}@asmepsu`;
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+    const summary = escapeIcsText(ev.title || 'Event');
+    const description = escapeIcsText(ev.description || '');
+
+    let dtStart: string;
+    let dtEnd: string;
+    if (isAllDay) {
+      const d = raw.slice(0, 10).replace(/-/g, '');
+      dtStart = `DTSTART;VALUE=DATE:${d}`;
+      const endDate = new Date(start);
+      endDate.setDate(endDate.getDate() + 1);
+      const endStr = endDate.toISOString().slice(0, 10).replace(/-/g, '');
+      dtEnd = `DTEND;VALUE=DATE:${endStr}`;
+    } else {
+      dtStart = `DTSTART:${start.toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`;
+      const end = new Date(start.getTime() + 60 * 60 * 1000);
+      dtEnd = `DTEND:${end.toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`;
+    }
+
+    lines.push('BEGIN:VEVENT', `UID:${uid}`, `DTSTAMP:${stamp}`, dtStart, dtEnd, `SUMMARY:${summary}`);
+    if (description) lines.push(`DESCRIPTION:${description}`);
+    if (ev.location) lines.push(`LOCATION:${escapeIcsText(ev.location)}`);
+    lines.push('END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+function downloadIcs(events: EventWithDateTime[], filename: string) {
+  const ics = eventsToIcs(events);
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 const Events: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
@@ -56,6 +114,7 @@ const Events: React.FC = () => {
   const upcomingEvents = events.filter(e => e.type === 'upcoming');
   const pastEvents = events.filter(e => e.type === 'past');
   const thisWeekEvents = events.filter(e => e.type === 'this_week');
+  const [expandedPastEventId, setExpandedPastEventId] = useState<string | null>(null);
 
   return (
     <div className="min-h-screen bg-[#0f131a] text-[#1E2B48] font-jost pb-20 relative">
@@ -97,6 +156,17 @@ const Events: React.FC = () => {
                           scrolling="no"
                           title="ASME Events Calendar"
                         ></iframe>
+                    </div>
+                    <div className="flex justify-end mt-3">
+                        <button
+                          type="button"
+                          onClick={() => downloadIcs(events as EventWithDateTime[], 'ASME-Events.ics')}
+                          disabled={loading || events.length === 0}
+                          className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Download size={16} />
+                          Copy to my calendar
+                        </button>
                     </div>
                 </div>
 
@@ -149,14 +219,30 @@ const Events: React.FC = () => {
         
       </div>
 
-      {/* Coming Up Section */}
+      {/* Coming Up Section (Instagram) */}
       <div className="bg-[#e5e7eb] py-20 px-4">
         <div className="container mx-auto max-w-4xl relative">
-            
             <h2 className="text-3xl font-bold mb-8">Coming Up</h2>
-            
-            <EmbedSocialHashtag></EmbedSocialHashtag>
-            
+
+            {instagramPosts.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+                {instagramPosts.slice(0, 6).map((post) => (
+                  <a
+                    key={post.id}
+                    href={post.permalink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block rounded-xl overflow-hidden shadow-md hover:shadow-lg hover:opacity-95 transition bg-white"
+                  >
+                    <img src={post.mediaUrl} alt={post.caption?.slice(0, 50) || 'Instagram'} className="w-full aspect-square object-cover" />
+                  </a>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-8 min-h-[200px]" aria-hidden="true">
+              <EmbedSocialHashtag />
+            </div>
         </div>
       </div>
 
@@ -168,36 +254,67 @@ const Events: React.FC = () => {
                 <div className="text-center text-gray-500 py-8">Loading events...</div>
             ) : pastEvents.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {pastEvents.map(event => (
-                        <div key={event.id} className="bg-asme-red rounded-xl p-6 flex flex-row gap-6 shadow-md items-center">
-                            <div className="bg-white/20 rounded-lg w-24 h-24 flex-shrink-0 flex items-center justify-center">
-                                <Calendar className="text-white w-10 h-10 opacity-70" />
-                            </div>
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <div className="w-8 h-8 bg-white rounded flex items-center justify-center">
-                                        <div className="w-2 h-2 bg-asme-red rounded-full"></div>
-                                    </div>
-                                    <h3 className="font-bold text-lg text-white">{event.title}</h3>
+                    {pastEvents.map(event => {
+                        const isExpanded = expandedPastEventId === event.id;
+                        return (
+                            <div key={event.id} className="bg-asme-red rounded-xl p-6 flex flex-row gap-6 shadow-md min-w-0">
+                                <div className="bg-white/20 rounded-lg w-24 h-24 flex-shrink-0 flex items-center justify-center">
+                                    <Calendar className="text-white w-10 h-10 opacity-70" />
                                 </div>
-                                <p className="text-xs text-white/80 mb-2 line-clamp-2">{event.description}</p>
-                                <div className="flex items-center gap-2 mt-2">
-                                    <div className="w-8 h-8 bg-white rounded flex items-center justify-center">
-                                        <Clock className="w-4 h-4 text-asme-red" />
+                                <div className="flex-1 min-w-0 flex flex-col">
+                                    <div className="flex items-start gap-2 mb-2">
+                                        <div className="w-8 h-8 bg-white rounded flex-shrink-0 flex items-center justify-center">
+                                            <div className="w-2 h-2 bg-asme-red rounded-full"></div>
+                                        </div>
+                                        <h3 className={`font-bold text-lg text-white ${isExpanded ? 'break-words' : 'line-clamp-1'}`}>{event.title}</h3>
                                     </div>
-                                    <span className="font-semibold text-sm text-white">{event.date}</span>
-                                    {event.location && (
+                                    {isExpanded ? (
                                         <>
-                                            <div className="w-8 h-8 bg-white rounded flex items-center justify-center">
-                                                <MapPin className="w-4 h-4 text-asme-red" />
+                                            <p className="text-xs text-white/80 mb-2 break-words whitespace-pre-wrap">{event.description}</p>
+                                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                                                <div className="w-8 h-8 bg-white rounded flex-shrink-0 flex items-center justify-center">
+                                                    <Clock className="w-4 h-4 text-asme-red" />
+                                                </div>
+                                                <span className="font-semibold text-sm text-white">{event.date}</span>
+                                                {event.location && (
+                                                    <>
+                                                        <div className="w-8 h-8 bg-white rounded flex-shrink-0 flex items-center justify-center">
+                                                            <MapPin className="w-4 h-4 text-asme-red" />
+                                                        </div>
+                                                        <span className="font-semibold text-sm text-white/90 break-words">{event.location}</span>
+                                                    </>
+                                                )}
                                             </div>
-                                            <span className="font-semibold text-sm text-white/90 truncate max-w-[150px]">{event.location}</span>
+                                            <button
+                                              type="button"
+                                              onClick={() => setExpandedPastEventId(null)}
+                                              className="mt-4 inline-flex items-center gap-1 text-white/90 hover:text-white text-sm font-medium"
+                                            >
+                                              <ChevronUp size={16} />
+                                              Close
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p className="text-xs text-white/80 mb-2 line-clamp-2">{event.description}</p>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <Clock className="w-4 h-4 text-white flex-shrink-0" />
+                                                <span className="font-semibold text-sm text-white">{event.date}</span>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              onClick={() => setExpandedPastEventId(event.id)}
+                                              className="mt-3 inline-flex items-center gap-1 text-white/90 hover:text-white text-sm font-medium"
+                                            >
+                                              View details
+                                              <ChevronDown size={16} />
+                                            </button>
                                         </>
                                     )}
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             ) : (
                 <div className="text-center text-gray-500 py-8">No past events.</div>

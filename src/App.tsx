@@ -13,11 +13,12 @@ import Migrate from '../pages/Migrate';
 import Login from '../pages/Login';
 import Profile from '../pages/Profile';
 import Admin from '../pages/admin/Admin';
-import { IKContext} from 'imagekitio-react';
-
-//need to establish IK connection + getting publickey missing error
+import { IKContext } from 'imagekitio-react';
 
 const App: React.FC = () => {
+  const ikPublicKey = import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY;
+  const ikUrlEndpoint = import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT;
+  const hasImageKit = Boolean(ikPublicKey && ikUrlEndpoint);
   // Simple custom router state using hash
   const [currentPath, setCurrentPath] = useState(() => {
     // Initialize from URL hash if available
@@ -101,25 +102,21 @@ const App: React.FC = () => {
     }
   };
 
-  
-return (
-    <IKContext
-      publicKey={import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY}
-      urlEndpoint={import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT}
-    >
-      <div className="flex flex-col min-h-screen font-sans" style={{ background: 'transparent' }}>
-        {/* Notification Banner - shows at top when user is logged in */}
-        {user && <NotificationBanner />}
+  const content = (
+    <div className="flex flex-col min-h-screen font-sans" style={{ background: 'transparent' }}>
+      {user && <NotificationBanner />}
+      <Header currentPath={currentPath} onNavigate={navigate} user={user} />
+      <main className="flex-grow">{renderPage()}</main>
+      <Footer />
+    </div>
+  );
 
-        <Header currentPath={currentPath} onNavigate={navigate} user={user} />
-
-        <main className="flex-grow">
-          {renderPage()}
-        </main>
-
-        <Footer />
-      </div>
+  return hasImageKit ? (
+    <IKContext publicKey={ikPublicKey!} urlEndpoint={ikUrlEndpoint!}>
+      {content}
     </IKContext>
+  ) : (
+    content
   );
 };
 
