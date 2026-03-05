@@ -96,17 +96,6 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
           role: data.role || 'member', // Ensure role field exists
         } as PendingUser;
         
-        // Debug: Log user role for troubleshooting
-        if (data.email === 'yqp5187@psu.edu') {
-          console.log('User role data:', {
-            uid: docSnap.id,
-            email: data.email,
-            role: data.role,
-            status: data.status,
-            allData: data
-          });
-        }
-        
         allUsers.push(userData);
       });
 

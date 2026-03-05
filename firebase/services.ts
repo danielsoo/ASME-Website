@@ -269,6 +269,22 @@ export const deleteEvent = async (id: string): Promise<void> => {
 
 // ============ Sponsors ============
 
+const DEFAULT_SPONSOR_EMAIL = 'president.asme.psu@gmail.com';
+
+/** Sponsor / guest speaker contact email. Stored in Firestore at settings/sponsor, field "email". */
+export const getSponsorContactEmail = async (): Promise<string> => {
+  try {
+    const docRef = doc(db, 'settings', 'sponsor');
+    const snap = await getDoc(docRef);
+    if (snap.exists() && snap.data()?.email) {
+      return String(snap.data().email).trim();
+    }
+  } catch (e) {
+    console.warn('Could not load sponsor contact email from Firestore:', e);
+  }
+  return DEFAULT_SPONSOR_EMAIL;
+};
+
 export const getSponsors = async (): Promise<Sponsor[]> => {
   const sponsorsRef = collection(db, 'sponsors');
   const snapshot = await getDocs(sponsorsRef);

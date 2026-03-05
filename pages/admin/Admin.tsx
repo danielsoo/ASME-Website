@@ -25,7 +25,6 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('Admin component - currentPath:', currentPath); // Debug
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
@@ -36,7 +35,6 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
 
   // Setup Admin page (accessible without login) - must be checked first
   if (currentPath === '/admin/setup' || currentPath.startsWith('/admin/setup')) {
-    console.log('Rendering SetupAdmin page'); // Debug
     return <SetupAdmin />;
   }
 

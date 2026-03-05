@@ -71,6 +71,16 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [selectedTeam, setSelectedTeam] = useState<'Design Team' | 'General Body' | ''>('');
 
+  // Add member modal (회장/부회장 전용)
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [newMemberMajor, setNewMemberMajor] = useState('');
+  const [newMemberYear, setNewMemberYear] = useState('');
+  const [newMemberRole, setNewMemberRole] = useState('member');
+  const [newMemberTeam, setNewMemberTeam] = useState<'Design Team' | 'General Body' | ''>('');
+  const [addingMember, setAddingMember] = useState(false);
+
   useEffect(() => {
     loadMembers();
     loadExecPositions();
@@ -298,8 +308,61 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     setSelectedTeam(member.team || '');
   };
 
-  // Get available roles: member + all Executive Board positions
-  const availableRoles = ['member', ...execPositions.map(p => p.name)];
+  const handleAddMember = async () => {
+    const name = newMemberName.trim();
+    const email = newMemberEmail.trim().toLowerCase();
+    if (!name || !email) {
+      showAlert('warning', 'Validation Error', 'Please enter name and email.');
+      return;
+    }
+    if (newMemberRole !== 'member' && !newMemberTeam) {
+      showAlert('warning', 'Validation Error', 'Please select a team (Design Team or General Body) for executive positions.');
+      return;
+    }
+    setAddingMember(true);
+    try {
+      await addDoc(collection(db, 'users'), {
+        name,
+        email,
+        major: newMemberMajor.trim() || '',
+        year: newMemberYear.trim() || '',
+        role: newMemberRole,
+        team: newMemberRole === 'member' ? null : newMemberTeam || null,
+        status: 'approved',
+        isManualAdd: true,
+      });
+      setShowAddMemberModal(false);
+      setNewMemberName('');
+      setNewMemberEmail('');
+      setNewMemberMajor('');
+      setNewMemberYear('');
+      setNewMemberRole('member');
+      setNewMemberTeam('');
+      await loadMembers();
+      showAlert('success', 'Success', 'Member has been added to the list.');
+    } catch (error) {
+      console.error('Error adding member:', error);
+      showAlert('error', 'Error', 'Failed to add member. Please try again.');
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  const openAddMemberModal = () => {
+    setNewMemberName('');
+    setNewMemberEmail('');
+    setNewMemberMajor('');
+    setNewMemberYear('');
+    setNewMemberRole('member');
+    setNewMemberTeam('');
+    setShowAddMemberModal(true);
+  };
+
+  // Get available roles: member + all Executive Board positions (use id for key to avoid duplicate name keys)
+  const roleOptions: { id: string; value: string; label: string }[] = [
+    { id: 'member', value: 'member', label: 'Member' },
+    ...execPositions.map((p) => ({ id: p.id, value: p.name, label: p.name })),
+  ];
 
   if (!canManage()) {
     return (
@@ -375,8 +438,16 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
 
         {/* Members List */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="p-6 border-b border-gray-200">
+          <div className="p-6 border-b border-gray-200 flex justify-between items-center">
             <h2 className="text-2xl font-bold text-gray-800">Members</h2>
+            <button
+              onClick={openAddMemberModal}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
+              title="Add member manually (President / Vice President only)"
+            >
+              <Plus className="w-5 h-5" />
+              Add Member
+            </button>
           </div>
 
           {loading ? (
@@ -416,9 +487,9 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                             }}
                             className="px-2 py-1 border border-gray-300 rounded text-sm bg-white text-gray-900"
                           >
-                            {availableRoles.map((role) => (
-                              <option key={role} value={role}>
-                                {role === 'member' ? 'Member' : role}
+                            {roleOptions.map((opt) => (
+                              <option key={opt.id} value={opt.value}>
+                                {opt.label}
                               </option>
                             ))}
                           </select>
@@ -545,6 +616,106 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                     setPositionTeam('');
                   }}
                   className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Member Modal */}
+        {showAddMemberModal && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0,0,0,0.35)' }}>
+            <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold mb-6 text-gray-800">Add Member</h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
+                  <input
+                    type="text"
+                    value={newMemberName}
+                    onChange={(e) => setNewMemberName(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    placeholder="Full name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                  <input
+                    type="email"
+                    value={newMemberEmail}
+                    onChange={(e) => setNewMemberEmail(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    placeholder="email@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>
+                  <input
+                    type="text"
+                    value={newMemberYear}
+                    onChange={(e) => setNewMemberYear(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    placeholder="e.g., Freshman, Sophomore, Junior, Senior"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Major</label>
+                  <input
+                    type="text"
+                    value={newMemberMajor}
+                    onChange={(e) => setNewMemberMajor(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    placeholder="e.g., Mechanical Engineering"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Role *</label>
+                  <select
+                    value={newMemberRole}
+                    onChange={(e) => {
+                      setNewMemberRole(e.target.value);
+                      if (e.target.value === 'member') setNewMemberTeam('');
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                  >
+                    {roleOptions.map((opt) => (
+                      <option key={opt.id} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {newMemberRole !== 'member' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Team *</label>
+                    <select
+                      value={newMemberTeam}
+                      onChange={(e) => setNewMemberTeam(e.target.value as 'Design Team' | 'General Body')}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                    >
+                      <option value="">Select team...</option>
+                      <option value="Design Team">Design Team</option>
+                      <option value="General Body">General Body</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-4 mt-6">
+                <button
+                  onClick={handleAddMember}
+                  disabled={addingMember}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded"
+                >
+                  {addingMember ? 'Adding...' : 'Add Member'}
+                </button>
+                <button
+                  onClick={() => setShowAddMemberModal(false)}
+                  disabled={addingMember}
+                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded disabled:opacity-50"
                 >
                   Cancel
                 </button>

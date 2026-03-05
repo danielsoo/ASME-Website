@@ -228,17 +228,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
 
   // Check if user is project leader
   const isProjectLeader = (project: Project): boolean => {
-    const isLeader = project.leaderId === currentUserId;
-    // Debug logging
-    if (project.title === 'Assistive Tech' || project.leaderId) {
-      console.log('Project Leader Check:', {
-        projectTitle: project.title,
-        projectLeaderId: project.leaderId,
-        currentUserId: currentUserId,
-        isLeader: isLeader
-      });
-    }
-    return isLeader;
+    return project.leaderId === currentUserId;
   };
 
   const handleCreateProject = async () => {

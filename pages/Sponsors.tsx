@@ -1,8 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { SPONSORS } from '../constants';
 import { Settings } from 'lucide-react';
+import { getSponsorContactEmail } from '../firebase/services';
 
 const Sponsors: React.FC = () => {
+  const [contactEmail, setContactEmail] = useState('president.asme.psu@gmail.com');
+
+  useEffect(() => {
+    getSponsorContactEmail().then(setContactEmail);
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#0f131a] text-white font-jost pb-20 relative">
       
@@ -11,7 +18,7 @@ const Sponsors: React.FC = () => {
           <div className="container mx-auto">
               <h1 className="text-[#1E2B48] font-bold text-xl mb-1">Become a Sponsor</h1>
               <p className="text-gray-700 text-sm">
-                  If you're interested in becoming a sponsor, email us at <a href="mailto:jjn5654@psu.edu" className="text-blue-600 font-bold">jjn5654@psu.edu</a> to receive our Sponsorship packet!
+                  If you're interested in becoming a sponsor, email us at <a href={`mailto:${contactEmail}`} className="text-blue-600 font-bold">{contactEmail}</a> to receive our Sponsorship packet!
               </p>
           </div>
       </div>
@@ -38,7 +45,7 @@ const Sponsors: React.FC = () => {
               </div>
               <div className="text-black mt-2">
                 <p>OR</p>
-                <p>Become a guest speaker by emailing us at <a href="mailto:jjn5654@psu.edu" className="text-blue-600 font-bold">jjn5654@psu.edu</a></p>
+                <p>Become a guest speaker by emailing us at <a href={`mailto:${contactEmail}`} className="text-blue-600 font-bold">{contactEmail}</a></p>
               </div>
           </div>
       </div>

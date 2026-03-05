@@ -9,6 +9,16 @@ const Events: React.FC = () => {
   const [instagramPosts, setInstagramPosts] = useState<InstagramPost[]>([]);
   const [instagramLoading, setInstagramLoading] = useState(true);
 
+  // Same calendar(s) as event list: from env so iframe and list stay in sync
+  const calendarIds = (import.meta.env.VITE_GOOGLE_CALENDAR_IDS || import.meta.env.VITE_GOOGLE_CALENDAR_ID || '')
+    .toString()
+    .split(',')
+    .map((s: string) => s.trim())
+    .filter(Boolean);
+  const firstCalendarId = calendarIds[0] || 'k1n8agb7ecfitks2jflr6qrfjs@group.calendar.google.com';
+  const embedSrc = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(firstCalendarId)}&ctz=America%2FNew_York`;
+  const openInCalendarUrl = `https://calendar.google.com/calendar/u/0?cid=${encodeURIComponent(firstCalendarId)}`;
+
   useEffect(() => {
     const loadEvents = async () => {
       try {
@@ -56,7 +66,7 @@ const Events: React.FC = () => {
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="font-bold text-lg">ASME Events Calendar</h3>
                         <a 
-                          href="https://calendar.google.com/calendar/u/2?cid=ODJlM2NhNzNlYjEzZGZhNDk1Y2YxOGQyMjNhYWYxNDE0MjBkYzg3ZWE4NjcwMDRjOWI4MGY5NzhkMzNiNjBhYUBncm91cC5jYWxlbmRhci5nb29nbGUuY29t"
+                          href={openInCalendarUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-500 hover:text-blue-700 font-bold text-sm underline"
@@ -67,7 +77,7 @@ const Events: React.FC = () => {
                     
                     <div className="relative w-full" style={{ paddingBottom: '75%', height: 0, overflow: 'hidden' }}>
                         <iframe
-                          src="https://calendar.google.com/calendar/embed?src=ODJlM2NhNzNlYjEzZGZhNDk1Y2YxOGQyMjNhYWYxNDE0MjBkYzg3ZWE4NjcwMDRjOWI4MGY5NzhkMzNiNjBhYUBncm91cC5jYWxlbmRhci5nb29nbGUuY29t&ctz=America%2FNew_York"
+                          src={embedSrc}
                           style={{
                             position: 'absolute',
                             top: 0,
@@ -109,12 +119,25 @@ const Events: React.FC = () => {
                     ) : (
                         <div className="text-gray-500">No events this week.</div>
                     )}
-                
-                    {/* Mini Calendar Widgets Mockup */}
-                    <div className="grid grid-cols-2 gap-4 mt-4">
-                        <div className="bg-[#3b4c6b] h-32 rounded-xl opacity-50"></div>
-                        <div className="bg-[#3b4c6b] h-32 rounded-xl opacity-50"></div>
-                    </div>
+
+                    <h3 className="text-2xl font-bold mt-6">Past Events</h3>
+                    {loading ? (
+                        <div className="text-gray-500 text-sm">Loading...</div>
+                    ) : pastEvents.length > 0 ? (
+                        <div className="flex flex-col gap-2">
+                            {pastEvents.slice(0, 5).map(event => (
+                                <div key={event.id} className="bg-[#3b4c6b] rounded-lg p-3 border border-gray-600">
+                                    <span className="text-blue-200 text-xs font-medium">{event.date}</span>
+                                    <h4 className="font-bold text-sm text-white truncate" title={event.title}>{event.title}</h4>
+                                </div>
+                            ))}
+                            {pastEvents.length > 5 && (
+                                <p className="text-gray-400 text-xs">+ {pastEvents.length - 5} more below</p>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="text-gray-500 text-sm">No past events.</div>
+                    )}
                 </div>
             </div>
         </div>
