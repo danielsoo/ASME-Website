@@ -15,6 +15,8 @@ import Profile from '../pages/Profile';
 import Admin from '../pages/admin/Admin';
 import { IKContext} from 'imagekitio-react';
 
+//need to establish IK connection + getting publickey missing error
+
 const App: React.FC = () => {
   // Simple custom router state using hash
   const [currentPath, setCurrentPath] = useState(() => {

@@ -29,7 +29,7 @@ function EmbedSocialHashtag() {
   return (
     <div
       ref={containerRef}
-      className="embedsocial-hashtag "
+      className="embedsocial-hashtag"
       data-ref="39066d33b043ff54bfb67a70d0480466c9972dcc"
       data-lazyload="yes"
     />
