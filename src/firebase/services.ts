@@ -322,14 +322,14 @@ export const getSponsorContactEmail = async (): Promise<string> => {
   return DEFAULT_SPONSOR_EMAIL;
 };
 
+/** Returns all non-deleted sponsors (same list as admin main view). Sort by name. */
 export const getSponsors = async (): Promise<Sponsor[]> => {
   const sponsorsRef = collection(db, 'sponsors');
   const snapshot = await getDocs(sponsorsRef);
   const sponsors = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sponsor));
-  // Filter out deleted sponsors and sort by name
   return sponsors
-    .filter(sponsor => !sponsor.deletedAt)
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .filter(sponsor => sponsor != null && !sponsor.deletedAt)
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 };
 
 export const addSponsor = async (sponsor: Omit<Sponsor, 'id'>): Promise<string> => {
