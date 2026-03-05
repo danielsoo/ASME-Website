@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, updateDoc, doc, getDoc, addDoc, deleteDoc, query, where } from 'firebase/firestore';
-import { db, auth } from '../../firebase/config';
+import { db, auth } from '../../src/firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Plus, Edit, Trash2, Save, X } from 'lucide-react';
-import AlertModal from '../../components/AlertModal';
-import ConfirmModal from '../../components/ConfirmModal';
+import AlertModal from '../../src/components/AlertModal';
+import ConfirmModal from '../../src/components/ConfirmModal';
+import { uploadToImageKit } from '../../src/imagekit';
 
 interface MemberManagementProps {
   onNavigate: (path: string) => void;
@@ -39,6 +40,9 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   const [editingPosition, setEditingPosition] = useState<ExecPosition | null>(null);
   const [positionName, setPositionName] = useState('');
   const [positionTeam, setPositionTeam] = useState<'Design Team' | 'General Body' | ''>('');
+  
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   
   // Delete confirmation modal states
   const [showDeleteErrorModal, setShowDeleteErrorModal] = useState(false);

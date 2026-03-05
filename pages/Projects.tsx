@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Project } from '../types';
-import { getProjects, updateProjectOrder } from '../firebase/services';
+import { Project } from '../src/types';
+import { getProjects, updateProjectOrder } from '../src/firebase/services';
 import { collection, getDocs } from 'firebase/firestore';
-import { auth, db } from '../firebase/config';
+import { auth, db } from '../src/firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import ProjectCard from '../components/ProjectCard';
+import ProjectCard from '../src/components/ProjectCard';
 import ProjectDetailPage from './ProjectDetailPage';
 
 interface ProjectsProps {

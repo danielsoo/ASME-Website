@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, updateDoc, doc, getDoc } from 'firebase/firestore';
-import { db, auth } from '../../firebase/config';
+import { db, auth } from '../../src/firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Project } from '../../types';
+import { Project } from '../../src/types';
 import { Check, X } from 'lucide-react';
-import AlertModal from '../../components/AlertModal';
-import ConfirmModal from '../../components/ConfirmModal';
+import AlertModal from '../../src/components/AlertModal';
+import ConfirmModal from '../../src/components/ConfirmModal';
 
 interface ProjectApprovalsProps {
   onNavigate: (path: string) => void;

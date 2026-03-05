@@ -13,10 +13,10 @@ export default defineConfig(({ mode }) => {
       // Explicitly set public directory (default is 'public', but making it explicit)
       publicDir: 'public',
       define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.IMAGEKIT_PUBLIC_KEY': JSON.stringify(env.IMAGEKIT_PUBLIC_KEY),
-        'process.env.IMAGEKIT_URL_ENDPOINT': JSON.stringify(env.IMAGEKIT_URL_ENDPOINT)
+        'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY),
+        'process.env.GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY),
+        'process.env.IMAGEKIT_PUBLIC_KEY': JSON.stringify(env.VITE_IMAGEKIT_PUBLIC_KEY),
+        'process.env.IMAGEKIT_URL_ENDPOINT': JSON.stringify(env.VITE_IMAGEKIT_URL_ENDPOINT)
       },
       resolve: {
         alias: {

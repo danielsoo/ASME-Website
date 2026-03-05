@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { responsiveClamp, responsiveClampCustom } from '../utils/responsive';
-import { getGoogleCalendarEvents } from '../firebase/services';
-import { Event } from '../types';
+import { responsiveClamp, responsiveClampCustom } from '../src/utils/responsive';
+import { getGoogleCalendarEvents } from '../src/firebase/services';
+import { Event } from '../src/types';
 
 const Home: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
@@ -17,7 +17,7 @@ const Home: React.FC = () => {
         
         // Find next meeting (first upcoming event)
         const upcoming = googleEvents
-          .filter(e => e.type === 'upcoming' || e.type === 'this_week')
+          .filter(e => e.type === 'upcoming')
           .sort((a, b) => {
             const dateA = new Date(a.date);
             const dateB = new Date(b.date);

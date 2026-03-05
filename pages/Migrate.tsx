@@ -3,7 +3,7 @@
 // After migration, you can delete this file
 
 import React, { useState } from 'react';
-import { migrateDataToFirestore } from '../firebase/migrate';
+import { migrateDataToFirestore } from '../src/firebase/migrate';
 
 const Migrate: React.FC = () => {
   const [status, setStatus] = useState<string>('');

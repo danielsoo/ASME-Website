@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { doc, setDoc, getDocs, query, where, collection, updateDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
-import { db, auth } from '../../firebase/config';
+import { db, auth } from '../../src/firebase/config';
 
 const SetupAdmin: React.FC = () => {
   const [email, setEmail] = useState('yqp5187@psu.edu');

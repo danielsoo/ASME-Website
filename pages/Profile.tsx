@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase/config';
+import { auth, db } from '../src/firebase/config';
 import { User, Mail, GraduationCap, Calendar, Save, LogOut } from 'lucide-react';
 
 interface ProfileProps {

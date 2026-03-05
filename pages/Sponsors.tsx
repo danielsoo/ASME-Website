@@ -1,5 +1,5 @@
 import React from 'react';
-import { SPONSORS } from '../constants';
+import { SPONSORS } from '../src/constants';
 import { Settings } from 'lucide-react';
 
 const Sponsors: React.FC = () => {
