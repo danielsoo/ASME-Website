@@ -10,14 +10,18 @@ const Events: React.FC = () => {
   const [instagramPosts, setInstagramPosts] = useState<InstagramPost[]>([]);
   const [instagramLoading, setInstagramLoading] = useState(true);
 
-  // Same calendar(s) as event list: from env so iframe and list stay in sync
+  // Same calendar(s) as event list: from env so iframe and list stay in sync.
+  // Set VITE_GOOGLE_CALENDAR_IDS=id1,id2 (e.g. Leadership, General Body) so both are fetched via API and shown in iframe.
   const calendarIds = (import.meta.env.VITE_GOOGLE_CALENDAR_IDS || import.meta.env.VITE_GOOGLE_CALENDAR_ID || '')
     .toString()
     .split(',')
     .map((s: string) => s.trim())
     .filter(Boolean);
   const firstCalendarId = calendarIds[0] || 'k1n8agb7ecfitks2jflr6qrfjs@group.calendar.google.com';
-  const embedSrc = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(firstCalendarId)}&ctz=America%2FNew_York`;
+  const embedSrc =
+    calendarIds.length > 1
+      ? `https://calendar.google.com/calendar/embed?${calendarIds.map((id) => `src=${encodeURIComponent(id)}`).join('&')}&ctz=America%2FNew_York`
+      : `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(firstCalendarId)}&ctz=America%2FNew_York`;
   const openInCalendarUrl = `https://calendar.google.com/calendar/u/0?cid=${encodeURIComponent(firstCalendarId)}`;
 
   useEffect(() => {

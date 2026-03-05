@@ -186,19 +186,56 @@ function getCalendarIds(): string[] {
   return [decodeCalendarId(DEFAULT_CALENDAR_ID_BASE64)];
 }
 
+const CALENDAR_TZ = 'America/New_York';
+
+/** Today as YYYY-MM-DD in calendar timezone (matches embed ctz). */
+function getTodayDateString(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: CALENDAR_TZ }); // en-CA => YYYY-MM-DD
+}
+
+/** Add days to YYYY-MM-DD string. */
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 function mapCalendarItemToEvent(item: GoogleCalendarEvent, calendarId: string): Event & { dateTime?: string } {
+  const hasTime = Boolean(item.start?.dateTime);
   const startDate = item.start?.dateTime || item.start?.date || '';
   const eventDate = new Date(startDate);
-  const now = new Date();
-  const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
   let type: 'upcoming' | 'past' | 'this_week' = 'upcoming';
-  if (eventDate < now) type = 'past';
-  else if (eventDate <= weekFromNow) type = 'this_week';
-  const formattedDate = eventDate.toLocaleDateString('en-US', {
+
+  if (hasTime) {
+    const now = new Date();
+    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    if (eventDate < now) type = 'past';
+    else if (eventDate <= weekFromNow) type = 'this_week';
+  } else {
+    // All-day event: use calendar day in CALENDAR_TZ so "Mar 5" isn't treated as past on Mar 4 evening (UTC midnight = Mar 4 EST)
+    const eventDayStr = (item.start?.date || '').slice(0, 10); // YYYY-MM-DD
+    const todayStr = getTodayDateString();
+    const weekEndStr = addDays(todayStr, 7);
+    if (eventDayStr < todayStr) type = 'past';
+    else if (eventDayStr < weekEndStr) type = 'this_week';
+  }
+
+  // All dates/times shown in New York timezone (America/New_York)
+  const dateFormatOpts: Intl.DateTimeFormatOptions = {
     month: 'short',
     day: 'numeric',
-    year: 'numeric'
-  });
+    year: 'numeric',
+    timeZone: CALENDAR_TZ
+  };
+  const eventDayStr = (item.start?.date || '').slice(0, 10);
+  const formattedDate =
+    !hasTime && eventDayStr
+      ? (() => {
+          const [y, m, d] = eventDayStr.split('-').map(Number);
+          const noonUtc = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+          return noonUtc.toLocaleDateString('en-US', dateFormatOpts);
+        })()
+      : eventDate.toLocaleDateString('en-US', dateFormatOpts);
   return {
     id: `${encodeURIComponent(calendarId)}_${item.id}`,
     title: item.summary || 'Untitled Event',
