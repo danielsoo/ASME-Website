@@ -562,7 +562,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
 
         {/* Position Modal */}
         {showPositionModal && (
-          <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
               <h2 className="text-2xl font-bold mb-6 text-gray-800">
                 {editingPosition ? 'Edit Position' : 'Add New Position'}
@@ -730,7 +730,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
 
         {/* Delete Error Modal */}
         {showDeleteErrorModal && deleteErrorPosition && (
-          <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex-shrink-0 w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">

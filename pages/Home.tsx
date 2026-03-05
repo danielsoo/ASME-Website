@@ -3,32 +3,6 @@ import { responsiveClamp, responsiveClampCustom } from '../src/utils/responsive'
 import { getGoogleCalendarEvents } from '../src/firebase/services';
 import { Event } from '../src/types';
 
-const CALENDAR_TZ = 'America/New_York';
-
-/** Event pill colors (Apple Calendar style) */
-const EVENT_COLORS = [
-  { bg: 'bg-blue-400', text: 'text-white' },
-  { bg: 'bg-emerald-500', text: 'text-white' },
-  { bg: 'bg-amber-500', text: 'text-white' },
-  { bg: 'bg-violet-500', text: 'text-white' },
-  { bg: 'bg-rose-500', text: 'text-white' },
-  { bg: 'bg-cyan-500', text: 'text-white' },
-];
-
-/** Get event's calendar day as YYYY-MM-DD in New York (for matching to grid). */
-function getEventDayInNY(event: Event & { dateTime?: string }): string | null {
-  try {
-    const raw = (event as Event & { dateTime?: string }).dateTime || event.date;
-    if (!raw) return null;
-    // All-day: "2026-03-05"; timed: "2026-03-05T20:00:00-05:00" or ISO
-    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw.slice(0, 10);
-    const d = new Date(raw);
-    return d.toLocaleDateString('en-CA', { timeZone: CALENDAR_TZ });
-  } catch {
-    return null;
-  }
-}
-
 const Home: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,13 +15,13 @@ const Home: React.FC = () => {
         const googleEvents = await getGoogleCalendarEvents();
         setEvents(googleEvents);
         
-        // Find next meeting (first upcoming or this_week event)
+        // Find next meeting (first upcoming event)
         const upcoming = googleEvents
-          .filter(e => e.type === 'upcoming' || e.type === 'this_week')
+          .filter(e => e.type === 'upcoming')
           .sort((a, b) => {
-            const dateA = (a as Event & { dateTime?: string }).dateTime || a.date;
-            const dateB = (b as Event & { dateTime?: string }).dateTime || b.date;
-            return new Date(dateA).getTime() - new Date(dateB).getTime();
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            return dateA.getTime() - dateB.getTime();
           });
         
         if (upcoming.length > 0) {
@@ -63,7 +37,7 @@ const Home: React.FC = () => {
     loadEvents();
   }, []);
 
-  // Get current month and year (calendar month)
+  // Get current month and year
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
@@ -72,10 +46,20 @@ const Home: React.FC = () => {
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   
-  /** Events that fall on (currentYear, currentMonth, day) in New York. */
+  // Get events for current month
   const getEventsForDate = (day: number): (Event & { dateTime?: string })[] => {
-    const targetStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return events.filter(event => getEventDayInNY(event as Event & { dateTime?: string }) === targetStr) as (Event & { dateTime?: string })[];
+    return events.filter(event => {
+      try {
+        // Use dateTime if available (from Google Calendar API), otherwise parse date string
+        const dateStr = (event as any).dateTime || event.date;
+        const eventDate = new Date(dateStr);
+        return eventDate.getDate() === day && 
+               eventDate.getMonth() === currentMonth && 
+               eventDate.getFullYear() === currentYear;
+      } catch {
+        return false;
+      }
+    }) as (Event & { dateTime?: string })[];
   };
 
   // Format date for display
@@ -225,44 +209,44 @@ const Home: React.FC = () => {
                         const dayEvents = getEventsForDate(day);
                         const hasEvent = dayEvents.length > 0;
                         
-                        // Check if this day is today (in NY for consistency)
-                        const todayStr = now.toLocaleDateString('en-CA', { timeZone: CALENDAR_TZ });
-                        const cellStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                        const isToday = cellStr === todayStr;
+                        // Check if this day is today
+                        const isToday = day === now.getDate() && 
+                                       currentMonth === now.getMonth() && 
+                                       currentYear === now.getFullYear();
                         
                         // Check if this day is the next meeting
-                        const nextMeetingDay = nextMeeting ? getEventDayInNY(nextMeeting as Event & { dateTime?: string }) : null;
-                        const isNextMeeting = Boolean(nextMeeting && nextMeetingDay === cellStr);
+                        let isNextMeeting = false;
+                        if (meetingInfo && nextMeeting) {
+                          try {
+                            const dateStr = (nextMeeting as any).dateTime || nextMeeting.date;
+                            const meetingDate = new Date(dateStr);
+                            isNextMeeting = day === meetingDate.getDate() && 
+                                          currentMonth === meetingDate.getMonth() && 
+                                          currentYear === meetingDate.getFullYear();
+                          } catch {
+                            isNextMeeting = false;
+                          }
+                        }
                         
                         return (
-                            <div key={i} className={`bg-white h-24 p-1 relative flex flex-col ${isNextMeeting ? 'bg-blue-50' : ''}`}>
-                                <span className={`text-sm shrink-0 ${
+                            <div key={i} className={`bg-white h-24 p-1 relative ${isNextMeeting ? 'bg-blue-50' : ''}`}>
+                                <span className={`text-sm ${
                                     isNextMeeting 
-                                        ? 'bg-blue-600 text-white w-6 h-6 rounded-full inline-flex items-center justify-center font-bold' 
+                                        ? 'bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold' 
                                         : isToday 
-                                            ? 'bg-red-500 text-white w-6 h-6 rounded-full inline-flex items-center justify-center font-bold' 
+                                            ? 'bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold' 
                                             : 'text-gray-700'
                                 }`}>
                                     {day}
                                 </span>
-                                {/* Stacked event pills (Apple Calendar style) */}
-                                <div className="mt-0.5 flex flex-col gap-0.5 overflow-hidden flex-1 min-h-0">
-                                    {dayEvents.slice(0, 3).map((ev, j) => {
-                                        const color = EVENT_COLORS[j % EVENT_COLORS.length];
-                                        return (
-                                            <div
-                                                key={ev.id}
-                                                className={`${color.bg} ${color.text} text-[10px] font-medium rounded px-1 py-0.5 truncate leading-tight shrink-0`}
-                                                title={ev.title}
-                                            >
-                                                {ev.title}
-                                            </div>
-                                        );
-                                    })}
-                                    {dayEvents.length > 3 && (
-                                        <span className="text-[10px] text-gray-500 shrink-0">+{dayEvents.length - 3}</span>
-                                    )}
-                                </div>
+                                {isNextMeeting && (
+                                    <div className="absolute top-1/2 left-2 right-2 h-1 bg-red-500 rounded-full"></div>
+                                )}
+                                {hasEvent && !isNextMeeting && !isToday && (
+                                    <div className="absolute bottom-1 left-1 right-1">
+                                        <div className="w-full h-1 bg-blue-400 rounded-full"></div>
+                                    </div>
+                                )}
                             </div>
                         );
                     })}

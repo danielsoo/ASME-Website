@@ -25,7 +25,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ member, showDragHandle, onDragHandl
           </div>
         )}
       </div>
-      <div className="flex flex-row gap-6 items-center">
+      <div className="flex flex-row gap-6">
         <div className="w-32 h-32 flex-shrink-0 bg-white rounded-lg overflow-hidden">
             <img src={member.imageUrl} alt={member.name} className="w-full h-full object-cover" />
         </div>
@@ -44,7 +44,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ member, showDragHandle, onDragHandl
              <p><span className="underline decoration-white/50 underline-offset-2">Hometown</span>: {member.hometown}</p>
           )}
           {member.funFact && (
-             <p><span className="underline decoration-white/50 underline-offset-2">Fun Fact</span>: <span className="italic opacity-90">"{member.funFact}"</span></p>
+             <p className="mt-2"><span className="underline decoration-white/50 underline-offset-2">Fun Fact</span>: <span className="italic opacity-90">"{member.funFact}"</span></p>
           )}
         </div>
       </div>

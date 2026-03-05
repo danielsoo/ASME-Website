@@ -74,20 +74,6 @@ VITE_GOOGLE_CALENDAR_IDS=캘린더ID1@group.calendar.google.com,캘린더ID2@gro
 
 - **VITE_GOOGLE_CALENDAR_IDS** 를 쓰면 여러 캘린더 이벤트가 **합쳐져서 날짜순**으로 표시됩니다.
 - **VITE_GOOGLE_CALENDAR_IDS** 가 없으면 **VITE_GOOGLE_CALENDAR_ID** (한 개) 또는 코드 기본값(회장 캘린더)을 사용합니다.
-- **iframe**에도 같은 ID들이 적용되어, 여러 캘린더가 한 달력에 같이 보입니다 (예: ASME Leadership + ASME General Body).
-
----
-
-## Vercel(배포)에서도 API로 이벤트 보이게 하기
-
-- **localhost**는 `.env.local` 값을 쓰고, **Vercel**은 Vercel 대시보드의 **Environment Variables** 값을 씁니다. 둘을 다르게 두면 localhost는 Leadership, Vercel은 General Body처럼 **서로 다른 캘린더**를 보게 됩니다.
-- **둘 다 같은 이벤트 목록(This Week / Past Events)을 쓰게 하려면** 두 환경 모두 아래를 설정해야 합니다.
-  1. **Vercel**: 프로젝트 → **Settings** → **Environment Variables**
-     - `VITE_GOOGLE_CALENDAR_API_KEY` = (위에서 만든 API 키)
-     - `VITE_GOOGLE_CALENDAR_IDS` = `Leadership캘린더ID,GeneralBody캘린더ID` (쉼표 구분)
-  2. **로컬** `.env.local`에도 같은 API 키와 **같은 캘린더 ID 목록**을 넣으면, localhost와 Vercel이 **같은 캘린더들**을 API로 가져와서 표시합니다.
-- Leadership과 General Body **둘 다** 보이게 하려면 한 환경 변수에 두 ID를 쉼표로 넣으면 됩니다.  
-  예: `VITE_GOOGLE_CALENDAR_IDS=id1@group.calendar.google.com,id2@group.calendar.google.com`
 
 ---
 
