@@ -77,11 +77,11 @@ const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, curre
   const isPresident = currentUserRole === 'President';
   const hasChanges = data.memo !== initialData.memo || data.credentials !== initialData.credentials;
   const currentUid = auth.currentUser?.uid ?? '';
-  /** 당대 회장이 삭제한 항목 (본인만 보임, 읽기 전용) */
+  /** Items deleted by current president (visible only to self, read-only) */
   const myTrash = trash
     .map((t, i) => ({ ...t, realIndex: i }))
     .filter((t) => t.authorId === currentUid);
-  /** 전대 회장이 삭제한 항목 → 다음 대 회장이 30일 안에 복원/영구 폐기 선택 */
+  /** Items deleted by previous president → next president can restore or permanently delete within 30 days */
   const pendingTrash = trash
     .map((t, i) => ({ ...t, realIndex: i }))
     .filter((t) => t.authorId !== currentUid);
@@ -189,7 +189,7 @@ const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, curre
     return age > TRASH_EXPIRE_DAYS * 24 * 60 * 60 * 1000;
   };
 
-  /** 기본: 글을 다음 회장에게 넘기기 → legacy에 바로 추가 */
+  /** Default: pass content to next president → add to legacy directly */
   const handoverToNext = async () => {
     if (!isPresident || saving) return;
     const user = auth.currentUser;
@@ -229,7 +229,7 @@ const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, curre
     }
   };
 
-  /** 다음 회장: 휴지통 항목 하나를 legacy로 복원 */
+  /** Next president: restore one trash item to legacy */
   const restoreTrashToLegacy = async (trashIndex: number) => {
     if (!isPresident || saving || trashIndex < 0 || trashIndex >= trash.length) return;
     const t = trash[trashIndex];
@@ -263,7 +263,7 @@ const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, curre
     }
   };
 
-  /** 다음 회장: 휴지통 항목 하나 영구 폐기 */
+  /** Next president: permanently delete one trash item */
   const permanentlyDeleteTrash = async (trashIndex: number) => {
     if (!isPresident || saving || trashIndex < 0 || trashIndex >= trash.length) return;
     const newTrash = trash.filter((_, i) => i !== trashIndex);
@@ -291,7 +291,7 @@ const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, curre
     setLegacyShowCredentials((prev) => ({ ...prev, [index]: !prev[index] }));
   };
 
-  /** 현재 글 "지우기" → 당장 삭제 안 하고 휴지통으로. 다음 회장이 30일 안에 복원/영구 폐기 결정 */
+  /** "Clear" current content → move to trash (not deleted yet). Next president decides restore or permanent delete within 30 days */
   const clearCurrentContent = async () => {
     if (!isPresident || saving) return;
     const user = auth.currentUser;
@@ -329,7 +329,7 @@ const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, curre
     }
   };
 
-  /** legacy 항목 "삭제" → 당장 삭제 안 하고 휴지통으로. 다음 회장이 30일 안에 복원/영구 폐기 결정 */
+  /** "Delete" legacy entry → move to trash (not deleted yet). Next president decides restore or permanent delete within 30 days */
   const deleteLegacyEntry = async (index: number) => {
     if (!isPresident || saving) return;
     const removed = legacy[index];
@@ -454,9 +454,9 @@ const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, curre
 
             {myTrash.length > 0 && (
               <div className="space-y-4">
-                <h3 className="font-semibold text-gray-800">내가 삭제한 항목</h3>
+                <h3 className="font-semibold text-gray-800">Items I deleted</h3>
                 <p className="text-gray-600 text-sm">
-                  아래 항목은 휴지통으로 보냈습니다. 30일 동안 다음 대 회장이 복원하거나 영구 폐기할 수 있습니다.
+                  The items below were sent to trash. The next president can restore or permanently delete them within 30 days.
                 </p>
                 {myTrash.map((t) => (
                   <div key={t.realIndex} className="bg-amber-50 border border-amber-200 rounded-lg p-4 sm:p-6">
@@ -495,7 +495,7 @@ const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, curre
 
             {pendingTrash.length > 0 && (
               <div className="space-y-4">
-                <h3 className="font-semibold text-gray-800">전대 회장이 삭제한 항목 (30일 안에 복원 또는 영구 폐기)</h3>
+                <h3 className="font-semibold text-gray-800">Items deleted by previous president (restore or permanently delete within 30 days)</h3>
                 {pendingTrash.map((t) => (
                   <div key={t.realIndex} className="bg-amber-50 border border-amber-200 rounded-lg p-4 sm:p-6">
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -603,7 +603,7 @@ const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, curre
                           type="button"
                           disabled={saving}
                           onClick={() => setConfirmPopup({
-                            message: '삭제하면 휴지통으로 보내지며, 30일 동안 다음 대 회장이 복원하거나 영구 폐기할 수 있습니다. 계속할까요?',
+                            message: 'This will move the item to trash. The next president can restore or permanently delete it within 30 days. Continue?',
                             onConfirm: () => { setConfirmPopup(null); deleteLegacyEntry(index); },
                           })}
                           className="text-red-600 hover:text-red-800 text-sm disabled:opacity-50"
@@ -639,19 +639,19 @@ const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, curre
         ) : (
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Memo (인수인계 메모)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Memo</label>
               <textarea
                 value={data.memo}
                 onChange={(e) => setData((prev) => ({ ...prev, memo: e.target.value }))}
                 rows={8}
                 className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800 resize-y"
-                placeholder="업무 요약, 진행 중인 일, 다음 회장에게 전달할 말 등..."
+                placeholder="Work summary, ongoing tasks, notes for the next president..."
               />
             </div>
 
             <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
               <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                <label className="block text-sm font-medium text-gray-700">Shared accounts (이메일 / 비밀번호 등)</label>
+                <label className="block text-sm font-medium text-gray-700">Shared accounts (email / passwords)</label>
                 <button
                   type="button"
                   onClick={() => setShowCredentials((v) => !v)}
@@ -666,7 +666,7 @@ const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, curre
                   onChange={(e) => setData((prev) => ({ ...prev, credentials: e.target.value }))}
                   rows={6}
                   className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800 resize-y font-mono"
-                  placeholder="예: club@example.com / password123"
+                  placeholder="e.g. club@example.com / password123"
                   autoComplete="off"
                 />
               ) : (
@@ -707,7 +707,7 @@ const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, curre
                 type="button"
                 disabled={saving || (!data.memo && !data.credentials)}
                 onClick={() => setConfirmPopup({
-                  message: '삭제하면 휴지통으로 보내지며, 30일 동안 다음 대 회장이 복원하거나 영구 폐기할 수 있습니다. 계속할까요?',
+                  message: 'This will move the item to trash. The next president can restore or permanently delete it within 30 days. Continue?',
                   onConfirm: () => { setConfirmPopup(null); clearCurrentContent(); },
                 })}
                 className="bg-gray-500 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium"

@@ -19,7 +19,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ member, showDragHandle, onDragHandl
           <div
             onMouseDown={onDragHandleMouseDown}
             className="cursor-move hover:opacity-70 transition-opacity flex-shrink-0"
-            title="드래그하여 순서 변경"
+            title="Drag to reorder"
           >
             <GripVertical size={20} className="text-white" />
           </div>

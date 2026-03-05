@@ -7,7 +7,7 @@ interface PendingApprovalBannerProps {
   user: { uid: string } | null;
 }
 
-/** 로그인은 되어 있으나 어드민 승인 대기 중일 때 상단에 표시하는 배너 */
+/** Banner shown at top when user is logged in but pending admin approval */
 const PendingApprovalBanner: React.FC<PendingApprovalBannerProps> = ({ user }) => {
   const [show, setShow] = useState(false);
 

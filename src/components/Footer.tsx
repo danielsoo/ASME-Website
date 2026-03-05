@@ -135,7 +135,7 @@ const Footer: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column - Address (한 주소, 글자에만 링크) */}
+        {/* Right Column - Address (single address, text links to map) */}
         <div className="font-jost font-normal text-right">
           <p>Office:</p>
           {(addressLine1 || addressLine2) ? (

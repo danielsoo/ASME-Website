@@ -98,7 +98,7 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
     );
   }
 
-  // 회장(President)은 무조건 접근 가능하므로 목록에서 제외
+  // President always has access, so exclude from the toggle list
   const allPositionNames = ['admin', ...positions.map((p) => p.name).filter((name) => name !== 'President')];
 
   return (

@@ -106,7 +106,7 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
     return <Login onLoginSuccess={() => {}} />;
   }
 
-  // 승인 대기(pending) 사용자는 어드민 접근 불가 → 홈으로
+  // Pending users cannot access admin → redirect to home
   if (userStatus === 'pending') {
     if (onNavigate) onNavigate('/');
     return (
@@ -125,7 +125,7 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
     );
   }
 
-  // Firestore 로드 중이거나 approved가 아니면 대기
+  // Wait while loading Firestore or if not approved
   if (userStatus !== 'approved' || !accessChecked) {
     return (
       <div className="min-h-screen bg-[#0f131a] flex items-center justify-center">
@@ -134,7 +134,7 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
     );
   }
 
-  // Executive Board만 접근 가능: userRole이 allowedRoles에 없으면 차단
+  // Only Executive Board with allowed roles can access; block otherwise
   if (!allowedRoles.includes(userRole)) {
     if (onNavigate) onNavigate('/');
     return (

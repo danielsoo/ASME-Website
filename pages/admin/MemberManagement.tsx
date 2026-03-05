@@ -75,7 +75,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [selectedTeam, setSelectedTeam] = useState<'Design Team' | 'General Body' | ''>('');
 
-  // Add member modal (회장/부회장 전용)
+  // Add member modal (President/Vice President only)
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberEmail, setNewMemberEmail] = useState('');

@@ -19,7 +19,7 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
-  const [verificationSentToEmail, setVerificationSentToEmail] = useState(''); // 인증 메일 보낸 주소 고정 표시용
+  const [verificationSentToEmail, setVerificationSentToEmail] = useState(''); // Email address we sent verification to (for display)
   const [resetEmailSent, setResetEmailSent] = useState(false);
 
   // Check if user is already logged in and email verified
@@ -46,14 +46,14 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
                 });
               }
               
-              // Approved → 홈으로. Pending → 홈으로 (어드민만 차단, 배너로 안내). Rejected → 로그아웃
+              // Approved → home. Pending → home (admin blocked, banner shows). Rejected → sign out
               if (userData.status === 'approved') {
                 onNavigate('/');
               } else if (userData.status === 'rejected') {
                 await auth.signOut();
                 setError('Registration has been rejected. Please contact us if you have questions.');
               } else {
-                onNavigate('/'); // pending도 로그인 허용, 어드민 패널만 차단
+                onNavigate('/'); // Allow pending users to log in; only admin panel is blocked
               }
             } else {
               await setDoc(doc(db, 'users', user.uid), {
@@ -142,7 +142,7 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
           return;
         }
         
-        // Check user approval status: rejected만 막고, pending/approved 모두 진행
+        // Check user approval status: block only rejected; allow pending and approved
         try {
           const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
           if (userDoc.exists()) {
@@ -152,7 +152,7 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
               setError('Registration has been rejected. Please contact us if you have questions.');
               return;
             }
-            // approved / pending 모두 홈으로 (onAuthStateChanged에서 처리되거나 여기서 이동)
+            // Both approved and pending go to home (handled in onAuthStateChanged or here)
           }
         } catch (error) {
           console.error('Error checking user status:', error);

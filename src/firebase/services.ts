@@ -251,7 +251,7 @@ export const getGoogleCalendarEvents = async (): Promise<Event[]> => {
   const calendarIds = getCalendarIds();
   const apiKey = typeof import.meta !== 'undefined' && import.meta.env?.VITE_GOOGLE_CALENDAR_API_KEY;
   const now = Date.now();
-  const timeMin = new Date(now - 365 * 24 * 60 * 60 * 1000).toISOString(); // 1년 전부터 (과거 이벤트 충분히 표시)
+  const timeMin = new Date(now - 365 * 24 * 60 * 60 * 1000).toISOString(); // From 1 year ago (enough past events)
   const timeMax = new Date(now + 365 * 24 * 60 * 60 * 1000).toISOString();
   const allEvents: Event[] = [];
 
