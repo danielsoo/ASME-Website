@@ -167,8 +167,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
           </div>
         </div>
 
-        <div id="about-us-section" className="bg-gray-100 pb-16">
-        <div className="container mx-auto px-16">
+        <div id="about-us-section" className="bg-gray-100 pb-16 px-16">
+        <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-12 items-start">
             {/* Left Column - Our General Body */}
             <div className="w-full md:w-1/2">
@@ -296,8 +296,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
           </div>
         </div> 
 
-        <div id="about-us-section" className="bg-gray-100 pb-16">
-        <div className="container mx-auto px-16">
+        <div id="about-us-section" className="bg-gray-100 pb-16 px-16">
+        <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-12 items-start">
             {/* Left Column - Our Design Team */}
             <div className="w-full md:w-1/2">
