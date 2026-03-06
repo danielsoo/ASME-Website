@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { SPONSORS } from '../src/constants';
 import { Settings } from 'lucide-react';
-import { getSponsorContactEmail } from '../src/firebase/services';
+import { getCorporateOutreachEmail } from '../src/firebase/services';
 
 const Sponsors: React.FC = () => {
   const [contactEmail, setContactEmail] = useState('president.asme.psu@gmail.com');
 
   useEffect(() => {
-    getSponsorContactEmail().then(setContactEmail);
+    getCorporateOutreachEmail().then(setContactEmail);
   }, []);
 
   return (

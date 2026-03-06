@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, Download, ChevronDown, ChevronUp } from 'lucide-react';
-import { getGoogleCalendarEvents, getInstagramPosts } from '../src/firebase/services';
-import { Event, InstagramPost } from '../src/types';
+import { getGoogleCalendarEvents } from '../src/firebase/services';
+import { Event } from '../src/types';
 import EmbedSocialHashtag from '@/src/components/EmbedSocial';
 
 type EventWithDateTime = Event & { dateTime?: string };
@@ -65,8 +65,6 @@ function downloadIcs(events: EventWithDateTime[], filename: string) {
 const Events: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [instagramPosts, setInstagramPosts] = useState<InstagramPost[]>([]);
-  const [instagramLoading, setInstagramLoading] = useState(true);
 
   // Same calendar(s) as event list: from env so iframe and list stay in sync.
   // Set VITE_GOOGLE_CALENDAR_IDS=id1,id2 (e.g. Leadership, General Body) so both are fetched via API and shown in iframe.
@@ -95,20 +93,7 @@ const Events: React.FC = () => {
       }
     };
 
-    const loadInstagramPosts = async () => {
-      try {
-        setInstagramLoading(true);
-        const posts = await getInstagramPosts(6);
-        setInstagramPosts(posts);
-      } catch (error) {
-        console.error('Error loading Instagram posts:', error);
-      } finally {
-        setInstagramLoading(false);
-      }
-    };
-
     loadEvents();
-    loadInstagramPosts();
   }, []);
 
   const upcomingEvents = events.filter(e => e.type === 'upcoming');
@@ -223,23 +208,6 @@ const Events: React.FC = () => {
       <div className="bg-[#e5e7eb] py-20 px-4">
         <div className="container mx-auto max-w-4xl relative">
             <h2 className="text-3xl font-bold mb-8">Coming Up</h2>
-
-            {instagramPosts.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-                {instagramPosts.slice(0, 6).map((post) => (
-                  <a
-                    key={post.id}
-                    href={post.permalink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block rounded-xl overflow-hidden shadow-md hover:shadow-lg hover:opacity-95 transition bg-white"
-                  >
-                    <img src={post.mediaUrl} alt={post.caption?.slice(0, 50) || 'Instagram'} className="w-full aspect-square object-cover" />
-                  </a>
-                ))}
-              </div>
-            )}
-
             <div className="mt-8 min-h-[200px]" aria-hidden="true">
               <EmbedSocialHashtag />
             </div>

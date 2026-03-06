@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { responsiveClamp, responsiveClampCustom } from '../src/utils/responsive';
-import { getGoogleCalendarEvents } from '../src/firebase/services';
+import { getGoogleCalendarEvents, getHomePageWhatWeDo } from '../src/firebase/services';
 import { Event } from '../src/types';
 
 const CALENDAR_TZ = 'America/New_York';
+const content = getHomePageWhatWeDo();
+//const groupme = content.filter()
 
 /** Event pill colors (Apple Calendar style) */
 const EVENT_COLORS = [
@@ -43,7 +45,7 @@ const Home: React.FC = () => {
         
         // Find next meeting (first upcoming or this_week event)
         const upcoming = googleEvents
-          .filter(e => e.type === 'upcoming' || e.type === 'this_week')
+          .filter(e => e.type === 'upcoming' || 'this_week')
           .sort((a, b) => {
             const dateA = (a as Event & { dateTime?: string }).dateTime || a.date;
             const dateB = (b as Event & { dateTime?: string }).dateTime || b.date;
@@ -274,7 +276,7 @@ const Home: React.FC = () => {
       </div>
 
       {/* What we do Section */}
-      <div className="container mx-auto px-4 mb-24">
+      <div className="container mx-auto px-16 mb-24">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-center">
             <div className="space-y-6">
                 <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4">
@@ -299,19 +301,12 @@ const Home: React.FC = () => {
                 <p>
                     Everyone is welcome (not just Mechanical engineers), and there are no membership requirements or dues. Just show up!
                 </p>
-                <button className="bg-[#212C47] hover:bg-[#111828] text-white font-bold py-2 px-6 rounded shadow transition">
+                <button className="bg-[#212C47] hover:bg-[#111828] text-white font-bold py-2 px-6 rounded shadow transition" >
                     Join our GroupMe
                 </button>
             </div>
         </div>
       </div>
-
-      {/* Embedded Linktree Placeholder
-      <div className="container mx-auto px-4 mb-24">
-          <div className="w-full h-64 bg-asme-red flex items-center justify-center rounded-lg shadow-inner">
-              <span className="text-white font-jost font-bold text-xl tracking-widest uppercase">Embedded Linktree</span>
-          </div>
-      </div>*/}
 
     </div>
   );

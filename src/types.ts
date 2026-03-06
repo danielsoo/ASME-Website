@@ -84,7 +84,7 @@ export interface Event {
   title: string;
   date: string;
   description: string;
-  type: 'upcoming' | 'past';
+  type: 'upcoming' | 'this_week' | 'past';
   imageUrl?: string;
   location?: string;
     // Approval system
@@ -158,16 +158,6 @@ export interface HomePageWhatWeDo {
   buttonUrl?: string;
   updatedAt?: string;
   updatedBy?: string;
-}
-
-export interface InstagramPost {
-  id: string;
-  caption?: string;
-  mediaUrl: string;
-  permalink: string;
-  timestamp: string;
-  mediaType: 'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM';
-  thumbnailUrl?: string;
 }
 
 /** Site content: footer (stored in config/footer). More sections (e.g. hero) can be added later. */
