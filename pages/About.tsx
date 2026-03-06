@@ -142,7 +142,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     return (
       <div className="min-h-screen bg-gray-100 py-12">
         {/* About Us Section - Full page view */}
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-16">
                 
           {/* Toggle Controls */}
           <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">
@@ -271,7 +271,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     return (
       <div className="min-h-screen bg-gray-100 py-12">
         {/* Design Team Section - Full page view */}
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-16">
                 
           {/* Toggle Controls */}
           <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">

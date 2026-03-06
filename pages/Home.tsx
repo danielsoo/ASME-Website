@@ -276,7 +276,7 @@ const Home: React.FC = () => {
       </div>
 
       {/* What we do Section */}
-      <div className="container mx-auto px-16 mb-24">
+      <div className="container mx-auto px-20 mb-24">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-center">
             <div className="space-y-6">
                 <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4">
