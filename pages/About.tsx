@@ -142,7 +142,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     return (
       <div className="min-h-screen bg-gray-100 py-12">
         {/* About Us Section - Full page view */}
-        <div className="container mx-auto px-16">
+        <div className="container mx-auto px-4">
                 
           {/* Toggle Controls */}
           <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">
@@ -168,7 +168,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
         </div>
 
         <div id="about-us-section" className="bg-gray-100 pb-16">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-16">
           <div className="flex flex-col md:flex-row gap-12 items-start">
             {/* Left Column - Our General Body */}
             <div className="w-full md:w-1/2">
@@ -225,8 +225,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
 
       {/* Executive Board Section - Same as regular About page */}
       <div className="bg-[#e5e7eb] py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-2">
+        <div className="container mx-auto px-16">
+          <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-4">
             Executive Board
           </h2>
           
@@ -271,7 +271,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     return (
       <div className="min-h-screen bg-gray-100 py-12">
         {/* Design Team Section - Full page view */}
-        <div className="container mx-auto px-16">
+        <div className="container mx-auto px-4">
                 
           {/* Toggle Controls */}
           <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">
@@ -297,7 +297,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
         </div> 
 
         <div id="about-us-section" className="bg-gray-100 pb-16">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-16">
           <div className="flex flex-col md:flex-row gap-12 items-start">
             {/* Left Column - Our Design Team */}
             <div className="w-full md:w-1/2">
