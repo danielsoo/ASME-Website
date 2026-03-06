@@ -331,7 +331,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
     <div className="min-h-screen bg-[#0f131a] relative">
       {/* Content */}
       <div className="bg-gray-100 min-h-screen py-12 relative">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-16">
           
           {/* Toggle Controls */}
           <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">
@@ -379,7 +379,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
 
           {/* Project List */}
           {!loading && !error && (
-            <div className="space-y-12">
+            <div className="space-y-12 px-16">
                 {filteredProjects.length > 0 ? (
                     filteredProjects.map((project) => {
                       // Add leader name to project for display

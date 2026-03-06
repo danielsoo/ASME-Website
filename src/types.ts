@@ -25,6 +25,8 @@ export interface Project {
   leaderEmail?: string; // Email of project leader
   leaderName?: string; // Name of project leader (for display)
   members?: ProjectMember[]; // Project members assigned by leader
+  slackUrl?: string;
+  deadline?: string;
   projectRoles?: string[]; // Custom project roles defined by leader (e.g., 'Software Lead', 'Hardware Lead')
   createdAt?: string;
   updatedAt?: string;
@@ -91,7 +93,7 @@ export interface Event {
   title: string;
   date: string;
   description: string;
-  type: 'upcoming' | 'past';
+  type: 'upcoming' | 'this_week' | 'past';
   imageUrl?: string;
   location?: string;
     // Approval system
@@ -165,16 +167,6 @@ export interface HomePageWhatWeDo {
   buttonUrl?: string;
   updatedAt?: string;
   updatedBy?: string;
-}
-
-export interface InstagramPost {
-  id: string;
-  caption?: string;
-  mediaUrl: string;
-  permalink: string;
-  timestamp: string;
-  mediaType: 'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM';
-  thumbnailUrl?: string;
 }
 
 /** Site content: footer (stored in config/footer). More sections (e.g. hero) can be added later. */

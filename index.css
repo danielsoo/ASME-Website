@@ -13,6 +13,11 @@
   --font-jost: 'Jost', sans-serif;
 }
 
+html,
+body {
+  min-width: 320px; /* 가로 줄임 한계: 이보다 좁아지지 않음 */
+}
+
 body {
   background: linear-gradient(0deg, rgba(0, 0, 0, 0.20) 0%, rgba(0, 0, 0, 0.20) 100%), linear-gradient(180deg, rgba(8, 205, 227, 0.00) 0%, #443BA5 100%), url('/Homepage_background.jpg');
   background-size: 100% auto;
@@ -84,3 +89,13 @@ footer::before {
 .event-rich-content .ql-font-arial,
 .project-rich-content .ql-font-arial,
 .footer-rich-content .ql-font-arial { font-family: Arial, sans-serif; }
+
+/* 긴 글자/URL이 컨테이너를 넘지 않고 자동 줄바꿈 */
+.home-rich-content,
+.sponsors-rich-content,
+.about-rich-content,
+.project-rich-content {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+}

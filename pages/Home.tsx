@@ -75,7 +75,7 @@ const Home: React.FC = () => {
         
         // Find next meeting (first upcoming or this_week event)
         const upcoming = googleEvents
-          .filter(e => e.type === 'upcoming' || e.type === 'this_week')
+          .filter(e => e.type === 'upcoming' || 'this_week')
           .sort((a, b) => {
             const dateA = (a as Event & { dateTime?: string }).dateTime || a.date;
             const dateB = (b as Event & { dateTime?: string }).dateTime || b.date;
@@ -142,59 +142,66 @@ const Home: React.FC = () => {
   const meetingInfo = getNextMeetingInfo();
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Hero Section with Background Image */}
+    <div className="flex flex-col min-h-screen min-w-0 w-full overflow-x-hidden">
+      {/* Hero Section with Background Image - overflow-y visible so WE ARE / @ PENN STATE don't get clipped when narrow */}
       <div
+        className="min-w-0 w-full overflow-x-hidden"
         style={{
-          height: "54.03vw",
           minHeight: "clamp(400px, 54.03vw, 1000px)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "flex-start",
-          paddingTop: "0vw",
+          paddingTop: "clamp(24px, 4vw, 60px)",
           paddingLeft: "clamp(16px, 5.23vw, 80px)",
           paddingRight: "clamp(16px, 5.23vw, 80px)",
-          paddingBottom: "clamp(120px, 8vw, 200px)",
+          paddingBottom: "clamp(80px, 8vw, 200px)",
           position: "relative",
         }}
       >
         <div
+          className="min-w-0 w-full max-w-full flex flex-col justify-center items-center text-center"
           style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            aspectRatio: "1512 / 568",
-            textAlign: "center",
             margin: "auto",
           }}
         >
           <h2
+            className="break-words"
             style={{
               fontSize: responsiveClamp(48, 24, 72),
               fontWeight: "bold",
               marginBottom: responsiveClamp(24, 12, 36),
               color: "#ffffff",
+              maxWidth: "100%",
+              overflowWrap: "break-word",
+              wordBreak: "break-word",
             }}
           >
             {renderRichContent(homeContent.heroLine1 ?? DEFAULT_HOME.heroLine1, 'WE ARE')}
           </h2>
           <h1
+            className="break-words"
             style={{
               fontSize: responsiveClamp(64, 32, 96),
               fontWeight: "bold",
               marginBottom: responsiveClamp(24, 12, 36),
               color: "#ffffff",
+              maxWidth: "100%",
+              overflowWrap: "break-word",
+              wordBreak: "break-word",
             }}
           >
             {renderRichContent(homeContent.heroLine2 ?? DEFAULT_HOME.heroLine2, 'THE AMERICAN SOCIETY OF MECHANICAL ENGINEERS')}
           </h1>
           <p
+            className="break-words"
             style={{
               fontSize: responsiveClamp(36, 18, 54),
               fontWeight: "bold",
               color: "#ffffff",
+              maxWidth: "100%",
+              overflowWrap: "break-word",
+              wordBreak: "break-word",
             }}
           >
             {renderRichContent(homeContent.heroLine3 ?? DEFAULT_HOME.heroLine3, '@ PENN STATE')}
@@ -202,15 +209,15 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* Next Meeting Section (Calendar Visual) - Keep your version */}
+      {/* Next Meeting Section (Calendar Visual) */}
       <div 
-        className="relative z-20 container mx-auto px-4 mb-24"
+        className="relative z-20 container mx-auto px-4 mb-24 min-w-0 w-full max-w-full overflow-hidden"
         style={{
           marginTop: "clamp(-90px, -10vw, -96px)",
         }}
       >
         <div className="flex flex-col items-center">
-            <h3 className="text-3xl font-jost font-bold mb-6 text-white text-center">{renderRichContent(homeContent.nextMeetingTitle ?? DEFAULT_HOME.nextMeetingTitle, 'Next Meeting')}</h3>
+            <h3 className="text-3xl font-jost font-bold mb-6 text-white text-center break-words">{renderRichContent(homeContent.nextMeetingTitle ?? DEFAULT_HOME.nextMeetingTitle, 'Next Meeting')}</h3>
             
             {/* Simple Mock Calendar Card */}
             <div className="bg-white rounded-2xl p-4 shadow-2xl w-full md:w-3/4 max-w-4xl overflow-hidden">
@@ -306,46 +313,46 @@ const Home: React.FC = () => {
       </div>
 
       {/* What we do Section */}
-      <div className="container mx-auto px-4 mb-24">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-center">
-            <div className="space-y-6">
-                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4">
-                    <div className="w-10 h-10 rounded-full border-2 border-asme-dark flex items-center justify-center font-bold text-asme-dark mr-4">1</div>
-                    <span className="font-jost font-bold text-asme-dark tracking-widest text-lg">PROJECTS</span>
+      <div className="container mx-auto px-4 sm:px-8 md:px-20 mb-24 min-w-0 max-w-full overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-center min-w-0">
+            <div className="space-y-6 min-w-0">
+                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4 min-w-0">
+                    <div className="w-10 h-10 shrink-0 rounded-full border-2 border-asme-dark flex items-center justify-center font-bold text-asme-dark mr-4">1</div>
+                    <span className="font-jost font-bold text-asme-dark tracking-widest text-lg truncate">PROJECTS</span>
                 </div>
-                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4">
-                    <div className="w-10 h-10 rounded-full border-2 border-asme-dark flex items-center justify-center font-bold text-asme-dark mr-4">2</div>
-                    <span className="font-jost font-bold text-asme-dark tracking-widest text-lg">WORKSHOPS</span>
+                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4 min-w-0">
+                    <div className="w-10 h-10 shrink-0 rounded-full border-2 border-asme-dark flex items-center justify-center font-bold text-asme-dark mr-4">2</div>
+                    <span className="font-jost font-bold text-asme-dark tracking-widest text-lg truncate">WORKSHOPS</span>
                 </div>
-                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4">
-                    <div className="w-10 h-10 rounded-full border-2 border-asme-dark flex items-center justify-center font-bold text-asme-dark mr-4">3</div>
-                    <span className="font-jost font-bold text-asme-dark tracking-widest text-lg">SOCIALS</span>
+                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4 min-w-0">
+                    <div className="w-10 h-10 shrink-0 rounded-full border-2 border-asme-dark flex items-center justify-center font-bold text-asme-dark mr-4">3</div>
+                    <span className="font-jost font-bold text-asme-dark tracking-widest text-lg truncate">SOCIALS</span>
                 </div>
             </div>
             
-            <div className="font-jost text-gray-300 space-y-6">
-                <h2 className="text-3xl font-bold text-white">{renderRichContent(homeContent.whatWeDoTitle ?? DEFAULT_HOME.whatWeDoTitle, 'What we do')}</h2>
-                <div className="home-rich-content">
+            <div className="font-jost text-gray-300 space-y-6 min-w-0 break-words">
+                <h2 className="text-3xl font-bold text-white break-words">{renderRichContent(homeContent.whatWeDoTitle ?? DEFAULT_HOME.whatWeDoTitle, 'What we do')}</h2>
+                <div className="home-rich-content break-words">
                   {isHtmlString(homeContent.whatWeDoParagraph1 ?? '') ? (
-                    <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(homeContent.whatWeDoParagraph1 ?? '') }} />
+                    <div className="break-words" dangerouslySetInnerHTML={{ __html: sanitizeHtml(homeContent.whatWeDoParagraph1 ?? '') }} />
                   ) : (
-                    <p>{homeContent.whatWeDoParagraph1 ?? DEFAULT_HOME.whatWeDoParagraph1 ?? 'The Penn State Chapter of ASME provides members with opportunities for professional development, hands-on design experience, and outreach within and beyond Penn State. If you are interested in growing professionally, getting in contact with employers, or working on cool projects, you are in the right spot!'}</p>
+                    <p className="break-words">{homeContent.whatWeDoParagraph1 ?? DEFAULT_HOME.whatWeDoParagraph1 ?? 'The Penn State Chapter of ASME provides members with opportunities for professional development, hands-on design experience, and outreach within and beyond Penn State. If you are interested in growing professionally, getting in contact with employers, or working on cool projects, you are in the right spot!'}</p>
                   )}
                 </div>
-                <div className="home-rich-content">
+                <div className="home-rich-content break-words">
                   {isHtmlString(homeContent.whatWeDoParagraph2 ?? '') ? (
-                    <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(homeContent.whatWeDoParagraph2 ?? '') }} />
+                    <div className="break-words" dangerouslySetInnerHTML={{ __html: sanitizeHtml(homeContent.whatWeDoParagraph2 ?? '') }} />
                   ) : (
-                    <p>{homeContent.whatWeDoParagraph2 ?? DEFAULT_HOME.whatWeDoParagraph2 ?? 'Everyone is welcome (not just Mechanical engineers), and there are no membership requirements or dues. Just show up!'}</p>
+                    <p className="break-words">{homeContent.whatWeDoParagraph2 ?? DEFAULT_HOME.whatWeDoParagraph2 ?? 'Everyone is welcome (not just Mechanical engineers), and there are no membership requirements or dues. Just show up!'}</p>
                   )}
                 </div>
                 {(homeContent.whatWeDoButtonText ?? DEFAULT_HOME.whatWeDoButtonText) && (
                   (homeContent.whatWeDoButtonUrl ?? DEFAULT_HOME.whatWeDoButtonUrl) ? (
-                    <a href={homeContent.whatWeDoButtonUrl ?? DEFAULT_HOME.whatWeDoButtonUrl ?? '#'} target="_blank" rel="noopener noreferrer" className="inline-block bg-[#212C47] hover:bg-[#111828] text-white font-bold py-2 px-6 rounded shadow transition">
+                    <a href={homeContent.whatWeDoButtonUrl ?? DEFAULT_HOME.whatWeDoButtonUrl ?? '#'} target="_blank" rel="noopener noreferrer" className="inline-block bg-[#212C47] hover:bg-[#111828] text-white font-bold py-2 px-6 rounded shadow transition break-words">
                       {homeContent.whatWeDoButtonText ?? DEFAULT_HOME.whatWeDoButtonText}
                     </a>
                   ) : (
-                    <span className="inline-block bg-[#212C47] text-white font-bold py-2 px-6 rounded shadow">
+                    <span className="inline-block bg-[#212C47] text-white font-bold py-2 px-6 rounded shadow break-words">
                       {homeContent.whatWeDoButtonText ?? DEFAULT_HOME.whatWeDoButtonText}
                     </span>
                   )
@@ -353,13 +360,6 @@ const Home: React.FC = () => {
             </div>
         </div>
       </div>
-
-      {/* Embedded Linktree Placeholder
-      <div className="container mx-auto px-4 mb-24">
-          <div className="w-full h-64 bg-asme-red flex items-center justify-center rounded-lg shadow-inner">
-              <span className="text-white font-jost font-bold text-xl tracking-widest uppercase">Embedded Linktree</span>
-          </div>
-      </div>*/}
 
     </div>
   );

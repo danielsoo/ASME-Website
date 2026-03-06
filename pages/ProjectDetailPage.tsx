@@ -29,7 +29,7 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNaviga
 
       {/* Content */}
       <div className="bg-gray-100 min-h-screen py-12 relative">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-16">
           {/* Sub-Navigation Tabs */}
           <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">
             <div className="container mx-auto flex items-center gap-2">
