@@ -1,5 +1,8 @@
 import { TeamMember, Project, Event, Sponsor } from './types';
 
+/** Form/signup links for Design Team and projects (see src/formLinks.ts). */
+export { GENERAL_DESIGN_TEAM_SLACK_FORM, getProjectFormLinkByTitle } from './formLinks';
+
 export const NAV_LINKS = [
   { name: 'HOME', path: '/' },
   { name: 'ABOUT', path: '/about' },
@@ -205,6 +208,7 @@ export const PROJECTS: Project[] = [
       { name: 'Jacob', role: 'Member' },
     ],
     status: 'current',
+    slack: 'https://forms.gle/5pT5VuDGT4Vn5xhN9',
   },
   {
     id: '2',
@@ -213,6 +217,7 @@ export const PROJECTS: Project[] = [
     imageUrl: 'https://picsum.photos/seed/project-impact/800/400',
     chairs: [],
     status: 'current',
+    slack: 'https://forms.gle/tLmLX7n4ad1hPGPg7',
   },
   {
     id: '3',

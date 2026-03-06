@@ -1,15 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../src/firebase/config';
-import type { FooterContent } from '../../src/types';
-import { DEFAULT_FOOTER } from '../../src/types';
+import type { FooterContent, HomeContent, AboutContent, SponsorsContent, GeneralBodyContent, DesignTeamContent } from '../../src/types';
+import { DEFAULT_FOOTER, DEFAULT_HOME, DEFAULT_ABOUT, DEFAULT_SPONSORS, DEFAULT_GENERAL_BODY, DEFAULT_DESIGN_TEAM } from '../../src/types';
+import RichTextEditor from '../../src/components/RichTextEditor';
+import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 
 const CONFIG_PATH = 'config';
 const FOOTER_DOC = 'footer';
+const HOME_DOC = 'home';
+const ABOUT_DOC = 'about';
+const GENERAL_BODY_DOC = 'aboutGeneralBody';
+const DESIGN_TEAM_DOC = 'aboutDesignTeam';
+const SPONSORS_DOC = 'sponsors';
+
+type SiteContentTab = 'footer' | 'home' | 'about' | 'sponsors';
+type AboutSubTab = 'main' | 'generalBody' | 'designTeam';
 
 interface SiteContentProps {
   onNavigate: (path: string) => void;
   currentUserRole: string;
+  currentPath?: string;
 }
 
 function footerEquals(a: FooterContent, b: FooterContent): boolean {
@@ -17,15 +28,67 @@ function footerEquals(a: FooterContent, b: FooterContent): boolean {
   return keys.every((k) => (a[k] ?? '') === (b[k] ?? ''));
 }
 
-const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole }) => {
+const HOME_KEYS: (keyof HomeContent)[] = ['heroLine1', 'heroLine2', 'heroLine3', 'nextMeetingTitle', 'whatWeDoTitle', 'whatWeDoParagraph1', 'whatWeDoParagraph2', 'whatWeDoButtonText', 'whatWeDoButtonUrl'];
+function homeEquals(a: HomeContent, b: HomeContent): boolean {
+  return HOME_KEYS.every((k) => (a[k] ?? '') === (b[k] ?? ''));
+}
+
+const ABOUT_KEYS: (keyof AboutContent)[] = ['aboutTitle', 'aboutParagraph1', 'aboutParagraph2', 'aboutLinkUrl', 'paragraphFontFamily', 'paragraphFontWeight'];
+function aboutEquals(a: AboutContent, b: AboutContent): boolean {
+  return ABOUT_KEYS.every((k) => (a[k] ?? '') === (b[k] ?? ''));
+}
+
+function generalBodyEquals(a: GeneralBodyContent, b: GeneralBodyContent): boolean {
+  if ((a.activitiesTitle ?? '') !== (b.activitiesTitle ?? '')) return false;
+  if ((a.leftImageUrl ?? '') !== (b.leftImageUrl ?? '')) return false;
+  if ((a.pastEventsTitle ?? '') !== (b.pastEventsTitle ?? '')) return false;
+  if ((a.bodySectionTitle ?? '') !== (b.bodySectionTitle ?? '')) return false;
+  const al = a.activitiesList ?? [];
+  const bl = b.activitiesList ?? [];
+  if (al.length !== bl.length) return false;
+  if (al.some((v, i) => v !== bl[i])) return false;
+  const ae = a.pastEventsList ?? [];
+  const be = b.pastEventsList ?? [];
+  if (ae.length !== be.length) return false;
+  return !ae.some((v, i) => v !== be[i]);
+}
+
+function designTeamEquals(a: DesignTeamContent, b: DesignTeamContent): boolean {
+  const keys: (keyof DesignTeamContent)[] = ['sectionTitle', 'leftImageUrl', 'pastProjectsTitle', 'currentProjectsTitle', 'introParagraph1', 'introParagraph2', 'introParagraph3', 'introLinkUrl', 'introParagraph4', 'introFontFamily', 'introFontWeight', 'sectionTitleFontFamily', 'sectionTitleFontWeight'];
+  return keys.every((k) => (a[k] ?? '') === (b[k] ?? ''));
+}
+
+const SPONSORS_KEYS: (keyof SponsorsContent)[] = ['contactEmail', 'bannerTitle', 'bannerText', 'getInTouchTitle', 'getInTouchParagraph', 'donateLabel', 'donateUrl', 'thonLabel', 'thonUrl', 'guestSpeakerText', 'specialThanksTitle', 'specialThanksParagraph'];
+function sponsorsEquals(a: SponsorsContent, b: SponsorsContent): boolean {
+  return SPONSORS_KEYS.every((k) => (a[k] ?? '') === (b[k] ?? ''));
+}
+
+const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, currentPath = '/admin/site' }) => {
   const [footer, setFooter] = useState<FooterContent>({ ...DEFAULT_FOOTER });
   const [initialFooter, setInitialFooter] = useState<FooterContent>({ ...DEFAULT_FOOTER });
+  const [home, setHome] = useState<HomeContent>({ ...DEFAULT_HOME });
+  const [initialHome, setInitialHome] = useState<HomeContent>({ ...DEFAULT_HOME });
+  const [about, setAbout] = useState<AboutContent>({ ...DEFAULT_ABOUT });
+  const [initialAbout, setInitialAbout] = useState<AboutContent>({ ...DEFAULT_ABOUT });
+  const [sponsors, setSponsors] = useState<SponsorsContent>({ ...DEFAULT_SPONSORS });
+  const [initialSponsors, setInitialSponsors] = useState<SponsorsContent>({ ...DEFAULT_SPONSORS });
+  const [generalBody, setGeneralBody] = useState<GeneralBodyContent>({ ...DEFAULT_GENERAL_BODY });
+  const [initialGeneralBody, setInitialGeneralBody] = useState<GeneralBodyContent>({ ...DEFAULT_GENERAL_BODY });
+  const [designTeam, setDesignTeam] = useState<DesignTeamContent>({ ...DEFAULT_DESIGN_TEAM });
+  const [initialDesignTeam, setInitialDesignTeam] = useState<DesignTeamContent>({ ...DEFAULT_DESIGN_TEAM });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [savedMessage, setSavedMessage] = useState(false);
+  const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [tab, setTab] = useState<SiteContentTab>('footer');
+  const [aboutSubTab, setAboutSubTab] = useState<AboutSubTab>('main');
 
   const isPresident = currentUserRole === 'President';
-  const hasChanges = !footerEquals(footer, initialFooter);
+  const hasFooterChanges = !footerEquals(footer, initialFooter);
+  const hasHomeChanges = !homeEquals(home, initialHome);
+  const hasAboutChanges = !aboutEquals(about, initialAbout);
+  const hasGeneralBodyChanges = !generalBodyEquals(generalBody, initialGeneralBody);
+  const hasDesignTeamChanges = !designTeamEquals(designTeam, initialDesignTeam);
+  const hasSponsorsChanges = !sponsorsEquals(sponsors, initialSponsors);
 
   useEffect(() => {
     if (!isPresident) {
@@ -35,14 +98,46 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole }
 
     let cancelled = false;
 
-    getDoc(doc(db, CONFIG_PATH, FOOTER_DOC))
-      .then((snap) => {
+    Promise.all([
+      getDoc(doc(db, CONFIG_PATH, FOOTER_DOC)),
+      getDoc(doc(db, CONFIG_PATH, HOME_DOC)),
+      getDoc(doc(db, CONFIG_PATH, ABOUT_DOC)),
+      getDoc(doc(db, CONFIG_PATH, GENERAL_BODY_DOC)),
+      getDoc(doc(db, CONFIG_PATH, DESIGN_TEAM_DOC)),
+      getDoc(doc(db, CONFIG_PATH, SPONSORS_DOC)),
+    ])
+      .then(([footerSnap, homeSnap, aboutSnap, gbSnap, dtSnap, sponsorsSnap]) => {
         if (cancelled) return;
-        const next = snap.exists()
-          ? { ...DEFAULT_FOOTER, ...(snap.data() as FooterContent) }
+        const nextFooter = footerSnap.exists()
+          ? { ...DEFAULT_FOOTER, ...(footerSnap.data() as FooterContent) }
           : { ...DEFAULT_FOOTER };
-        setFooter(next);
-        setInitialFooter(next);
+        setFooter(nextFooter);
+        setInitialFooter(nextFooter);
+        const nextHome = homeSnap.exists()
+          ? { ...DEFAULT_HOME, ...(homeSnap.data() as HomeContent) }
+          : { ...DEFAULT_HOME };
+        setHome(nextHome);
+        setInitialHome(nextHome);
+        const nextAbout = aboutSnap.exists()
+          ? { ...DEFAULT_ABOUT, ...(aboutSnap.data() as AboutContent) }
+          : { ...DEFAULT_ABOUT };
+        setAbout(nextAbout);
+        setInitialAbout(nextAbout);
+        const nextGb = gbSnap.exists()
+          ? { ...DEFAULT_GENERAL_BODY, ...(gbSnap.data() as GeneralBodyContent) }
+          : { ...DEFAULT_GENERAL_BODY };
+        setGeneralBody(nextGb);
+        setInitialGeneralBody(nextGb);
+        const nextDt = dtSnap.exists()
+          ? { ...DEFAULT_DESIGN_TEAM, ...(dtSnap.data() as DesignTeamContent) }
+          : { ...DEFAULT_DESIGN_TEAM };
+        setDesignTeam(nextDt);
+        setInitialDesignTeam(nextDt);
+        const nextSponsors = sponsorsSnap.exists()
+          ? { ...DEFAULT_SPONSORS, ...(sponsorsSnap.data() as SponsorsContent) }
+          : { ...DEFAULT_SPONSORS };
+        setSponsors(nextSponsors);
+        setInitialSponsors(nextSponsors);
       })
       .catch((e) => {
         if (!cancelled) console.error('SiteContent load error:', e);
@@ -58,21 +153,140 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole }
     setFooter((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleHomeChange = (field: keyof HomeContent, value: string) => {
+    setHome((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAboutChange = (field: keyof AboutContent, value: string) => {
+    setAbout((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSponsorsChange = (field: keyof SponsorsContent, value: string) => {
+    setSponsors((prev) => ({ ...prev, [field]: value }));
+  };
+
   const saveFooter = async () => {
-    if (!isPresident || saving || !hasChanges) return;
+    if (!isPresident || saving || !hasFooterChanges) return;
     setSaving(true);
-    setSavedMessage(false);
+    setSavedMessage(null);
     try {
       await setDoc(doc(db, CONFIG_PATH, FOOTER_DOC), footer);
       setInitialFooter(footer);
-      setSavedMessage(true);
-      setTimeout(() => setSavedMessage(false), 3000);
+      setSavedMessage('Footer saved.');
+      setTimeout(() => setSavedMessage(null), 3000);
     } catch (e) {
       console.error('Failed to save footer:', e);
     } finally {
       setSaving(false);
     }
   };
+
+  const saveHome = async () => {
+    if (!isPresident || saving || !hasHomeChanges) return;
+    setSaving(true);
+    setSavedMessage(null);
+    try {
+      await setDoc(doc(db, CONFIG_PATH, HOME_DOC), home);
+      setInitialHome(home);
+      setSavedMessage('Home saved.');
+      setTimeout(() => setSavedMessage(null), 3000);
+    } catch (e) {
+      console.error('Failed to save home:', e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveAbout = async () => {
+    if (!isPresident || saving || !hasAboutChanges) return;
+    setSaving(true);
+    setSavedMessage(null);
+    try {
+      await setDoc(doc(db, CONFIG_PATH, ABOUT_DOC), about);
+      setInitialAbout(about);
+      setSavedMessage('Main About saved.');
+      setTimeout(() => setSavedMessage(null), 3000);
+    } catch (e) {
+      console.error('Failed to save about:', e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveGeneralBody = async () => {
+    if (!isPresident || saving || !hasGeneralBodyChanges) return;
+    setSaving(true);
+    setSavedMessage(null);
+    try {
+      await setDoc(doc(db, CONFIG_PATH, GENERAL_BODY_DOC), generalBody);
+      setInitialGeneralBody(generalBody);
+      setSavedMessage('General Body saved.');
+      setTimeout(() => setSavedMessage(null), 3000);
+    } catch (e) {
+      console.error('Failed to save general body:', e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveDesignTeam = async () => {
+    if (!isPresident || saving || !hasDesignTeamChanges) return;
+    setSaving(true);
+    setSavedMessage(null);
+    try {
+      await setDoc(doc(db, CONFIG_PATH, DESIGN_TEAM_DOC), designTeam);
+      setInitialDesignTeam(designTeam);
+      setSavedMessage('Design Team saved.');
+      setTimeout(() => setSavedMessage(null), 3000);
+    } catch (e) {
+      console.error('Failed to save design team:', e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const setActivitiesListFromText = (text: string) => {
+    const list = text.split(/\n/).map((s) => s.trim()).filter(Boolean);
+    setGeneralBody((prev) => ({ ...prev, activitiesList: list }));
+  };
+
+  const setPastEventsListFromText = (text: string) => {
+    const list = text.split(/\n/).map((s) => s.trim()).filter(Boolean);
+    setGeneralBody((prev) => ({ ...prev, pastEventsList: list }));
+  };
+
+  const saveSponsors = async () => {
+    if (!isPresident || saving || !hasSponsorsChanges) return;
+    setSaving(true);
+    setSavedMessage(null);
+    try {
+      await setDoc(doc(db, CONFIG_PATH, SPONSORS_DOC), sponsors);
+      setInitialSponsors(sponsors);
+      setSavedMessage('Sponsors saved.');
+      setTimeout(() => setSavedMessage(null), 3000);
+    } catch (e) {
+      console.error('Failed to save sponsors:', e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveAllDirty = async () => {
+    if (hasFooterChanges) await saveFooter();
+    if (hasHomeChanges) await saveHome();
+    if (hasAboutChanges) await saveAbout();
+    if (hasGeneralBodyChanges) await saveGeneralBody();
+    if (hasDesignTeamChanges) await saveDesignTeam();
+    if (hasSponsorsChanges) await saveSponsors();
+  };
+
+  const dirty = hasFooterChanges || hasHomeChanges || hasAboutChanges || hasGeneralBodyChanges || hasDesignTeamChanges || hasSponsorsChanges;
+  const { safeNavigate, leaveConfirmModal } = useUnsavedChangesGuard({
+    currentPath,
+    dirty,
+    onNavigate,
+    onSave: saveAllDirty,
+  });
 
   if (!isPresident) {
     return (
@@ -101,14 +315,56 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole }
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Site Content</h1>
           <button
             type="button"
-            onClick={() => onNavigate('/admin')}
+            onClick={() => safeNavigate('/admin')}
             className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base shrink-0"
           >
             ← Back to Dashboard
           </button>
         </div>
+        {leaveConfirmModal}
 
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
+        <div className="flex border-b border-gray-200 mb-6">
+          <button
+            type="button"
+            onClick={() => setTab('footer')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition ${
+              tab === 'footer' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Footer
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('home')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition ${
+              tab === 'home' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Home
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('about')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition ${
+              tab === 'about' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            About
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('sponsors')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition ${
+              tab === 'sponsors' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Sponsors
+          </button>
+        </div>
+
+        <>
+        {tab === 'footer' && (
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Footer</h2>
           <p className="text-gray-600 text-sm mb-4">
             Edit contact info, mission statement, address, and social links shown in the site footer.
@@ -148,11 +404,10 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole }
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Mission statement (center text)</label>
-                <input
-                  type="text"
+                <RichTextEditor
                   value={footer.missionStatement ?? ''}
-                  onChange={(e) => handleFooterChange('missionStatement', e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
+                  onChange={(v) => handleFooterChange('missionStatement', v)}
+                  minHeight="80px"
                 />
               </div>
               <div>
@@ -205,17 +460,497 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole }
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  disabled={saving || !hasChanges}
+                  disabled={saving || !hasFooterChanges}
                   onClick={saveFooter}
                   className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium"
                 >
                   {saving ? 'Saving...' : 'Save Footer'}
                 </button>
-                {savedMessage && <span className="text-green-600 font-medium">Saved.</span>}
+                {savedMessage === 'Footer saved.' && <span className="text-green-600 font-medium">Saved.</span>}
               </div>
             </div>
           )}
         </div>
+        )}
+
+        {tab === 'home' && (
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+          <h2 className="text-lg font-bold text-gray-800 mb-4">Home</h2>
+          <p className="text-gray-600 text-sm mb-4">
+            Edit hero text, next meeting title, and &quot;What we do&quot; section on the home page.
+          </p>
+
+          {loading ? (
+            <div className="text-gray-500">Loading...</div>
+          ) : (
+            <div className="space-y-4 max-w-2xl">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hero line 1</label>
+                <RichTextEditor
+                  value={home.heroLine1 ?? ''}
+                  onChange={(v) => handleHomeChange('heroLine1', v)}
+                  minHeight="60px"
+                  placeholder="e.g. WE ARE"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hero line 2</label>
+                <RichTextEditor
+                  value={home.heroLine2 ?? ''}
+                  onChange={(v) => handleHomeChange('heroLine2', v)}
+                  minHeight="60px"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hero line 3</label>
+                <RichTextEditor
+                  value={home.heroLine3 ?? ''}
+                  onChange={(v) => handleHomeChange('heroLine3', v)}
+                  minHeight="60px"
+                  placeholder="e.g. @ PENN STATE"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Next Meeting section title</label>
+                <RichTextEditor
+                  value={home.nextMeetingTitle ?? ''}
+                  onChange={(v) => handleHomeChange('nextMeetingTitle', v)}
+                  minHeight="60px"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">What we do — title</label>
+                <RichTextEditor
+                  value={home.whatWeDoTitle ?? ''}
+                  onChange={(v) => handleHomeChange('whatWeDoTitle', v)}
+                  minHeight="60px"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">What we do — paragraph 1</label>
+                <RichTextEditor
+                  value={home.whatWeDoParagraph1 ?? ''}
+                  onChange={(v) => handleHomeChange('whatWeDoParagraph1', v)}
+                  minHeight="100px"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">What we do — paragraph 2</label>
+                <RichTextEditor
+                  value={home.whatWeDoParagraph2 ?? ''}
+                  onChange={(v) => handleHomeChange('whatWeDoParagraph2', v)}
+                  minHeight="80px"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">What we do — button text</label>
+                <input
+                  type="text"
+                  value={home.whatWeDoButtonText ?? ''}
+                  onChange={(e) => handleHomeChange('whatWeDoButtonText', e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">What we do — button URL (optional)</label>
+                <input
+                  type="url"
+                  value={home.whatWeDoButtonUrl ?? ''}
+                  onChange={(e) => handleHomeChange('whatWeDoButtonUrl', e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
+                  placeholder="Leave empty to hide link"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={saving || !hasHomeChanges}
+                  onClick={saveHome}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium"
+                >
+                  {saving ? 'Saving...' : 'Save Home'}
+                </button>
+                {savedMessage === 'Home saved.' && <span className="text-green-600 font-medium">Saved.</span>}
+              </div>
+            </div>
+          )}
+        </div>
+        )}
+
+        {tab === 'about' && (
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+          <div className="flex border-b border-gray-200 mb-4">
+            <button
+              type="button"
+              onClick={() => setAboutSubTab('main')}
+              className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition ${
+                aboutSubTab === 'main' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Main About
+            </button>
+            <button
+              type="button"
+              onClick={() => setAboutSubTab('generalBody')}
+              className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition ${
+                aboutSubTab === 'generalBody' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              General Body
+            </button>
+            <button
+              type="button"
+              onClick={() => setAboutSubTab('designTeam')}
+              className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition ${
+                aboutSubTab === 'designTeam' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Design Team
+            </button>
+          </div>
+
+          {aboutSubTab === 'main' && (
+            <>
+              <h2 className="text-lg font-bold text-gray-800 mb-4">Main About</h2>
+              <p className="text-gray-600 text-sm mb-4">
+                Title and paragraphs shown on the main About page and at the top of General Body / Design Team pages.
+              </p>
+              {loading ? (
+                <div className="text-gray-500">Loading...</div>
+              ) : (
+                <div className="space-y-4 max-w-2xl">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">About title</label>
+                    <RichTextEditor value={about.aboutTitle ?? ''} onChange={(v) => handleAboutChange('aboutTitle', v)} minHeight="60px" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph 1</label>
+                    <RichTextEditor value={about.aboutParagraph1 ?? ''} onChange={(v) => handleAboutChange('aboutParagraph1', v)} placeholder="First paragraph" minHeight="100px" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph 2 (add links via the toolbar link button)</label>
+                    <RichTextEditor value={about.aboutParagraph2 ?? ''} onChange={(v) => handleAboutChange('aboutParagraph2', v)} placeholder="Second paragraph" minHeight="120px" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Link URL</label>
+                    <input type="url" value={about.aboutLinkUrl ?? ''} onChange={(e) => handleAboutChange('aboutLinkUrl', e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800" />
+                  </div>
+                  <div className="border-t border-gray-200 pt-4 mt-4">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Font (Main About paragraph)</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Font family</label>
+                        <select value={about.paragraphFontFamily ?? ''} onChange={(e) => handleAboutChange('paragraphFontFamily', e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800">
+                          <option value="">Default (Jost)</option>
+                          <option value="Jost, sans-serif">Jost</option>
+                          <option value="Inter, sans-serif">Inter</option>
+                          <option value="Georgia, serif">Georgia</option>
+                          <option value="Arial, sans-serif">Arial</option>
+                          <option value="system-ui, sans-serif">system-ui</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Font weight</label>
+                        <select value={about.paragraphFontWeight ?? ''} onChange={(e) => handleAboutChange('paragraphFontWeight', e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800">
+                          <option value="">Default</option>
+                          <option value="300">Light (300)</option>
+                          <option value="400">Normal (400)</option>
+                          <option value="500">Medium (500)</option>
+                          <option value="600">Semi-bold (600)</option>
+                          <option value="700">Bold (700)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button type="button" disabled={saving || !hasAboutChanges} onClick={saveAbout} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium">
+                      {saving ? 'Saving...' : 'Save Main About'}
+                    </button>
+                    {savedMessage === 'Main About saved.' && <span className="text-green-600 font-medium">Saved.</span>}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {aboutSubTab === 'generalBody' && (
+            <>
+              <h2 className="text-lg font-bold text-gray-800 mb-4">General Body</h2>
+              <p className="text-gray-600 text-sm mb-4">Content for the General Body page (/about/generalbody): activities list, image, and past events.</p>
+              {loading ? (
+                <div className="text-gray-500">Loading...</div>
+              ) : (
+                <div className="space-y-4 max-w-2xl">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Left column image URL</label>
+                    <input type="url" value={generalBody.leftImageUrl ?? ''} onChange={(e) => setGeneralBody((p) => ({ ...p, leftImageUrl: e.target.value }))} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Activities section title</label>
+                    <RichTextEditor value={generalBody.activitiesTitle ?? ''} onChange={(v) => setGeneralBody((p) => ({ ...p, activitiesTitle: v }))} minHeight="60px" placeholder="Our Activities" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Activities list (one per line)</label>
+                    <textarea rows={6} value={(generalBody.activitiesList ?? []).join('\n')} onChange={(e) => setActivitiesListFromText(e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800" placeholder="THON Fundraisers&#10;Design Team Meetings&#10;..." />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Body section title (below activities)</label>
+                    <RichTextEditor value={generalBody.bodySectionTitle ?? ''} onChange={(v) => setGeneralBody((p) => ({ ...p, bodySectionTitle: v }))} minHeight="60px" placeholder="Our General Body" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Past Events section title</label>
+                    <RichTextEditor value={generalBody.pastEventsTitle ?? ''} onChange={(v) => setGeneralBody((p) => ({ ...p, pastEventsTitle: v }))} minHeight="60px" placeholder="Past Events" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Past events list (one per line)</label>
+                    <textarea rows={4} value={(generalBody.pastEventsList ?? []).join('\n')} onChange={(e) => setPastEventsListFromText(e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800" placeholder="Event 1 - Date&#10;Event 2 - Date" />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button type="button" disabled={saving || !hasGeneralBodyChanges} onClick={saveGeneralBody} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium">
+                      {saving ? 'Saving...' : 'Save General Body'}
+                    </button>
+                    {savedMessage === 'General Body saved.' && <span className="text-green-600 font-medium">Saved.</span>}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {aboutSubTab === 'designTeam' && (
+            <>
+              <h2 className="text-lg font-bold text-gray-800 mb-4">Design Team</h2>
+              <p className="text-gray-600 text-sm mb-4">Titles, image, and intro paragraphs for the Design Team page (/about/designteam). Use &quot;visit this link&quot; in paragraph 3 for the link.</p>
+              {loading ? (
+                <div className="text-gray-500">Loading...</div>
+              ) : (
+                <div className="space-y-4 max-w-2xl">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Left column image URL</label>
+                    <input type="url" value={designTeam.leftImageUrl ?? ''} onChange={(e) => setDesignTeam((p) => ({ ...p, leftImageUrl: e.target.value }))} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Section title (intro block)</label>
+                    <RichTextEditor value={designTeam.sectionTitle ?? ''} onChange={(v) => setDesignTeam((p) => ({ ...p, sectionTitle: v }))} minHeight="60px" placeholder="Our Design Team" />
+                  </div>
+                  <div className="border-t border-gray-200 pt-4 mt-4">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Intro font (family & weight)</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph font family</label>
+                        <select value={designTeam.introFontFamily ?? ''} onChange={(e) => setDesignTeam((p) => ({ ...p, introFontFamily: e.target.value }))} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800">
+                          <option value="">Default (Jost)</option>
+                          <option value="Jost, sans-serif">Jost</option>
+                          <option value="Inter, sans-serif">Inter</option>
+                          <option value="Georgia, serif">Georgia</option>
+                          <option value="Arial, sans-serif">Arial</option>
+                          <option value="system-ui, sans-serif">system-ui</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph font weight</label>
+                        <select value={designTeam.introFontWeight ?? ''} onChange={(e) => setDesignTeam((p) => ({ ...p, introFontWeight: e.target.value }))} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800">
+                          <option value="">Default</option>
+                          <option value="300">Light (300)</option>
+                          <option value="400">Normal (400)</option>
+                          <option value="500">Medium (500)</option>
+                          <option value="600">Semi-bold (600)</option>
+                          <option value="700">Bold (700)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Section title font family</label>
+                        <select value={designTeam.sectionTitleFontFamily ?? ''} onChange={(e) => setDesignTeam((p) => ({ ...p, sectionTitleFontFamily: e.target.value }))} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800">
+                          <option value="">Default (Jost)</option>
+                          <option value="Jost, sans-serif">Jost</option>
+                          <option value="Inter, sans-serif">Inter</option>
+                          <option value="Georgia, serif">Georgia</option>
+                          <option value="Arial, sans-serif">Arial</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Section title font weight</label>
+                        <select value={designTeam.sectionTitleFontWeight ?? ''} onChange={(e) => setDesignTeam((p) => ({ ...p, sectionTitleFontWeight: e.target.value }))} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800">
+                          <option value="">Default</option>
+                          <option value="400">Normal (400)</option>
+                          <option value="500">Medium (500)</option>
+                          <option value="600">Semi-bold (600)</option>
+                          <option value="700">Bold (700)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="border-t border-gray-200 pt-4 mt-4">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Intro paragraphs</h3>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph 1</label>
+                      <RichTextEditor value={designTeam.introParagraph1 ?? ''} onChange={(v) => setDesignTeam((p) => ({ ...p, introParagraph1: v }))} placeholder="First paragraph" minHeight="80px" />
+                    </div>
+                    <div className="mt-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph 2</label>
+                      <RichTextEditor value={designTeam.introParagraph2 ?? ''} onChange={(v) => setDesignTeam((p) => ({ ...p, introParagraph2: v }))} placeholder="Second paragraph" minHeight="100px" />
+                    </div>
+                    <div className="mt-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph 3 (use toolbar link button for links)</label>
+                      <RichTextEditor value={designTeam.introParagraph3 ?? ''} onChange={(v) => setDesignTeam((p) => ({ ...p, introParagraph3: v }))} placeholder="To learn more about the international ASME organization, visit this link." minHeight="60px" />
+                    </div>
+                    <div className="mt-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph 3 link URL (when using plain text only)</label>
+                      <input type="url" value={designTeam.introLinkUrl ?? ''} onChange={(e) => setDesignTeam((p) => ({ ...p, introLinkUrl: e.target.value }))} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800" placeholder="https://www.asme.org" />
+                    </div>
+                    <div className="mt-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph 4</label>
+                      <RichTextEditor value={designTeam.introParagraph4 ?? ''} onChange={(v) => setDesignTeam((p) => ({ ...p, introParagraph4: v }))} placeholder="WE ARE! the Penn State's chapter of ASME..." minHeight="100px" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Past Projects dropdown title</label>
+                    <RichTextEditor value={designTeam.pastProjectsTitle ?? ''} onChange={(v) => setDesignTeam((p) => ({ ...p, pastProjectsTitle: v }))} minHeight="60px" placeholder="Past Projects" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Current projects section title</label>
+                    <RichTextEditor value={designTeam.currentProjectsTitle ?? ''} onChange={(v) => setDesignTeam((p) => ({ ...p, currentProjectsTitle: v }))} minHeight="60px" placeholder="Fall 2025 Projects" />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button type="button" disabled={saving || !hasDesignTeamChanges} onClick={saveDesignTeam} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium">
+                      {saving ? 'Saving...' : 'Save Design Team'}
+                    </button>
+                    {savedMessage === 'Design Team saved.' && <span className="text-green-600 font-medium">Saved.</span>}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+        )}
+
+        {tab === 'sponsors' && (
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+          <h2 className="text-lg font-bold text-gray-800 mb-4">Sponsors</h2>
+          <p className="text-gray-600 text-sm mb-4">
+            Edit banner, Get in Touch, buttons, and Special Thanks on the Sponsors page. Use <code className="bg-gray-100 px-1">{"{{email}}"}</code> in text to show the contact email.
+          </p>
+
+          {loading ? (
+            <div className="text-gray-500">Loading...</div>
+          ) : (
+            <div className="space-y-4 max-w-2xl">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contact email</label>
+                <input
+                  type="email"
+                  value={sponsors.contactEmail ?? ''}
+                  onChange={(e) => handleSponsorsChange('contactEmail', e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Banner title</label>
+                <RichTextEditor
+                  value={sponsors.bannerTitle ?? ''}
+                  onChange={(v) => handleSponsorsChange('bannerTitle', v)}
+                  minHeight="60px"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Banner text (use {"{{email}}"})</label>
+                <RichTextEditor
+                  value={sponsors.bannerText ?? ''}
+                  onChange={(v) => handleSponsorsChange('bannerText', v)}
+                  minHeight="80px"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Get in Touch — title</label>
+                <RichTextEditor
+                  value={sponsors.getInTouchTitle ?? ''}
+                  onChange={(v) => handleSponsorsChange('getInTouchTitle', v)}
+                  minHeight="60px"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Get in Touch — paragraph</label>
+                <RichTextEditor
+                  value={sponsors.getInTouchParagraph ?? ''}
+                  onChange={(v) => handleSponsorsChange('getInTouchParagraph', v)}
+                  minHeight="80px"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Donate button label</label>
+                <input
+                  type="text"
+                  value={sponsors.donateLabel ?? ''}
+                  onChange={(e) => handleSponsorsChange('donateLabel', e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Donate button URL</label>
+                <input
+                  type="url"
+                  value={sponsors.donateUrl ?? ''}
+                  onChange={(e) => handleSponsorsChange('donateUrl', e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">THON button label</label>
+                <input
+                  type="text"
+                  value={sponsors.thonLabel ?? ''}
+                  onChange={(e) => handleSponsorsChange('thonLabel', e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">THON button URL</label>
+                <input
+                  type="url"
+                  value={sponsors.thonUrl ?? ''}
+                  onChange={(e) => handleSponsorsChange('thonUrl', e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Guest speaker text (use {"{{email}}"})</label>
+                <RichTextEditor
+                  value={sponsors.guestSpeakerText ?? ''}
+                  onChange={(v) => handleSponsorsChange('guestSpeakerText', v)}
+                  minHeight="80px"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Special Thanks — title</label>
+                <RichTextEditor
+                  value={sponsors.specialThanksTitle ?? ''}
+                  onChange={(v) => handleSponsorsChange('specialThanksTitle', v)}
+                  minHeight="60px"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Special Thanks — paragraph</label>
+                <RichTextEditor
+                  value={sponsors.specialThanksParagraph ?? ''}
+                  onChange={(v) => handleSponsorsChange('specialThanksParagraph', v)}
+                  minHeight="120px"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={saving || !hasSponsorsChanges}
+                  onClick={saveSponsors}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium"
+                >
+                  {saving ? 'Saving...' : 'Save Sponsors'}
+                </button>
+                {savedMessage === 'Sponsors saved.' && <span className="text-green-600 font-medium">Saved.</span>}
+              </div>
+            </div>
+          )}
+        </div>
+        )}
+        </>
       </div>
     </div>
   );

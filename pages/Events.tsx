@@ -3,11 +3,19 @@ import { Calendar, Clock, MapPin, Download, ChevronDown, ChevronUp } from 'lucid
 import { getGoogleCalendarEvents, getInstagramPosts } from '../src/firebase/services';
 import { Event, InstagramPost } from '../src/types';
 import EmbedSocialHashtag from '@/src/components/EmbedSocial';
+import { sanitizeHtml, isHtmlString } from '../src/utils/sanitizeHtml';
 
 type EventWithDateTime = Event & { dateTime?: string };
 
 function escapeIcsText(s: string): string {
   return s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+}
+
+function renderEventContent(content: string | undefined, fallback: string): React.ReactNode {
+  const c = content ?? fallback;
+  if (!c) return null;
+  if (isHtmlString(c)) return <span className="event-rich-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(c) }} />;
+  return c;
 }
 
 function eventsToIcs(events: EventWithDateTime[]): string {
@@ -24,8 +32,8 @@ function eventsToIcs(events: EventWithDateTime[]): string {
     if (isNaN(start.getTime())) return;
     const uid = `asme-${ev.id.replace(/[^a-zA-Z0-9]/g, '')}@asmepsu`;
     const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
-    const summary = escapeIcsText(ev.title || 'Event');
-    const description = escapeIcsText(ev.description || '');
+    const summary = escapeIcsText((ev.title || 'Event').replace(/<[^>]*>/g, '').trim() || 'Event');
+    const description = escapeIcsText((ev.description || '').replace(/<[^>]*>/g, '').trim());
 
     let dtStart: string;
     let dtEnd: string;
@@ -181,8 +189,8 @@ const Events: React.FC = () => {
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-blue-200 font-bold text-sm">{event.date}</span>
                                 </div>
-                                <h4 className="font-bold text-lg mb-1 text-white">{event.title}</h4>
-                                <p className="text-xs text-gray-300 line-clamp-2">{event.description}</p>
+                                <h4 className="font-bold text-lg mb-1 text-white">{renderEventContent(event.title, '')}</h4>
+                                <p className="text-xs text-gray-300 line-clamp-2">{renderEventContent(event.description, '')}</p>
                                 {event.location && (
                                     <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
                                         <MapPin size={12} />
@@ -203,7 +211,7 @@ const Events: React.FC = () => {
                             {pastEvents.slice(0, 5).map(event => (
                                 <div key={event.id} className="bg-[#3b4c6b] rounded-lg p-3 border border-gray-600">
                                     <span className="text-blue-200 text-xs font-medium">{event.date}</span>
-                                    <h4 className="font-bold text-sm text-white truncate" title={event.title}>{event.title}</h4>
+                                    <h4 className="font-bold text-sm text-white truncate" title={(event.title || '').replace(/<[^>]*>/g, '')}>{renderEventContent(event.title, '')}</h4>
                                 </div>
                             ))}
                             {pastEvents.length > 5 && (
@@ -266,11 +274,11 @@ const Events: React.FC = () => {
                                         <div className="w-8 h-8 bg-white rounded flex-shrink-0 flex items-center justify-center">
                                             <div className="w-2 h-2 bg-asme-red rounded-full"></div>
                                         </div>
-                                        <h3 className={`font-bold text-lg text-white ${isExpanded ? 'break-words' : 'line-clamp-1'}`}>{event.title}</h3>
+                                        <h3 className={`font-bold text-lg text-white ${isExpanded ? 'break-words' : 'line-clamp-1'}`}>{renderEventContent(event.title, '')}</h3>
                                     </div>
                                     {isExpanded ? (
                                         <>
-                                            <p className="text-xs text-white/80 mb-2 break-words whitespace-pre-wrap">{event.description}</p>
+                                            <div className="text-xs text-white/80 mb-2 break-words event-rich-content">{renderEventContent(event.description, '')}</div>
                                             <div className="flex flex-wrap items-center gap-2 mt-2">
                                                 <div className="w-8 h-8 bg-white rounded flex-shrink-0 flex items-center justify-center">
                                                     <Clock className="w-4 h-4 text-asme-red" />
@@ -296,7 +304,7 @@ const Events: React.FC = () => {
                                         </>
                                     ) : (
                                         <>
-                                            <p className="text-xs text-white/80 mb-2 line-clamp-2">{event.description}</p>
+                                            <div className="text-xs text-white/80 mb-2 line-clamp-2 event-rich-content">{renderEventContent(event.description, '')}</div>
                                             <div className="flex items-center gap-2 mt-2">
                                                 <Clock className="w-4 h-4 text-white flex-shrink-0" />
                                                 <span className="font-semibold text-sm text-white">{event.date}</span>

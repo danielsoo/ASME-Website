@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../../src/firebase/config';
+import RichTextEditor from '../../src/components/RichTextEditor';
+import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 
 const CONFIG_PATH = 'config';
 const HANDOVER_DOC = 'presidentHandover';
@@ -10,6 +12,7 @@ const TRASH_EXPIRE_DAYS = 30;
 interface PresidentHandoverProps {
   onNavigate: (path: string) => void;
   currentUserRole: string;
+  currentPath?: string;
 }
 
 interface HandoverData {
@@ -57,7 +60,7 @@ const EMPTY: HandoverData = { memo: '', credentials: '' };
 
 type TabId = 'write' | 'legacy' | 'trash';
 
-const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, currentUserRole }) => {
+const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, currentUserRole, currentPath = '/admin/handover' }) => {
   const [data, setData] = useState<HandoverData>(EMPTY);
   const [initialData, setInitialData] = useState<HandoverData>(EMPTY);
   const [lastSavedMeta, setLastSavedMeta] = useState<{ updatedAt: string; updatedByName: string } | null>(null);
@@ -178,6 +181,13 @@ const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, curre
       setSaving(false);
     }
   };
+
+  const { safeNavigate, leaveConfirmModal } = useUnsavedChangesGuard({
+    currentPath,
+    dirty: hasChanges,
+    onNavigate,
+    onSave: save,
+  });
 
   const restoreVersion = (entry: HistoryEntry) => {
     setData({ memo: entry.memo, credentials: entry.credentials });
@@ -372,7 +382,7 @@ const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, curre
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">President Handover</h1>
             <button
               type="button"
-              onClick={() => onNavigate('/admin')}
+              onClick={() => safeNavigate('/admin')}
               className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base shrink-0"
             >
               ← Back to Dashboard
@@ -391,13 +401,13 @@ const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, curre
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">President Handover</h1>
           <button
             type="button"
-            onClick={() => onNavigate('/admin')}
+            onClick={() => safeNavigate('/admin')}
             className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base shrink-0"
           >
             ← Back to Dashboard
           </button>
         </div>
-
+        {leaveConfirmModal}
         <p className="text-gray-600 text-sm mb-2">
           Leave memos and shared account info (e.g. club email, passwords) for the next President. Only the President can view and edit this.
         </p>
@@ -640,11 +650,10 @@ const PresidentHandover: React.FC<PresidentHandoverProps> = ({ onNavigate, curre
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">Memo</label>
-              <textarea
+              <RichTextEditor
                 value={data.memo}
-                onChange={(e) => setData((prev) => ({ ...prev, memo: e.target.value }))}
-                rows={8}
-                className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800 resize-y"
+                onChange={(v) => setData((prev) => ({ ...prev, memo: v }))}
+                minHeight="180px"
                 placeholder="Work summary, ongoing tasks, notes for the next president..."
               />
             </div>

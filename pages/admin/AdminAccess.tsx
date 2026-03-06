@@ -98,8 +98,11 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
     );
   }
 
-  // President always has access, so exclude from the toggle list
-  const allPositionNames = ['admin', ...positions.map((p) => p.name).filter((name) => name !== 'President')];
+  // President always has access, so exclude from the toggle list. Use id for key so duplicate role names (e.g. two "Design Team Director") don't cause React key warnings.
+  const entries: { id: string; name: string }[] = [
+    { id: 'admin', name: 'admin' },
+    ...positions.filter((p) => p.name !== 'President').map((p) => ({ id: p.id, name: p.name })),
+  ];
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto">
@@ -124,19 +127,19 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
             <div className="text-gray-500">Loading...</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {allPositionNames.map((name) => {
-                const enabled = allowedRoles.includes(name);
-                const isSaving = saving === name;
+              {entries.map((entry) => {
+                const enabled = allowedRoles.includes(entry.name);
+                const isSaving = saving === entry.name;
                 return (
                   <div
-                    key={name}
+                    key={entry.id}
                     className="border border-gray-200 rounded-lg p-3 sm:p-4 flex flex-wrap justify-between items-center gap-2 min-w-0 bg-gray-50"
                   >
-                    <span className="font-semibold text-gray-800 text-sm sm:text-base break-words">{name}</span>
+                    <span className="font-semibold text-gray-800 text-sm sm:text-base break-words">{entry.name}</span>
                     <button
                       type="button"
                       disabled={isSaving}
-                      onClick={() => toggleRole(name)}
+                      onClick={() => toggleRole(entry.name)}
                       className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-medium text-sm transition shrink-0 ${
                         enabled
                           ? 'bg-green-100 text-green-800 hover:bg-green-200'

@@ -7,6 +7,7 @@ import { Sponsor } from '../../src/types';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
+import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 
 interface SponsorManagementProps {
   onNavigate: (path: string) => void;
@@ -148,12 +149,12 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   const handleAddSponsor = async () => {
     if (!sponsorName.trim()) {
       showAlert('warning', 'Validation Error', 'Please enter a sponsor name.');
-      return;
+      throw new Error('Validation failed');
     }
 
     if (!logoFile) {
       showAlert('warning', 'Validation Error', 'Please upload a sponsor logo.');
-      return;
+      throw new Error('Validation failed');
     }
 
     // President/VP can create approved sponsors directly
@@ -190,7 +191,8 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
 
   const handleEditSponsor = async () => {
     if (!selectedSponsor || !sponsorName.trim()) {
-      return;
+      showAlert('warning', 'Validation Error', 'Please enter a sponsor name.');
+      throw new Error('Validation failed');
     }
 
     try {
@@ -265,6 +267,24 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     setShowEditModal(true);
   };
 
+  const createModalDirty = showCreateModal && (sponsorName.trim() !== '' || sponsorLink.trim() !== '' || !!logoFile);
+  const editModalDirty = showEditModal && !!selectedSponsor && (
+    sponsorName.trim() !== (selectedSponsor.name || '').trim() ||
+    sponsorLink.trim() !== (selectedSponsor.link || '').trim() ||
+    !!logoFile
+  );
+  const dirty = createModalDirty || editModalDirty;
+  const saveForLeave = async () => {
+    if (showEditModal && selectedSponsor) await handleEditSponsor();
+    else if (showCreateModal) await handleAddSponsor();
+  };
+  const { safeNavigate, leaveConfirmModal } = useUnsavedChangesGuard({
+    currentPath: '/admin/sponsors',
+    dirty,
+    onNavigate,
+    onSave: saveForLeave,
+  });
+
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -298,7 +318,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Sponsor Management</h1>
           <div className="flex flex-wrap gap-2 shrink-0">
             <button
-              onClick={() => onNavigate('/admin')}
+              onClick={() => safeNavigate('/admin')}
               className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base"
             >
               ← Back to Dashboard
@@ -320,7 +340,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
             )}
             {canDeleteSponsors() && (
               <button
-                onClick={() => onNavigate('/admin/sponsors/trash')}
+                onClick={() => safeNavigate('/admin/sponsors/trash')}
                 className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base relative"
               >
                 Trash
@@ -333,7 +353,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
             )}
           </div>
         </div>
-
+        {leaveConfirmModal}
         {loading ? (
           <div className="text-center py-8">Loading...</div>
         ) : visibleSponsors.length === 0 ? (

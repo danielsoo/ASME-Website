@@ -10,6 +10,7 @@ import SponsorManagement from './SponsorManagement';
 import ProjectManagement from './ProjectManagement';
 import ProjectApprovals from './ProjectApprovals';
 import ProjectTrash from './ProjectTrash';
+import ProjectEditPage from './ProjectEditPage';
 import MemberManagement from './MemberManagement';
 import SponsorTrash from './SponsorTrash';
 import EventManagement from './EventManagement';
@@ -163,8 +164,8 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
     return <AdminAccess onNavigate={onNavigate || (() => {})} currentUserRole={userRole} />;
   }
 
-  // Site Content (President only): edit footer and other site content
-  if (currentPath === '/admin/site') {
+  // Site Content (President only): edit footer, home, about (main + general body + design team), sponsors
+  if (currentPath === '/admin/site' || currentPath === '/admin/about') {
     return <SiteContent onNavigate={onNavigate || (() => {})} currentUserRole={userRole} />;
   }
 
@@ -191,6 +192,14 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
   // Project Trash page
   if (currentPath === '/admin/projects/trash') {
     return <ProjectTrash onNavigate={onNavigate || (() => {})} />;
+  }
+
+  // Project Edit page (full-page edit for project detail / Join Slack section)
+  if (currentPath.startsWith('/admin/projects/edit/')) {
+    const projectId = currentPath.replace(/^\/admin\/projects\/edit\/?/, '').split('/')[0];
+    if (projectId) {
+      return <ProjectEditPage projectId={projectId} onNavigate={onNavigate || (() => {})} />;
+    }
   }
 
   // Members Management page

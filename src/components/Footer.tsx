@@ -3,6 +3,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import type { FooterContent } from '../types';
 import { DEFAULT_FOOTER } from '../types';
+import { sanitizeHtml, isHtmlString } from '../utils/sanitizeHtml';
 
 const FOOTER_CONFIG_PATH = 'config';
 const FOOTER_DOC = 'footer';
@@ -131,7 +132,11 @@ const Footer: React.FC = () => {
               justifyContent: "center",
             }}
           >
-            {missionStatement || 'Developing & Supporting the next generation of Mechanical Engineers'}
+            {missionStatement && isHtmlString(missionStatement) ? (
+              <span className="footer-rich-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(missionStatement) }} />
+            ) : (
+              missionStatement || 'Developing & Supporting the next generation of Mechanical Engineers'
+            )}
           </div>
         </div>
 

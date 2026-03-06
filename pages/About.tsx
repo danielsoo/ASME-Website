@@ -4,12 +4,38 @@ import { getExecBoard, getDesignTeam, updateTeamMemberOrder } from '../src/fireb
 import { TeamMember } from '../src/types';
 import TeamCard from '../src/components/TeamCard';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../src/firebase/config';
+import type { AboutContent, GeneralBodyContent, DesignTeamContent } from '../src/types';
+import { DEFAULT_ABOUT, DEFAULT_GENERAL_BODY, DEFAULT_DESIGN_TEAM } from '../src/types';
+import { sanitizeHtml, isHtmlString } from '../src/utils/sanitizeHtml';
 
 interface AboutProps {
   currentPath?: string;
   onNavigate?: (path: string) => void;
+}
+
+/** Render paragraph content: HTML (from rich editor) or plain text with optional "visit this link" link. */
+function renderParagraph(content: string | undefined, linkUrl?: string): React.ReactNode {
+  const c = content ?? '';
+  if (isHtmlString(c)) {
+    return <div className="about-rich-content prose prose-p:my-2 max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(c) }} />;
+  }
+  if (linkUrl && c.includes('visit this link')) {
+    const parts = c.split('visit this link');
+    return <>{parts[0]}<a href={linkUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">visit this link</a>{parts.slice(1).join('visit this link')}</>;
+  }
+  return c;
+}
+
+/** Render title that may be HTML from rich editor. */
+function renderTitle(content: string | undefined, fallback: string): React.ReactNode {
+  const c = content ?? fallback;
+  if (!c) return fallback;
+  if (isHtmlString(c)) {
+    return <span className="about-rich-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(c) }} />;
+  }
+  return c;
 }
 
 const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => {
@@ -20,6 +46,9 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string>('');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [aboutContent, setAboutContent] = useState<AboutContent>({ ...DEFAULT_ABOUT });
+  const [generalBodyContent, setGeneralBodyContent] = useState<GeneralBodyContent>({ ...DEFAULT_GENERAL_BODY });
+  const [designTeamContent, setDesignTeamContent] = useState<DesignTeamContent>({ ...DEFAULT_DESIGN_TEAM });
 
   // Check user permissions
   useEffect(() => {
@@ -40,6 +69,40 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // Subscribe to config/about for main About Us block
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'config', 'about'), (snap) => {
+      const data = snap.exists() ? { ...DEFAULT_ABOUT, ...(snap.data() as AboutContent) } : { ...DEFAULT_ABOUT };
+      setAboutContent(data);
+    }, (e) => {
+      console.error('About config subscription error:', e);
+      setAboutContent({ ...DEFAULT_ABOUT });
+    });
+    return () => unsub();
+  }, []);
+
+  // Subscribe to config/aboutGeneralBody and config/aboutDesignTeam
+  useEffect(() => {
+    const unsubGb = onSnapshot(doc(db, 'config', 'aboutGeneralBody'), (snap) => {
+      const data = snap.exists() ? { ...DEFAULT_GENERAL_BODY, ...(snap.data() as GeneralBodyContent) } : { ...DEFAULT_GENERAL_BODY };
+      setGeneralBodyContent(data);
+    }, (e) => {
+      console.error('General Body config subscription error:', e);
+      setGeneralBodyContent({ ...DEFAULT_GENERAL_BODY });
+    });
+    const unsubDt = onSnapshot(doc(db, 'config', 'aboutDesignTeam'), (snap) => {
+      const data = snap.exists() ? { ...DEFAULT_DESIGN_TEAM, ...(snap.data() as DesignTeamContent) } : { ...DEFAULT_DESIGN_TEAM };
+      setDesignTeamContent(data);
+    }, (e) => {
+      console.error('Design Team config subscription error:', e);
+      setDesignTeamContent({ ...DEFAULT_DESIGN_TEAM });
+    });
+    return () => {
+      unsubGb();
+      unsubDt();
+    };
   }, []);
 
   // Load data from Firebase
@@ -174,7 +237,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
             <div className="w-full md:w-1/2">
               <div className="mb-6">
                 <img 
-                  src="https://picsum.photos/seed/about/800/600" 
+                  src={generalBodyContent.leftImageUrl || 'https://picsum.photos/seed/about/800/600'} 
                   className="w-full h-auto rounded-lg border-2 border-blue-300" 
                   alt="Our General Body" 
                 />
@@ -184,38 +247,29 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
 
             {/* Right Column - Our Activities */}
             <div className="w-full md:w-1/2">
-              <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">Our Activities</h2>
+              <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">{renderTitle(generalBodyContent.activitiesTitle, 'Our Activities')}</h2>
               <ul className="space-y-4 font-jost">
-                <li className="text-gray-800 text-lg">• THON Fundraisers</li>
-                <li className="text-gray-800 text-lg">• Design Team Meetings</li>
-                <li className="text-gray-800 text-lg">• General Body Meetings</li>
-                <li className="text-gray-800 text-lg">• Project Meetings</li>
-                <li className="text-gray-800 text-lg">• Socials</li>
+                {(generalBodyContent.activitiesList ?? []).map((item, i) => (
+                  <li key={i} className="text-gray-800 text-lg">• {item}</li>
+                ))}
               </ul>
             </div>
           </div>
           <div>
-            <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">Our General Body</h2>
-              <div className="space-y-4">
-                <p className="text-gray-800 leading-relaxed font-jost">
-                  <strong>WE ARE!</strong> the Penn State's chapter of ASME and are looking forward to providing unique opportunities for Mechanical Engineers at PSU. Our chapter is dedicated to fostering professional development, networking opportunities, and hands-on engineering experiences. We organize workshops, technical sessions, industry visits, and social events that help our members grow both academically and professionally.
-                </p>
-                <p className="text-gray-800 leading-relaxed font-jost">
-                  Through our various activities and initiatives, we aim to bridge the gap between academic learning and real-world engineering applications. Our members have the opportunity to work on exciting projects, participate in competitions, and connect with industry professionals who can provide valuable insights and mentorship.
-                </p>
-                <p className="text-gray-800 leading-relaxed font-jost">
-                  Join us to be part of a community that is passionate about mechanical engineering and committed to supporting the next generation of engineers. Whether you're interested in design, research, manufacturing, or any other aspect of mechanical engineering, ASME at Penn State has something for everyone.
-                </p>
+            <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">{renderTitle(generalBodyContent.bodySectionTitle ?? aboutContent.aboutTitle, 'Our General Body')}</h2>
+              <div className="space-y-4 text-gray-800 leading-relaxed font-jost">
+                <div>{renderParagraph(aboutContent.aboutParagraph1)}</div>
+                <div>{renderParagraph(aboutContent.aboutParagraph2, aboutContent.aboutLinkUrl)}</div>
               </div>
               
               {/* Past Events - Always visible list (not dropdown) */}
               <div className="mt-8">
-                <h3 className="text-xl font-jost font-bold text-black mb-4">Past Events</h3>
+                <h3 className="text-xl font-jost font-bold text-black mb-4">{renderTitle(generalBodyContent.pastEventsTitle, 'Past Events')}</h3>
                 <div className="bg-white border border-gray-300 rounded-lg p-4">
                   <ul className="space-y-2 font-jost text-gray-800">
-                    <li>• Event 1 - Date</li>
-                    <li>• Event 2 - Date</li>
-                    <li>• Event 3 - Date</li>
+                    {(generalBodyContent.pastEventsList ?? []).map((item, i) => (
+                      <li key={i}>• {item}</li>
+                    ))}
                   </ul>
                 </div>
               </div>
@@ -303,25 +357,56 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
             <div className="w-full md:w-1/2">
               <div className="mb-6">
                 <img 
-                  src="https://picsum.photos/seed/designteam/800/600" 
+                  src={designTeamContent.leftImageUrl || 'https://picsum.photos/seed/designteam/800/600'} 
                   className="w-full h-auto rounded-lg border-2 border-blue-300" 
                   alt="Our Design Team" 
                 />
               </div>
-              <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">Our Design Team</h2>
-              <div className="space-y-4">
-                <p className="text-gray-800 leading-relaxed font-jost">
-                  Established in 1880, the American Society of Mechanical Engineers (ASME) is an international organization comprised of over <span className="text-red-600 font-bold">85,000 members</span> from over 100 countries.
-                </p>
-                <p className="text-gray-800 leading-relaxed font-jost">
-                  ASME serves both mechanical and interdisciplinary engineers in technical standardization, experimental procedures, and development codes to make the engineering landscape safer overall. The organization plays a crucial role in establishing safety standards, codes, and best practices that are used worldwide in various industries including manufacturing, energy, aerospace, and biomedical engineering.
-                </p>
-                <p className="text-gray-800 leading-relaxed font-jost">
-                  To learn more about the international ASME organization, visit this <a href="https://www.asme.org" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">link</a>.
-                </p>
-                <p className="text-gray-800 leading-relaxed font-jost">
-                  <strong>WE ARE!</strong> the Penn State's chapter of ASME and are looking forward to providing unique opportunities for Mechanical Engineers at PSU. Our Design Team focuses on hands-on engineering projects, CAD design, prototyping, and bringing innovative ideas to life.
-                </p>
+              <h2
+                className="text-3xl font-bold text-black mb-6 underline"
+                style={{
+                  fontFamily: designTeamContent.sectionTitleFontFamily || undefined,
+                  fontWeight: designTeamContent.sectionTitleFontWeight ? Number(designTeamContent.sectionTitleFontWeight) : undefined,
+                }}
+              >
+                {renderTitle(designTeamContent.sectionTitle ?? aboutContent.aboutTitle, 'Our Design Team')}
+              </h2>
+              <div
+                className="space-y-4 text-gray-800 leading-relaxed"
+                style={{
+                  fontFamily: designTeamContent.introFontFamily || undefined,
+                  fontWeight: designTeamContent.introFontWeight ? Number(designTeamContent.introFontWeight) : undefined,
+                }}
+              >
+                {designTeamContent.introParagraph1 != null && designTeamContent.introParagraph1 !== '' ? (
+                  <>
+                    <div className="font-jost">
+                      {isHtmlString(designTeamContent.introParagraph1)
+                        ? <div className="about-rich-content prose prose-p:my-2 max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(designTeamContent.introParagraph1) }} />
+                        : designTeamContent.introParagraph1.includes('85,000 members')
+                          ? designTeamContent.introParagraph1.split('85,000 members').reduce<React.ReactNode[]>((acc, part, i, arr) => {
+                              acc.push(part);
+                              if (i < arr.length - 1) acc.push(<span key={i} className="text-asme-red font-bold">85,000 members</span>);
+                              return acc;
+                            }, [])
+                          : designTeamContent.introParagraph1}
+                    </div>
+                    {designTeamContent.introParagraph2 != null && designTeamContent.introParagraph2 !== '' && (
+                      <div className="font-jost">{renderParagraph(designTeamContent.introParagraph2)}</div>
+                    )}
+                    {designTeamContent.introParagraph3 != null && designTeamContent.introParagraph3 !== '' && (
+                      <div className="font-jost">{renderParagraph(designTeamContent.introParagraph3, designTeamContent.introLinkUrl)}</div>
+                    )}
+                    {designTeamContent.introParagraph4 != null && designTeamContent.introParagraph4 !== '' && (
+                      <div className="font-jost">{renderParagraph(designTeamContent.introParagraph4)}</div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="font-jost">{renderParagraph(aboutContent.aboutParagraph1)}</div>
+                    <div className="font-jost">{renderParagraph(aboutContent.aboutParagraph2, aboutContent.aboutLinkUrl)}</div>
+                  </>
+                )}
               </div>
               
               {/* Past Projects Dropdown */}
@@ -330,7 +415,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                   onClick={() => setShowPastProjects(!showPastProjects)}
                   className="w-full flex items-center justify-between px-4 py-3 bg-gray-200 border border-gray-300 rounded-lg hover:bg-gray-300 transition-colors font-jost"
                 >
-                  <span className="text-gray-800 font-medium">Past Projects</span>
+                  <span className="text-gray-800 font-medium">{renderTitle(designTeamContent.pastProjectsTitle, 'Past Projects')}</span>
                   <svg
                     className={`w-5 h-5 text-gray-600 transition-transform ${showPastProjects ? 'transform rotate-180' : ''}`}
                     fill="none"
@@ -352,9 +437,9 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
               </div>
             </div>
 
-            {/* Right Column - Fall 2025 Projects */}
+            {/* Right Column - Current Projects */}
             <div className="w-full md:w-1/2">
-              <h2 className="text-3xl font-jost font-bold text-[#1E2B48] mb-6 underline">Fall 2025 Projects</h2>
+              <h2 className="text-3xl font-jost font-bold text-[#1E2B48] mb-6 underline">{renderTitle(designTeamContent.currentProjectsTitle, 'Fall 2025 Projects')}</h2>
               <div className="space-y-3">
                 {currentProjects.map((project) => (
                   <button
@@ -438,13 +523,25 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
              </div>
              
              <div className="w-full md:w-2/3 text-white font-jost">
-                 <h2 className="text-[#1E2B48] text-3xl font-bold mb-6">About Us</h2>
-                 <p className="text-gray-800 leading-relaxed mb-4">
-                     Established in 1880, the American Society of Mechanical Engineers (ASME) is an international organization comprised of over <span className="text-asme-red font-bold">85,000 members</span> from over 100 countries.
-                 </p>
-                 <p className="text-gray-800 leading-relaxed">
-                     ASME serves both mechanical and interdisciplinary engineers in technical standardization, experimental procedures, and development codes to make the engineering landscape safer overall. To learn more about the international ASME organization visit this <a href="#" className="underline">link</a>. WE ARE! the Penn State's chapter of ASME and are looking forward to providing unique opportunities for Mechanical Engineers at PSU.
-                 </p>
+                 <h2 className="text-[#1E2B48] text-3xl font-bold mb-6">{renderTitle(aboutContent.aboutTitle, 'About Us')}</h2>
+                 <div
+                     className="text-gray-800 leading-relaxed mb-4"
+                     style={{
+                       fontFamily: aboutContent.paragraphFontFamily || undefined,
+                       fontWeight: aboutContent.paragraphFontWeight ? Number(aboutContent.paragraphFontWeight) : undefined,
+                     }}
+                 >
+                     {renderParagraph(aboutContent.aboutParagraph1)}
+                 </div>
+                 <div
+                     className="text-gray-800 leading-relaxed"
+                     style={{
+                       fontFamily: aboutContent.paragraphFontFamily || undefined,
+                       fontWeight: aboutContent.paragraphFontWeight ? Number(aboutContent.paragraphFontWeight) : undefined,
+                     }}
+                 >
+                     {renderParagraph(aboutContent.aboutParagraph2, aboutContent.aboutLinkUrl)}
+                 </div>
              </div>
          </div>
       </div>

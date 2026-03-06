@@ -1,5 +1,14 @@
 import React from 'react';
 import { Project } from '../src/types';
+import { sanitizeHtml, isHtmlString } from '../src/utils/sanitizeHtml';
+import { getProjectFormLinkByTitle } from '../src/formLinks';
+
+function renderRichContent(content: string | undefined, fallback: string): React.ReactNode {
+  const c = content ?? fallback;
+  if (!c) return null;
+  if (isHtmlString(c)) return <span className="project-rich-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(c) }} />;
+  return c;
+}
 
 interface ProjectDetailPageProps {
   project: Project;
@@ -7,6 +16,7 @@ interface ProjectDetailPageProps {
 }
 
 const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNavigate }) => {
+  const joinLink = project.slack || getProjectFormLinkByTitle(project.title);
   // Mock timeline events - in real app, this would come from project data
   const timelineEvents = [
     { date: '14th of whatever', description: 'Description of event', clickable: true },
@@ -39,7 +49,7 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNaviga
                 className="px-6 py-2 rounded-md font-jost text-sm font-medium transition-all bg-[#3b4c6b] text-white shadow"
                 disabled
               >
-                {project.title}
+                {renderRichContent(project.title, '')}
               </button>
             </div>
           </div>
@@ -48,20 +58,24 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNaviga
           <div className="mb-6 rounded-lg overflow-hidden">
             <img
               src={project.imageUrl}
-              alt={project.title}
+              alt={(project.title || '').replace(/<[^>]*>/g, '').trim() || 'Project'}
               className="w-full h-auto object-cover"
             />
           </div>
 
           {/* Project Title */}
           <h1 className="text-3xl font-bold font-jost text-black mb-4 uppercase">
-            {project.title}
+            {renderRichContent(project.title, '')}
           </h1>
 
           {/* Description */}
-          <p className="text-gray-700 font-jost mb-8 leading-relaxed">
-            {project.description}
-          </p>
+          <div className="text-gray-700 font-jost mb-8 leading-relaxed project-rich-content">
+            {project.description && isHtmlString(project.description) ? (
+              <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(project.description) }} />
+            ) : (
+              <p>{project.description}</p>
+            )}
+          </div>
 
           {/* Project Leader Section */}
           {(project.leaderEmail || project.leaderId) && (
@@ -99,28 +113,45 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNaviga
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             {/* Join Section */}
             <div>
-              <h2 className="text-xl font-bold font-jost text-black mb-4 uppercase">Want to Get Involved?</h2>
-              <p className="text-gray-700 font-jost mb-4">
-                Click the link below to authenticate your email and join the slack.
-              </p>
-              <button className="px-6 py-2 bg-[#8B0000] text-white font-jost font-medium rounded hover:bg-[#700000] transition-colors">
-                Join the Slack
-                <a href={project.slack}></a>
-              </button>
-              <div className="flex flex-row mt-3">
-                <p className="text-gray-700 font-jost">
-                  DEADLINE TO JOIN: 
-                </p>
-                <p className="text-black font-jost font-bold">{project.timeline}</p>
+              <h2 className="text-xl font-bold font-jost text-black mb-4 uppercase">
+                {renderRichContent(project.joinSectionTitle, 'Want to Get Involved?')}
+              </h2>
+              <div className="text-gray-700 font-jost mb-4 project-rich-content">
+                {project.joinSectionDescription && isHtmlString(project.joinSectionDescription) ? (
+                  <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(project.joinSectionDescription) }} />
+                ) : (
+                  <p>{project.joinSectionDescription ?? "Click the link below to authenticate your email and join the slack."}</p>
+                )}
               </div>
+              {joinLink ? (
+                <a
+                  href={joinLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block px-6 py-2 bg-[#8B0000] text-white font-jost font-medium rounded hover:bg-[#700000] transition-colors"
+                >
+                  {project.joinButtonLabel ?? 'Join the Slack'}
+                </a>
+              ) : (
+                <span className="inline-block px-6 py-2 bg-gray-400 text-white font-jost font-medium rounded cursor-not-allowed">
+                  {project.joinButtonLabel ?? 'Join the Slack'}
+                </span>
+              )}
+              {(project.timeline != null && project.timeline !== '') && (
+                <div className="flex flex-row mt-3 gap-2">
+                  <p className="text-gray-700 font-jost">DEADLINE TO JOIN:</p>
+                  <p className="text-black font-jost font-bold">{project.timeline}</p>
+                </div>
+              )}
             </div>
 
-            {/* Placeholder Image */}
-            <div className="w-full h-64 bg-gradient-to-br from-blue-400 to-purple-600 rounded-lg flex items-center justify-center mb-2">
-              <span className="text-white text-sm font-jost">
-                {/*place for image/carousel*/}
-                <img src={project.img}/>
-              </span>
+            {/* Second image */}
+            <div className="w-full h-64 rounded-lg overflow-hidden flex items-center justify-center mb-2 bg-gradient-to-br from-blue-400 to-purple-600">
+              {project.img ? (
+                <img src={project.img} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-white text-sm font-jost">Image</span>
+              )}
             </div>
           </div>
 

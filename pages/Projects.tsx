@@ -210,7 +210,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
       });
       
       const project = activeProjects.find(p => {
-        const slug = p.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        const slug = (p.title || '').replace(/<[^>]*>/g, '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
         return slug === projectSlug || p.id === projectSlug;
       });
       
@@ -397,7 +397,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
                           project={projectWithLeaderName} 
                           onImageClick={(project) => {
                             if (onNavigate) {
-                              const slug = project.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                              const slug = (project.title || '').replace(/<[^>]*>/g, '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
                               onNavigate(`/projects/${slug}`);
                             }
                           }}
@@ -456,7 +456,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
                           project={projectWithLeaderName} 
                           onImageClick={(project) => {
                             if (onNavigate) {
-                              const slug = project.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                              const slug = (project.title || '').replace(/<[^>]*>/g, '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
                               onNavigate(`/projects/${slug}`);
                             }
                           }}

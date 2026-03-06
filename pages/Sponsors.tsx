@@ -1,14 +1,55 @@
 import React, { useState, useEffect } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../src/firebase/config';
 import { SPONSORS } from '../src/constants';
 import { Settings } from 'lucide-react';
 import { getSponsorContactEmail } from '../src/firebase/services';
+import type { SponsorsContent } from '../src/types';
+import { DEFAULT_SPONSORS } from '../src/types';
+import { sanitizeHtml, isHtmlString } from '../src/utils/sanitizeHtml';
 
 const Sponsors: React.FC = () => {
-  const [contactEmail, setContactEmail] = useState('president.asme.psu@gmail.com');
+  const [content, setContent] = useState<SponsorsContent>({ ...DEFAULT_SPONSORS });
+  const [fallbackEmail, setFallbackEmail] = useState('president.asme.psu@gmail.com');
 
   useEffect(() => {
-    getSponsorContactEmail().then(setContactEmail);
+    const unsub = onSnapshot(doc(db, 'config', 'sponsors'), (snap) => {
+      const data = snap.exists() ? { ...DEFAULT_SPONSORS, ...(snap.data() as SponsorsContent) } : { ...DEFAULT_SPONSORS };
+      setContent(data);
+    }, (e) => {
+      console.error('Sponsors config subscription error:', e);
+      setContent({ ...DEFAULT_SPONSORS });
+    });
+    return () => unsub();
   }, []);
+
+  useEffect(() => {
+    if (content.contactEmail) return;
+    getSponsorContactEmail().then(setFallbackEmail);
+  }, [content.contactEmail]);
+
+  const displayEmail = content.contactEmail ?? fallbackEmail;
+
+  const renderWithEmailLink = (text: string) => {
+    const parts = text.split(/\{\{email\}\}/);
+    return parts.reduce<React.ReactNode[]>((acc, part, i) => {
+      acc.push(part);
+      if (i < parts.length - 1) acc.push(<a key={i} href={`mailto:${displayEmail}`} className="text-blue-600 font-bold">{displayEmail}</a>);
+      return acc;
+    }, []);
+  };
+
+  /** Render title/paragraph: HTML (from rich editor) or plain text. For HTML with {{email}}, substitute mailto link. */
+  const renderRichContent = (raw: string | undefined, asPlainParagraph = false): React.ReactNode => {
+    const c = raw ?? '';
+    if (!c) return null;
+    if (isHtmlString(c)) {
+      const withEmail = c.replace(/\{\{email\}\}/g, `<a href="mailto:${displayEmail}" class="text-blue-600 font-bold">${displayEmail}</a>`);
+      const html = sanitizeHtml(withEmail);
+      return <span className="sponsors-rich-content" dangerouslySetInnerHTML={{ __html: html }} />;
+    }
+    return asPlainParagraph ? <p className="mb-4 text-sm leading-relaxed">{renderWithEmailLink(c)}</p> : renderWithEmailLink(c);
+  };
 
   return (
     <div className="min-h-screen bg-[#0f131a] text-white font-jost pb-20 relative">
@@ -16,9 +57,9 @@ const Sponsors: React.FC = () => {
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-gray-200 to-gray-300 py-6 px-4">
           <div className="container mx-auto">
-              <h1 className="text-[#1E2B48] font-bold text-xl mb-1">Become a Sponsor</h1>
+              <h1 className="text-[#1E2B48] font-bold text-xl mb-1">{renderRichContent(content.bannerTitle || 'Become a Sponsor')}</h1>
               <p className="text-gray-700 text-sm">
-                  If you're interested in becoming a sponsor, email us at <a href={`mailto:${contactEmail}`} className="text-blue-600 font-bold">{contactEmail}</a> to receive our Sponsorship packet!
+                  {renderRichContent(content.bannerText ?? '')}
               </p>
           </div>
       </div>
@@ -26,26 +67,25 @@ const Sponsors: React.FC = () => {
       {/* Get in Touch Section */}
       <div className="bg-white py-20 px-4 text-center">
           <div className="container mx-auto max-w-4xl relative">
-              {/* Decorative Gears */}
               <Settings className="absolute left-4 top-1/4 -translate-y-1/2 w-32 h-32 text-[#1E2B48] hidden md:block" strokeWidth={1} />
               <Settings className="absolute right-4 top-1/4 -translate-y-1/2 w-32 h-32 text-[#1E2B48] hidden md:block" strokeWidth={1} />
 
-              <h2 className="text-[#1E2B48] text-4xl font-bold mb-4">Get in Touch!</h2>
-              <p className="text-black text-lg mb-8 max-w-xl mx-auto">
-                  Looking to provide professional insight and support to ASME? Consider choosing one of the options below to help us out!
-              </p>
+              <h2 className="text-[#1E2B48] text-4xl font-bold mb-4">{renderRichContent(content.getInTouchTitle || 'Get in Touch!')}</h2>
+              <div className="text-black text-lg mb-8 max-w-xl mx-auto sponsors-rich-content">
+                  {renderRichContent(content.getInTouchParagraph ?? '')}
+              </div>
               
               <div className="flex justify-center gap-12 flex-wrap">
-                  <a href="https://secure.ddar.psu.edu/s/1218/2014/index.aspx?sid=1218&gid=1&pgid=658&cid=2321&dids=17094&bledit=1&appealcode=AZZ1K" target="_blank" rel="noopener noreferrer" className="bg-[#840131] hover:bg-[#4D021E] text-white font-bold py-3 px-8 rounded shadow-lg transition w-48 text-center">
-                      Donate
+                  <a href={content.donateUrl ?? '#'} target="_blank" rel="noopener noreferrer" className="bg-[#840131] hover:bg-[#4D021E] text-white font-bold py-3 px-8 rounded shadow-lg transition w-48 text-center">
+                      {content.donateLabel ?? 'Donate'}
                   </a>
-                  <a href="https://donate.thon.org/events/4542" target="_blank" rel="noopener noreferrer" className="bg-[#4a5568] hover:bg-[#2d3748] text-white font-bold py-3 px-8 rounded shadow-lg transition w-48 text-center">
-                      Donate to THON
+                  <a href={content.thonUrl ?? '#'} target="_blank" rel="noopener noreferrer" className="bg-[#4a5568] hover:bg-[#2d3748] text-white font-bold py-3 px-8 rounded shadow-lg transition w-48 text-center">
+                      {content.thonLabel ?? 'Donate to THON'}
                   </a>
               </div>
               <div className="text-black mt-2">
                 <p>OR</p>
-                <p>Become a guest speaker by emailing us at <a href={`mailto:${contactEmail}`} className="text-blue-600 font-bold">{contactEmail}</a></p>
+                <p>{renderRichContent(content.guestSpeakerText ?? '')}</p>
               </div>
           </div>
       </div>
@@ -53,10 +93,10 @@ const Sponsors: React.FC = () => {
       {/* Special Thanks */}
       <div className="bg-[#d1d5db] py-16 px-4 text-black">
           <div className="container mx-auto max-w-5xl">
-              <h3 className="text-2xl font-bold mb-6 text-[#1E2B48]">Special Thanks to our Supporters</h3>
-              <p className="mb-4 text-sm leading-relaxed">
-                  On behalf of the Pennsylvania State University Chapter of the American Society of Mechanical Engineers (ASME), we thank you in advance for considering a donation or Sponsorship. We appreciate the time you have taken to review this packet. With your investment, we will engage more students in Mechanical Engineering and enrich their undergraduate experiences. In tandem, we will advance our members' careers and contribute to the local community in State College.
-              </p>
+              <h3 className="text-2xl font-bold mb-6 text-[#1E2B48]">{renderRichContent(content.specialThanksTitle || 'Special Thanks to our Supporters')}</h3>
+              <div className="mb-4 text-sm leading-relaxed sponsors-rich-content">
+                  {renderRichContent(content.specialThanksParagraph ?? '', true)}
+              </div>
           </div>
       </div>
 

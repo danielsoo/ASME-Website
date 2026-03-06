@@ -7,6 +7,8 @@ import { Event } from '../../src/types';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
+import RichTextEditor from '../../src/components/RichTextEditor';
+import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 
 interface EventManagementProps {
   onNavigate: (path: string) => void;
@@ -150,12 +152,12 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
   const handleAddEvent = async () => {
     if (!eventTitle.trim()) {
       showAlert('warning', 'Validation Error', 'Please enter an event title.');
-      return;
+      throw new Error('Validation failed');
     }
 
     if (!imageFile) {
       showAlert('warning', 'Validation Error', 'Please upload an event image.');
-      return;
+      throw new Error('Validation failed');
     }
 
     // President/VP can create approved events directly
@@ -196,7 +198,8 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
 
   const handleEditEvent = async () => {
     if (!selectedEvent || !eventTitle.trim()) {
-      return;
+      showAlert('warning', 'Validation Error', 'Please enter an event title.');
+      throw new Error('Validation failed');
     }
 
     try {
@@ -275,6 +278,26 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
     setShowEditModal(true);
   };
 
+  const createModalDirty = showCreateModal && (eventTitle.trim() !== '' || eventDate !== '' || eventDescription.trim() !== '' || !!imageFile);
+  const editModalDirty = showEditModal && !!selectedEvent && (
+    eventTitle.trim() !== (selectedEvent.title || '').trim() ||
+    eventDate !== (selectedEvent.date || '') ||
+    eventDescription.trim() !== (selectedEvent.description || '').trim() ||
+    eventType !== selectedEvent.type ||
+    !!imageFile
+  );
+  const dirty = createModalDirty || editModalDirty;
+  const saveForLeave = async () => {
+    if (showEditModal && selectedEvent) await handleEditEvent();
+    else if (showCreateModal) await handleAddEvent();
+  };
+  const { safeNavigate, leaveConfirmModal } = useUnsavedChangesGuard({
+    currentPath: '/admin/events',
+    dirty,
+    onNavigate,
+    onSave: saveForLeave,
+  });
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -308,7 +331,7 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Event Management</h1>
           <div className="flex flex-wrap gap-2 shrink-0">
             <button
-              onClick={() => onNavigate('/admin')}
+              onClick={() => safeNavigate('/admin')}
               className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base"
             >
               ← Back to Dashboard
@@ -332,7 +355,7 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
             )}
             {canDeleteEvents() && (
               <button
-                onClick={() => onNavigate('/admin/events/trash')}
+                onClick={() => safeNavigate('/admin/events/trash')}
                 className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base relative"
               >
                 Trash
@@ -345,7 +368,7 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
             )}
           </div>
         </div>
-
+        {leaveConfirmModal}
         {loading ? (
           <div className="text-center py-8">Loading...</div>
         ) : visibleEvents.length === 0 ? (
@@ -356,7 +379,7 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
               <div key={event.id} className="bg-white rounded-lg shadow-md p-4 sm:p-6 min-w-0">
                 <div className="flex flex-wrap justify-between items-start gap-2 mb-3 sm:mb-4">
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 break-words">{event.title}</h2>
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 break-words">{(event.title || '').replace(/<[^>]*>/g, '').trim() || event.title}</h2>
                     <div className="flex gap-2 flex-wrap mb-1">
                       {event.approvalStatus === 'pending' && (
                         <span className="inline-block px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-800">
@@ -366,13 +389,13 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
                     </div>
                     <div className="text-black flex flex-col">
                       <p className="mb-2 font-semibold text-blue-400">{event.type}</p>
-                      <p>{event.description}</p>
+                      <p>{(event.description || '').replace(/<[^>]*>/g, '').trim() || event.description}</p>
                     </div>
                     {event.imageUrl && (
                       <div className="mt-3">
                         <img
                           src={event.imageUrl}
-                          alt={event.title}
+                          alt={(event.title || '').replace(/<[^>]*>/g, '').trim() || event.title}
                           className="h-20 object-contain rounded-lg"
                         />
                       </div>
@@ -417,12 +440,10 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Event Title *
                   </label>
-                  <input
-                    type="text"
+                  <RichTextEditor
                     value={eventTitle}
-                    onChange={(e) => setEventTitle(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                    onChange={setEventTitle}
+                    minHeight="60px"
                     placeholder="e.g., Icecream Social"
                   />
                 </div>
@@ -445,12 +466,10 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Event Description
                   </label>
-                  <input
-                    type="text"
+                  <RichTextEditor
                     value={eventDescription}
-                    onChange={(e) => setEventDescription(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                    onChange={setEventDescription}
+                    minHeight="100px"
                     placeholder="Describe the event here"
                   />
                 </div>
@@ -520,12 +539,10 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Event Title *
                   </label>
-                  <input
-                    type="text"
+                  <RichTextEditor
                     value={eventTitle}
-                    onChange={(e) => setEventTitle(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                    onChange={setEventTitle}
+                    minHeight="60px"
                   />
                 </div>
 
@@ -547,12 +564,10 @@ const EventManagement: React.FC<EventManagementProps> = ({ onNavigate }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Event Description
                   </label>
-                  <input
-                    type="text"
+                  <RichTextEditor
                     value={eventDescription}
-                    onChange={(e) => setEventDescription(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                    onChange={setEventDescription}
+                    minHeight="100px"
                     placeholder="Describe the event here"
                   />
                 </div>

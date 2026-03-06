@@ -8,6 +8,8 @@ import { Plus, Edit, Trash2, Users, UserPlus } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
 import Uploader from '@/src/components/Uploader';
+import RichTextEditor from '../../src/components/RichTextEditor';
+import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 
 interface ProjectManagementProps {
   onNavigate: (path: string) => void;
@@ -19,7 +21,6 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [allUsers, setAllUsers] = useState<any[]>([]);
@@ -240,7 +241,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
   const handleCreateProject = async () => {
     if (!projectTitle.trim()) {
       showAlert('warning', 'Validation Error', 'Please enter a project title.');
-      return;
+      throw new Error('Validation failed');
     }
 
     // Executive Board members can create projects, but need approval
@@ -293,55 +294,6 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     }
   };
 
-  const handleEditProject = async () => {
-    if (!selectedProject || !projectTitle.trim()) {
-      return;
-    }
-
-    // Only allow editing if user is President/VP/Admin (canManageProjects)
-    // Project leaders cannot edit project details, only manage members
-    if (!canManageProjects()) {
-      showAlert('error', 'Access Denied', 'Only President, Vice President, or Admin can edit project details.');
-      setShowEditModal(false);
-      setSelectedProject(null);
-      return;
-    }
-
-    try {
-      const leaderUser = projectLeaderId ? allUsers.find(u => u.uid === projectLeaderId) : null;
-      
-      let imageUrl = ikUrl || projectImageUrl.trim() || '';
-      
-      const updateData: any = {
-        title: projectTitle.trim(),
-        description: projectDescription.trim(),
-        status: projectStatus,
-        leaderId: projectLeaderId || null,
-        leaderEmail: leaderUser?.email || '',
-        updatedAt: new Date().toISOString(),
-      };
-
-      // Update imageUrl if provided
-      if (imageUrl) {
-        updateData.imageUrl = imageUrl;
-      }
-
-      if (ikFileId !== null) updateData.imagekitFileId = ikFileId;
-      if (ikFilePath !== null) updateData.imagekitFilePath = ikFilePath;
-      if (ikThumbUrl !== null) updateData.imageThumbnailUrl = ikThumbUrl;
-      
-      await updateDoc(doc(db, 'projects', selectedProject.id), updateData);
-
-      setShowEditModal(false);
-      setSelectedProject(null);
-      await loadProjects();
-      showAlert('success', 'Success', 'Project updated successfully!');
-    } catch (error) {
-      console.error('Error updating project:', error);
-      showAlert('error', 'Error', 'Failed to update project. Please try again.');
-    }
-  };
-
   const handleDeleteClick = (projectId: string) => {
     setProjectToDelete(projectId);
     setShowConfirmDelete(true);
@@ -373,30 +325,32 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     }
   };
 
-  const openEditModal = (project: Project) => {
-    // Only allow editing if user is President/VP/Admin
-    if (!canManageProjects()) {
-      showAlert('error', 'Access Denied', 'Only President, Vice President, or Admin can edit project details.');
-      return;
-    }
-    setSelectedProject(project);
-    setProjectTitle(project.title);
-    setProjectDescription(project.description);
-    setProjectStatus(project.status);
-    setProjectLeaderId(project.leaderId || '');
-    setProjectImageUrl( project.imageUrl || '#');
-    setProjectImageFile(null);
-    setShowEditModal(true);
-  };
-
   const openMemberModal = (project: Project) => {
     setSelectedProject(project);
     setShowMemberModal(true);
   };
 
+  // Call hook unconditionally (before any early return) to satisfy Rules of Hooks
+  const createModalDirty = showCreateModal && (
+    projectTitle.trim() !== '' ||
+    projectDescription.trim() !== '' ||
+    (projectImageUrl !== '#' && projectImageUrl.trim() !== '') ||
+    !!projectImageFile ||
+    !!ikUrl
+  );
+  const saveCreateForLeave = async () => {
+    await handleCreateProject();
+  };
+  const { safeNavigate, leaveConfirmModal } = useUnsavedChangesGuard({
+    currentPath: '/admin/projects',
+    dirty: createModalDirty,
+    onNavigate,
+    onSave: saveCreateForLeave,
+  });
+
   // Check access: Executive Board can create, President/VP/Admin can manage all, leaders can manage their projects
   const hasProjectAccess = isExecBoardMember() || canManageProjects() || projects.some(p => isProjectLeader(p));
-  
+
   if (!hasProjectAccess) {
     return (
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
@@ -427,7 +381,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Project Management</h1>
           <div className="flex flex-wrap gap-2 shrink-0">
             <button
-              onClick={() => onNavigate('/admin')}
+              onClick={() => safeNavigate('/admin')}
               className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base"
             >
               ← Back to Dashboard
@@ -449,7 +403,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
             )}
             {canApproveProjects() && (
               <button
-                onClick={() => onNavigate('/admin/projects/approvals')}
+                onClick={() => safeNavigate('/admin/projects/approvals')}
                 className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base relative"
               >
                 Approve
@@ -462,7 +416,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
             )}
             {canDeleteProjects() && (
               <button
-                onClick={() => onNavigate('/admin/projects/trash')}
+                onClick={() => safeNavigate('/admin/projects/trash')}
                 className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base relative"
               >
                 Trash
@@ -475,7 +429,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
             )}
           </div>
         </div>
-
+        {leaveConfirmModal}
         {loading ? (
           <div className="text-center py-8">Loading...</div>
         ) : visibleProjects.length === 0 ? (
@@ -486,7 +440,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
               <div key={project.id} className="bg-white rounded-lg shadow-md p-4 sm:p-6 min-w-0">
                 <div className="flex flex-wrap justify-between items-start gap-2 mb-3 sm:mb-4">
                   <div className="min-w-0 flex-1">
-                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 break-words">{project.title}</h2>
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 break-words">{(project.title || '').replace(/<[^>]*>/g, '').trim() || project.title}</h2>
                     <div className="flex gap-2 flex-wrap">
                       <span className={`inline-block px-2 py-1 text-xs rounded ${
                         project.status === 'current' 
@@ -505,7 +459,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   {canManageProjects() && (
                     <div className="flex gap-1.5 sm:gap-2 shrink-0">
                       <button
-                        onClick={() => openEditModal(project)}
+                        onClick={() => safeNavigate('/admin/projects/edit/' + project.id)}
                         className="text-blue-600 hover:text-blue-800 p-1"
                         title="Edit Project"
                       >
@@ -525,7 +479,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                 </div>
 
                 <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                  {project.description}
+                  {(project.description || '').replace(/<[^>]*>/g, '').trim() || project.description}
                 </p>
 
                 <div className="space-y-2 mb-4">
@@ -589,12 +543,10 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Project Title *
                   </label>
-                  <input
-                    type="text"
+                  <RichTextEditor
                     value={projectTitle}
-                    onChange={(e) => setProjectTitle(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                    onChange={setProjectTitle}
+                    minHeight="60px"
                     placeholder="e.g., Assistive Tech"
                   />
                 </div>
@@ -603,12 +555,10 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Description
                   </label>
-                  <textarea
+                  <RichTextEditor
                     value={projectDescription}
-                    onChange={(e) => setProjectDescription(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
-                    rows={4}
+                    onChange={setProjectDescription}
+                    minHeight="120px"
                     placeholder="Project description..."
                   />
                 </div>
@@ -620,8 +570,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   <div className="space-y-3">
                     {/* File Upload Option */}
                     <Uploader
-                      folder={`/projects/${(projectTitle || 'untitled').trim()}`}
-                      tags={['project', projectTitle.trim()].filter(Boolean)}
+                      folder={`/projects/${(projectTitle || '').replace(/<[^>]*>/g, '').trim() || 'untitled'}`}
+                      tags={['project', (projectTitle || '').replace(/<[^>]*>/g, '').trim()].filter(Boolean)}
                       onProgress={(pct) => {
                         setUploadPct(pct);
                         setUploadingImage(pct > 0 && pct < 100);
@@ -734,164 +684,6 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                 </button>
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Edit Project Modal */}
-        {showEditModal && selectedProject && (
-          <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-6 text-gray-800">Edit Project</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Project Title *
-                  </label>
-                  <input
-                    type="text"
-                    value={projectTitle}
-                    onChange={(e) => setProjectTitle(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    value={projectDescription}
-                    onChange={(e) => setProjectDescription(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
-                    rows={4}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Project Image
-                  </label>
-                  <div className="space-y-3">
-                    {/* File Upload Option */}
-                    <Uploader
-                      folder={`/projects/${(projectTitle || 'untitled').trim()}`}
-                      tags={['project', projectTitle.trim()].filter(Boolean)}
-                      onProgress={(pct) => {
-                        setUploadPct(pct);
-                        setUploadingImage(pct > 0 && pct < 100);
-                      }}
-                      onError={(msg) => showAlert('error', 'Image Upload', msg)}
-                      onComplete={(u) => {
-                        setIkUrl(u.url);
-                        setIkFileId(u.fileId);
-                        setIkFilePath(u.filePath);
-                        setIkThumbUrl(u.thumbnailUrl ?? null);
-                        setProjectImageFile(null);
-                        setProjectImageUrl(u.url);
-                        showAlert('success', 'Image Upload', 'Image uploaded to CDN.');
-                      }}
-                    />
-                    {uploadPct > 0 && uploadPct < 100 && (
-                      <div className="text-xs text-gray-600 mt-1">Uploading... {uploadPct}%</div> 
-                    )}
-                    
-                    {/* URL Input Option */}
-                    <div>
-                      <label className="text-sm text-gray-600 mb-1 block">Option 2: Paste Image URL</label>
-                      <input
-                        type="text"
-                        value={projectImageUrl}
-                        onChange={(e) => {
-                          setProjectImageUrl(e.target.value);
-                          setProjectImageFile(null); // Clear file when URL is entered
-                        }}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                        style={{ color: '#111827', backgroundColor: '#ffffff' }}
-                        placeholder="https://drive.google.com/uc?export=view&id=YOUR_FILE_ID"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Or paste a Google Drive link, Imgur link, etc.
-                      </p>
-                    </div>
-                    
-                    {/* Preview */}
-                    {(projectImageFile || projectImageUrl) && (
-                      <div className="mt-2">
-                        <img 
-                          id="edit-image-preview"
-                          src={projectImageUrl} 
-                          alt="Preview" 
-                          className="w-full h-48 object-cover rounded-md" 
-                          style={{ display: projectImageFile ? 'block' : (projectImageUrl ? 'block' : 'none') }}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }} 
-                        />
-                        {projectImageFile && <p className="text-xs text-blue-600 mt-1">New image selected</p>}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Status
-                  </label>
-                  <select
-                    value={projectStatus}
-                    onChange={(e) => setProjectStatus(e.target.value as 'current' | 'past')}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                    style={{ color: '#111827', backgroundColor: '#ffffff', appearance: 'menulist' }}
-                  >
-                    <option value="current" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Current</option>
-                    <option value="past" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Past</option>
-                  </select>
-                </div>
-
-                {canManageProjects() && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Project Leader
-                    </label>
-                    <select
-                      value={projectLeaderId}
-                      onChange={(e) => setProjectLeaderId(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                      style={{ color: '#111827', backgroundColor: '#ffffff', appearance: 'menulist' }}
-                    >
-                      <option value="" style={{ color: '#111827', backgroundColor: '#ffffff' }}>No Leader</option>
-                      {allUsers.map((user) => (
-                        <option key={user.uid} value={user.uid} style={{ color: '#111827', backgroundColor: '#ffffff' }}>
-                          {user.name || user.email} ({user.role || 'member'})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-4 mt-6">
-                <button
-                  onClick={handleEditProject}
-                  disabled={uploadingImage}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {uploadingImage ? 'Uploading Image...' : 'Save Changes'}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowEditModal(false);
-                    setSelectedProject(null);
-                  }}
                   className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
                 >
                   Cancel

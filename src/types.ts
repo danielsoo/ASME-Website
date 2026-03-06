@@ -54,6 +54,13 @@ export interface Project {
     rejectedByExecAt?: string; // When second exec rejected
     rejectedByExecBy?: string; // UID of exec who rejected
   };
+  // Detail page: "Want to Get Involved?" / Join Slack section
+  slack?: string;
+  timeline?: string;
+  img?: string;
+  joinSectionTitle?: string;
+  joinSectionDescription?: string;
+  joinButtonLabel?: string;
 }
 
 export interface Notification {
@@ -192,5 +199,137 @@ export const DEFAULT_FOOTER: FooterContent = {
   addressLine2: 'University Park, PA 16802',
   instagramUrl: 'https://www.instagram.com/asmepsu/',
   groupmeUrl: '',
-  slackUrl: '',
+  slackUrl: 'https://forms.gle/Nrfpx14Qz82qBK2a6',
+};
+
+/** Site content: home page (stored in config/home). */
+export interface HomeContent {
+  heroLine1?: string;
+  heroLine2?: string;
+  heroLine3?: string;
+  nextMeetingTitle?: string;
+  whatWeDoTitle?: string;
+  whatWeDoParagraph1?: string;
+  whatWeDoParagraph2?: string;
+  whatWeDoButtonText?: string;
+  whatWeDoButtonUrl?: string;
+}
+
+export const DEFAULT_HOME: HomeContent = {
+  heroLine1: 'WE ARE',
+  heroLine2: 'THE AMERICAN SOCIETY OF MECHANICAL ENGINEERS',
+  heroLine3: '@ PENN STATE',
+  nextMeetingTitle: 'Next Meeting',
+  whatWeDoTitle: 'What we do',
+  whatWeDoParagraph1: 'The Penn State Chapter of ASME provides members with opportunities for professional development, hands-on design experience, and outreach within and beyond Penn State. If you are interested in growing professionally, getting in contact with employers, or working on cool projects, you are in the right spot!',
+  whatWeDoParagraph2: 'Everyone is welcome (not just Mechanical engineers), and there are no membership requirements or dues. Just show up!',
+  whatWeDoButtonText: 'Join our GroupMe',
+  whatWeDoButtonUrl: '',
+};
+
+/** Site content: about page (stored in config/about). */
+export interface AboutContent {
+  aboutTitle?: string;
+  aboutParagraph1?: string;
+  aboutParagraph2?: string;
+  aboutLinkUrl?: string;
+  /** e.g. Jost, Inter, Georgia, Arial */
+  paragraphFontFamily?: string;
+  /** e.g. 400, 500, 600, 700 */
+  paragraphFontWeight?: string;
+}
+
+export const DEFAULT_ABOUT: AboutContent = {
+  aboutTitle: 'About Us',
+  aboutParagraph1: 'Established in 1880, the American Society of Mechanical Engineers (ASME) is an international organization comprised of over 85,000 members from over 100 countries.',
+  aboutParagraph2: 'ASME serves both mechanical and interdisciplinary engineers in technical standardization, experimental procedures, and development codes to make the engineering landscape safer overall. To learn more about the international ASME organization visit this link. WE ARE! the Penn State\'s chapter of ASME and are looking forward to providing unique opportunities for Mechanical Engineers at PSU.',
+  aboutLinkUrl: 'https://www.asme.org',
+};
+
+/** About page: General Body section (stored in config/aboutGeneralBody). */
+export interface GeneralBodyContent {
+  activitiesTitle?: string;
+  activitiesList?: string[];
+  leftImageUrl?: string;
+  pastEventsTitle?: string;
+  pastEventsList?: string[];
+  bodySectionTitle?: string;
+}
+
+export const DEFAULT_GENERAL_BODY: GeneralBodyContent = {
+  activitiesTitle: 'Our Activities',
+  activitiesList: ['THON Fundraisers', 'Design Team Meetings', 'General Body Meetings', 'Project Meetings', 'Socials'],
+  leftImageUrl: 'https://picsum.photos/seed/about/800/600',
+  pastEventsTitle: 'Past Events',
+  pastEventsList: ['Event 1 - Date', 'Event 2 - Date', 'Event 3 - Date'],
+  bodySectionTitle: 'Our General Body',
+};
+
+/** About page: Design Team section (stored in config/aboutDesignTeam). */
+export interface DesignTeamContent {
+  sectionTitle?: string;
+  leftImageUrl?: string;
+  pastProjectsTitle?: string;
+  currentProjectsTitle?: string;
+  /** Intro block: paragraph 1 */
+  introParagraph1?: string;
+  /** Intro block: paragraph 2 */
+  introParagraph2?: string;
+  /** Intro block: paragraph 3 (use "visit this link" for the link text) */
+  introParagraph3?: string;
+  /** URL for the link in paragraph 3 */
+  introLinkUrl?: string;
+  /** Intro block: paragraph 4 (e.g. WE ARE! ... Our Design Team focuses...) */
+  introParagraph4?: string;
+  /** Intro paragraphs font family (e.g. Jost, Inter, Georgia) */
+  introFontFamily?: string;
+  /** Intro paragraphs font weight (e.g. 400, 500, 600, 700) */
+  introFontWeight?: string;
+  /** Section title font family */
+  sectionTitleFontFamily?: string;
+  /** Section title font weight */
+  sectionTitleFontWeight?: string;
+}
+
+export const DEFAULT_DESIGN_TEAM: DesignTeamContent = {
+  sectionTitle: 'Our Design Team',
+  leftImageUrl: 'https://picsum.photos/seed/designteam/800/600',
+  pastProjectsTitle: 'Past Projects',
+  currentProjectsTitle: 'Fall 2025 Projects',
+  introParagraph1: 'Established in 1880, the American Society of Mechanical Engineers (ASME) is an international organization comprised of over 85,000 members from over 100 countries.',
+  introParagraph2: 'ASME serves both mechanical and interdisciplinary engineers in technical standardization, experimental procedures, and development codes to make the engineering landscape safer overall. The organization plays a crucial role in establishing safety standards, codes, and best practices that are used worldwide in various industries including manufacturing, energy, aerospace, and biomedical engineering.',
+  introParagraph3: 'To learn more about the international ASME organization, visit this link.',
+  introLinkUrl: 'https://www.asme.org',
+  introParagraph4: "WE ARE! the Penn State's chapter of ASME and are looking forward to providing unique opportunities for Mechanical Engineers at PSU. Our Design Team focuses on hands-on engineering projects, CAD design, prototyping, and bringing innovative ideas to life.",
+};
+
+/** Site content: sponsors page (stored in config/sponsors). */
+export interface SponsorsContent {
+  contactEmail?: string;
+  bannerTitle?: string;
+  bannerText?: string;
+  getInTouchTitle?: string;
+  getInTouchParagraph?: string;
+  donateLabel?: string;
+  donateUrl?: string;
+  thonLabel?: string;
+  thonUrl?: string;
+  guestSpeakerText?: string;
+  specialThanksTitle?: string;
+  specialThanksParagraph?: string;
+}
+
+export const DEFAULT_SPONSORS: SponsorsContent = {
+  contactEmail: 'president.asme.psu@gmail.com',
+  bannerTitle: 'Become a Sponsor',
+  bannerText: "If you're interested in becoming a sponsor, email us at {{email}} to receive our Sponsorship packet!",
+  getInTouchTitle: 'Get in Touch!',
+  getInTouchParagraph: 'Looking to provide professional insight and support to ASME? Consider choosing one of the options below to help us out!',
+  donateLabel: 'Donate',
+  donateUrl: 'https://secure.ddar.psu.edu/s/1218/2014/index.aspx?sid=1218&gid=1&pgid=658&cid=2321&dids=17094&bledit=1&appealcode=AZZ1K',
+  thonLabel: 'Donate to THON',
+  thonUrl: 'https://donate.thon.org/events/4542',
+  guestSpeakerText: 'Become a guest speaker by emailing us at {{email}}',
+  specialThanksTitle: 'Special Thanks to our Supporters',
+  specialThanksParagraph: 'On behalf of the Pennsylvania State University Chapter of the American Society of Mechanical Engineers (ASME), we thank you in advance for considering a donation or Sponsorship. We appreciate the time you have taken to review this packet. With your investment, we will engage more students in Mechanical Engineering and enrich their undergraduate experiences. In tandem, we will advance our members\' careers and contribute to the local community in State College.',
 };

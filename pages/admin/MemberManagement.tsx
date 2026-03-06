@@ -6,6 +6,7 @@ import { Plus, Edit, Trash2, Save, X } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
 import { uploadToImageKit } from '../../src/imagekit';
+import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 
 interface MemberManagementProps {
   onNavigate: (path: string) => void;
@@ -175,7 +176,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   const handleAddPosition = async () => {
     if (!positionName.trim()) {
       showAlert('warning', 'Validation Error', 'Please enter a position name.');
-      return;
+      throw new Error('Validation failed');
     }
 
     try {
@@ -197,7 +198,8 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
 
   const handleEditPosition = async () => {
     if (!editingPosition || !positionName.trim()) {
-      return;
+      showAlert('warning', 'Validation Error', 'Please enter a position name.');
+      throw new Error('Validation failed');
     }
 
     try {
@@ -263,7 +265,9 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   };
 
   const handleMemberRoleChange = async () => {
-    if (!editingMember) return;
+    if (!editingMember) {
+      throw new Error('No member selected');
+    }
 
     // If role is 'member', no team assignment needed
     if (selectedRole === 'member') {
@@ -287,7 +291,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     // If role is Executive Board position, team is required
     if (!selectedTeam) {
       showAlert('warning', 'Validation Error', 'Please select a team (Design Team or General Body) for Executive Board positions.');
-      return;
+      throw new Error('Validation failed');
     }
 
     try {
@@ -312,16 +316,42 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     setSelectedTeam(member.team || '');
   };
 
+  const positionModalDirty = showPositionModal && (
+    editingPosition
+      ? positionName.trim() !== (editingPosition.name || '').trim() || (positionTeam || '') !== (editingPosition.team || '')
+      : positionName.trim() !== '' || positionTeam !== ''
+  );
+  const memberEditDirty = editingMember !== null && (
+    selectedRole !== (editingMember.role || 'member') || selectedTeam !== (editingMember.team || '')
+  );
+  const addMemberDirty = showAddMemberModal && (
+    newMemberName.trim() !== '' || newMemberEmail.trim() !== '' || newMemberMajor.trim() !== '' || newMemberYear.trim() !== ''
+  );
+  const dirty = positionModalDirty || memberEditDirty || addMemberDirty;
+  const saveForLeave = async () => {
+    if (showPositionModal) {
+      if (editingPosition) await handleEditPosition();
+      else await handleAddPosition();
+    } else if (editingMember) await handleMemberRoleChange();
+    else if (showAddMemberModal) await handleAddMember();
+  };
+  const { safeNavigate, leaveConfirmModal } = useUnsavedChangesGuard({
+    currentPath: '/admin/members',
+    dirty,
+    onNavigate,
+    onSave: saveForLeave,
+  });
+
   const handleAddMember = async () => {
     const name = newMemberName.trim();
     const email = newMemberEmail.trim().toLowerCase();
     if (!name || !email) {
       showAlert('warning', 'Validation Error', 'Please enter name and email.');
-      return;
+      throw new Error('Validation failed');
     }
     if (newMemberRole !== 'member' && !newMemberTeam) {
       showAlert('warning', 'Validation Error', 'Please select a team (Design Team or General Body) for executive positions.');
-      return;
+      throw new Error('Validation failed');
     }
     setAddingMember(true);
     try {
@@ -385,13 +415,13 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
         <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Member Management</h1>
           <button
-            onClick={() => onNavigate('/admin')}
+            onClick={() => safeNavigate('/admin')}
             className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base shrink-0"
           >
             ← Back to Dashboard
           </button>
         </div>
-
+        {leaveConfirmModal}
         {/* Exec Position Management Section */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex flex-wrap justify-between items-center gap-2 mb-4">

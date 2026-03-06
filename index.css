@@ -46,3 +46,41 @@ footer::after,
 footer::before {
   display: none !important;
 }
+
+/* Rich text 출력 시 Quill 글씨체 적용 (에디터에서 선택한 폰트가 모든 페이지에서 동일하게 표시) */
+.about-rich-content .ql-font-sans,
+.home-rich-content .ql-font-sans,
+.sponsors-rich-content .ql-font-sans,
+.event-rich-content .ql-font-sans,
+.project-rich-content .ql-font-sans,
+.footer-rich-content .ql-font-sans { font-family: inherit; }
+.about-rich-content .ql-font-serif,
+.home-rich-content .ql-font-serif,
+.sponsors-rich-content .ql-font-serif,
+.event-rich-content .ql-font-serif,
+.project-rich-content .ql-font-serif,
+.footer-rich-content .ql-font-serif { font-family: Georgia, serif; }
+.about-rich-content .ql-font-monospace,
+.home-rich-content .ql-font-monospace,
+.sponsors-rich-content .ql-font-monospace,
+.event-rich-content .ql-font-monospace,
+.project-rich-content .ql-font-monospace,
+.footer-rich-content .ql-font-monospace { font-family: monospace; }
+.about-rich-content .ql-font-jost,
+.home-rich-content .ql-font-jost,
+.sponsors-rich-content .ql-font-jost,
+.event-rich-content .ql-font-jost,
+.project-rich-content .ql-font-jost,
+.footer-rich-content .ql-font-jost { font-family: var(--font-jost), 'Jost', sans-serif; }
+.about-rich-content .ql-font-georgia,
+.home-rich-content .ql-font-georgia,
+.sponsors-rich-content .ql-font-georgia,
+.event-rich-content .ql-font-georgia,
+.project-rich-content .ql-font-georgia,
+.footer-rich-content .ql-font-georgia { font-family: Georgia, serif; }
+.about-rich-content .ql-font-arial,
+.home-rich-content .ql-font-arial,
+.sponsors-rich-content .ql-font-arial,
+.event-rich-content .ql-font-arial,
+.project-rich-content .ql-font-arial,
+.footer-rich-content .ql-font-arial { font-family: Arial, sans-serif; }

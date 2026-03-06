@@ -25,7 +25,8 @@ export default defineConfig(({ mode }) => {
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
+          'imagekit-javascript': path.resolve(__dirname, 'node_modules/@imagekit/javascript'),
         }
-      }
+      },
     };
 });

@@ -1,9 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { responsiveClamp, responsiveClampCustom } from '../src/utils/responsive';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../src/firebase/config';
+import { responsiveClamp } from '../src/utils/responsive';
 import { getGoogleCalendarEvents } from '../src/firebase/services';
 import { Event } from '../src/types';
+import type { HomeContent } from '../src/types';
+import { DEFAULT_HOME } from '../src/types';
+import { sanitizeHtml, isHtmlString } from '../src/utils/sanitizeHtml';
+
+const CONFIG_PATH = 'config';
+const HOME_DOC = 'home';
 
 const CALENDAR_TZ = 'America/New_York';
+
+/** Render title/paragraph: HTML (from rich editor) or plain text. */
+function renderRichContent(content: string | undefined, fallback: string): React.ReactNode {
+  const c = content ?? fallback;
+  if (!c) return null;
+  if (isHtmlString(c)) {
+    return <span className="home-rich-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(c) }} />;
+  }
+  return c;
+}
 
 /** Event pill colors (Apple Calendar style) */
 const EVENT_COLORS = [
@@ -30,9 +48,23 @@ function getEventDayInNY(event: Event & { dateTime?: string }): string | null {
 }
 
 const Home: React.FC = () => {
+  const [homeContent, setHomeContent] = useState<HomeContent>({ ...DEFAULT_HOME });
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [nextMeeting, setNextMeeting] = useState<Event | null>(null);
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      doc(db, CONFIG_PATH, HOME_DOC),
+      (snap) => {
+        if (snap.exists()) {
+          setHomeContent({ ...DEFAULT_HOME, ...(snap.data() as HomeContent) });
+        }
+      },
+      () => {}
+    );
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -146,7 +178,7 @@ const Home: React.FC = () => {
               color: "#ffffff",
             }}
           >
-            WE ARE
+            {renderRichContent(homeContent.heroLine1 ?? DEFAULT_HOME.heroLine1, 'WE ARE')}
           </h2>
           <h1
             style={{
@@ -156,7 +188,7 @@ const Home: React.FC = () => {
               color: "#ffffff",
             }}
           >
-            THE AMERICAN SOCIETY OF MECHANICAL ENGINEERS
+            {renderRichContent(homeContent.heroLine2 ?? DEFAULT_HOME.heroLine2, 'THE AMERICAN SOCIETY OF MECHANICAL ENGINEERS')}
           </h1>
           <p
             style={{
@@ -165,7 +197,7 @@ const Home: React.FC = () => {
               color: "#ffffff",
             }}
           >
-            @ PENN STATE
+            {renderRichContent(homeContent.heroLine3 ?? DEFAULT_HOME.heroLine3, '@ PENN STATE')}
           </p>
         </div>
       </div>
@@ -178,7 +210,7 @@ const Home: React.FC = () => {
         }}
       >
         <div className="flex flex-col items-center">
-            <h3 className="text-3xl font-jost font-bold mb-6 text-white text-center">Next Meeting</h3>
+            <h3 className="text-3xl font-jost font-bold mb-6 text-white text-center">{renderRichContent(homeContent.nextMeetingTitle ?? DEFAULT_HOME.nextMeetingTitle, 'Next Meeting')}</h3>
             
             {/* Simple Mock Calendar Card */}
             <div className="bg-white rounded-2xl p-4 shadow-2xl w-full md:w-3/4 max-w-4xl overflow-hidden">
@@ -292,16 +324,32 @@ const Home: React.FC = () => {
             </div>
             
             <div className="font-jost text-gray-300 space-y-6">
-                <h2 className="text-3xl font-bold text-white">What we do</h2>
-                <p>
-                    The Penn State Chapter of ASME provides members with opportunities for professional development, hands-on design experience, and outreach within and beyond Penn State. If you are interested in growing professionally, getting in contact with employers, or working on cool projects, you are in the right spot!
-                </p>
-                <p>
-                    Everyone is welcome (not just Mechanical engineers), and there are no membership requirements or dues. Just show up!
-                </p>
-                <button className="bg-[#212C47] hover:bg-[#111828] text-white font-bold py-2 px-6 rounded shadow transition">
-                    Join our GroupMe
-                </button>
+                <h2 className="text-3xl font-bold text-white">{renderRichContent(homeContent.whatWeDoTitle ?? DEFAULT_HOME.whatWeDoTitle, 'What we do')}</h2>
+                <div className="home-rich-content">
+                  {isHtmlString(homeContent.whatWeDoParagraph1 ?? '') ? (
+                    <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(homeContent.whatWeDoParagraph1 ?? '') }} />
+                  ) : (
+                    <p>{homeContent.whatWeDoParagraph1 ?? DEFAULT_HOME.whatWeDoParagraph1 ?? 'The Penn State Chapter of ASME provides members with opportunities for professional development, hands-on design experience, and outreach within and beyond Penn State. If you are interested in growing professionally, getting in contact with employers, or working on cool projects, you are in the right spot!'}</p>
+                  )}
+                </div>
+                <div className="home-rich-content">
+                  {isHtmlString(homeContent.whatWeDoParagraph2 ?? '') ? (
+                    <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(homeContent.whatWeDoParagraph2 ?? '') }} />
+                  ) : (
+                    <p>{homeContent.whatWeDoParagraph2 ?? DEFAULT_HOME.whatWeDoParagraph2 ?? 'Everyone is welcome (not just Mechanical engineers), and there are no membership requirements or dues. Just show up!'}</p>
+                  )}
+                </div>
+                {(homeContent.whatWeDoButtonText ?? DEFAULT_HOME.whatWeDoButtonText) && (
+                  (homeContent.whatWeDoButtonUrl ?? DEFAULT_HOME.whatWeDoButtonUrl) ? (
+                    <a href={homeContent.whatWeDoButtonUrl ?? DEFAULT_HOME.whatWeDoButtonUrl ?? '#'} target="_blank" rel="noopener noreferrer" className="inline-block bg-[#212C47] hover:bg-[#111828] text-white font-bold py-2 px-6 rounded shadow transition">
+                      {homeContent.whatWeDoButtonText ?? DEFAULT_HOME.whatWeDoButtonText}
+                    </a>
+                  ) : (
+                    <span className="inline-block bg-[#212C47] text-white font-bold py-2 px-6 rounded shadow">
+                      {homeContent.whatWeDoButtonText ?? DEFAULT_HOME.whatWeDoButtonText}
+                    </span>
+                  )
+                )}
             </div>
         </div>
       </div>

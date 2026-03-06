@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Project } from '../types';
 import { GripVertical } from 'lucide-react';
+import { sanitizeHtml, isHtmlString } from '../utils/sanitizeHtml';
 
 interface ProjectCardProps {
   project: Project;
@@ -25,20 +26,28 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavi
       >
         <img 
           src={project.imageUrl} 
-          alt={project.title} 
+          alt={(project.title || '').replace(/<[^>]*>/g, '').trim() || 'Project'} 
           className="w-full h-full object-cover transition-transform duration-700 hover:scale-105 cursor-pointer"
           onClick={() => onImageClick?.(project)}
         />
         <div className="absolute bottom-0 left-0 p-6 bg-black/25 w-full h-full hover:bg-black/50 transition-all ease-in-out cursor-pointer">
           <h3 className="flex text-2xl font-bold font-jost text-white tracking-wider uppercase cursor-pointer">
-            {project.title}
+            {project.title && isHtmlString(project.title) ? (
+              <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(project.title) }} />
+            ) : (
+              project.title
+            )}
             <span className={`block pl-2 transition-all duration-300 ease-in-out
               ${isHovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}>
                 ➜
             </span>
           </h3>
           <p className="text-white text-sm leading-relaxed mb-6 font-jost pt-2">
-            {project.description}
+            {project.description && isHtmlString(project.description) ? (
+              <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(project.description) }} />
+            ) : (
+              project.description
+            )}
           </p>
         </div>
       </div>
