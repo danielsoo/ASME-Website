@@ -61,7 +61,7 @@ const Sponsors: React.FC = () => {
       </div>
 
       {/* Sponsors Grid */}
-      <div className="bg-white py-20 px-4">
+      <div className="bg-white py-20 px-16">
           <div className="container mx-auto max-w-6xl">
               <h2 className="text-[#1E2B48] text-3xl font-bold mb-12">Our Sponsors</h2>
               <div className="bg-[#3b4c6b] p-8 md:p-12 rounded-lg">

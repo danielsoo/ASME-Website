@@ -19,7 +19,7 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNaviga
 
       {/* Content */}
       <div className="bg-gray-100 min-h-screen py-12 relative">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-16">
           {/* Sub-Navigation Tabs */}
           <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">
             <div className="container mx-auto flex items-center gap-2">
@@ -98,28 +98,45 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNaviga
           {/* Join and Placeholder Image */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             {/* Join Section */}
-            <div>
-              <h2 className="text-xl font-bold font-jost text-black mb-4 uppercase">Want to Get Involved?</h2>
-              <p className="text-gray-700 font-jost mb-4">
-                Click the link below to authenticate your email and join the slack.
-              </p>
-              <button className="px-6 py-2 bg-[#8B0000] text-white font-jost font-medium rounded hover:bg-[#700000] transition-colors">
-                Join the Slack
-                <a href={project.slack}></a>
-              </button>
-              <div className="flex flex-row mt-3">
-                <p className="text-gray-700 font-jost">
-                  DEADLINE TO JOIN: 
+            {(project.status === 'current') ? (
+              <div>
+                <h2 className="text-xl font-bold font-jost text-black mb-4 uppercase">Want to Get Involved?</h2>
+                <p className="text-gray-700 font-jost mb-4">
+                  Click the link below to authenticate your email and join the slack.
                 </p>
-                <p className="text-black font-jost font-bold">{project.timeline}</p>
+                <a href={project.slackUrl}>
+                  <button className="px-6 py-2 bg-[#8B0000] text-white font-jost font-medium rounded hover:bg-[#700000] transition-colors">
+                    Join the Slack
+                  </button>
+                </a>
+                
+                {project.deadline ? (
+                  <>
+                    <p className="text-gray-700 font-jost">
+                      DEADLINE TO JOIN: 
+                    </p>
+                    <p className="text-black font-jost font-bold">{project.deadline}</p>
+                  </>
+                  
+                  ) : (
+                    <p>Deadline not set.</p>
+                  ) 
+                };
+                <div className="flex flex-row mt-3">
+                  
+                </div>
               </div>
-            </div>
+            ) : (
+              <></>
+            )
+            }
+            
 
             {/* Placeholder Image */}
             <div className="w-full h-64 bg-gradient-to-br from-blue-400 to-purple-600 rounded-lg flex items-center justify-center mb-2">
               <span className="text-white text-sm font-jost">
-                {/*place for image/carousel*/}
-                <img src={project.img}/>
+                {/*place for image/carousel
+                <img src={project.img}/>*/}
               </span>
             </div>
           </div>

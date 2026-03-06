@@ -293,7 +293,7 @@ const Home: React.FC = () => {
                 </div>
             </div>
             
-            <div className="font-jost text-gray-300 space-y-6">
+            <div className="font-jost text-gray-300 space-y-6 mt-6">
                 <h2 className="text-3xl font-bold text-white">What we do</h2>
                 <p>
                     The Penn State Chapter of ASME provides members with opportunities for professional development, hands-on design experience, and outreach within and beyond Penn State. If you are interested in growing professionally, getting in contact with employers, or working on cool projects, you are in the right spot!
