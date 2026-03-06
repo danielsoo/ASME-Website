@@ -388,7 +388,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
 
       {/* Design Board Section - Same as regular About page */}
       <div className="bg-[#e5e7eb] py-16 ">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-16">
           <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-2">
             Design Board
           </h2>
