@@ -10,6 +10,8 @@ import { sanitizeHtml, isHtmlString } from '../src/utils/sanitizeHtml';
 
 const Sponsors: React.FC = () => {
   const [content, setContent] = useState<SponsorsContent>({ ...DEFAULT_SPONSORS });
+  
+  // NOTE:: do we need this if the default is already handled in firebase services.tsx?
   const [fallbackEmail, setFallbackEmail] = useState('president.asme.psu@gmail.com');
 
   useEffect(() => {

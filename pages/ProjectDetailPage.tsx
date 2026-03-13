@@ -109,6 +109,7 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNaviga
           </div>
         ) : null}
 
+{/* make whole section depend on variables, not just the button and deadline */}
           {/* Join and Placeholder Image */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             {/* Join Section */}

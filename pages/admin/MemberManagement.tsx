@@ -5,12 +5,61 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { Plus, Edit, Trash2, Save, X } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
-import { uploadToImageKit } from '../../src/imagekit';
+//import { uploadToImageKit } from '../../src/imagekit';
+// add Uploader instance to render() for the ability to add profile pictures
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 
 interface MemberManagementProps {
   onNavigate: (path: string) => void;
 }
+
+// NOTE::: instead of using this, we could import TeamMember from types.tsx:
+// to do this, you would likely need to unify type names. Specifically, "users" use "role" but "TeamMembers" use "position"
+// additionally, you may need to add an automatic approval status to TeamMember in order to merge the two into one Array
+// VVVVVVV example:
+
+/*import { TeamMember } from "../../src/types"
+
+const [members, setMembers] = useState<TeamMember[]>([]);
+
+const loadMembers = async () => {
+    try {
+      setLoading(true);
+      const usersRef = collection(db, 'users');
+      const snapshot = await getDocs(usersRef);
+      const membersList: TeamMember[] = [];
+
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.status === 'approved') {
+          membersList.push({
+            uid: docSnap.id,
+            name: data.name || '',
+            email: data.email || '',
+            major: data.major || '',
+            year: data.year || '',
+            role: data.role || 'member',
+            team: data.team || undefined,
+            status: data.status,
+          });
+        }
+      });
+
+      // Sort: Executive Board first, then by name
+      membersList.sort((a, b) => {
+        const aIsExec = a.role !== 'member' && a.role !== 'admin';
+        const bIsExec = b.role !== 'member' && b.role !== 'admin';
+        if (aIsExec !== bIsExec) return aIsExec ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      setMembers(membersList);
+    } catch (error) {
+      console.error('Error loading members:', error);
+    } finally {
+      setLoading(false);
+    }
+  };*/
 
 interface Member {
   uid: string;

@@ -10,6 +10,8 @@ import ConfirmModal from '../../src/components/ConfirmModal';
 import RichTextEditor from '../../src/components/RichTextEditor';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 
+// NOTE::: do we even need this?
+
 interface EventManagementProps {
   onNavigate: (path: string) => void;
 }

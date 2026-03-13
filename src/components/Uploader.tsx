@@ -2,6 +2,8 @@ import { IKUpload } from "imagekitio-react";
 import { useRef, useState } from "react";
 import React from "react";
 
+// NOTE::: fix this to actually work ; may need to add an API call somewhere in App.tsx or something
+
 type Props = {
   folder?: string;
   tags?: string[];
@@ -11,6 +13,31 @@ type Props = {
   onProgress?: (pct: number) => void;
   onError?: (message: string) => void;
 };
+
+//styles
+const ButtonStyle = {
+  color: "white",
+  fontWeight: "medium",
+  backgroundColor: "oklch(54.6% 0.245 262.881)",
+  padding: "10px",
+  borderRadius: "0.25rem",
+  margin: "8px",
+  cursor: "pointer"
+}
+const ButtonHover = {
+  color: "white",
+  fontWeight: "medium",
+  backgroundColor: "oklch(48.8% 0.243 264.376)",
+  padding: "10px",
+  borderRadius: "0.25rem",
+  margin: "8px",
+}
+
+const LoadStyle = {
+  color: "black",
+  margin: "8px",
+
+}
 
 const Uploader: React.FC<Props> = ({
   folder,
@@ -24,6 +51,13 @@ const Uploader: React.FC<Props> = ({
   // Ref to the underlying <input type="file"> created by IKUpload
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [progress, setProgress] = useState<number>(0);
+
+  const [isHovering, setIsHovering] = useState(false);
+
+  const handleMouseEnter = () => setIsHovering(true);
+  const handleMouseLeave = () => setIsHovering(false);
+
+  const currentStyle = isHovering ? { ...ButtonStyle, ...ButtonHover } : ButtonStyle;
 
   return (
     <div>
@@ -71,15 +105,18 @@ const Uploader: React.FC<Props> = ({
         }}
       />
 
-      {/* Your visible button to open the file picker */}
+      {/* Fix this to actually show up correctly */}
       <button
+        style={currentStyle}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         type="button"
         onClick={() => fileInputRef.current?.click()}
       >
         {buttonLabel}
       </button>
 
-      <div style={{ marginTop: 8 }}>
+      <div style={LoadStyle}>
         Upload progress: <progress value={progress} max={100} />
       </div>
     </div>
