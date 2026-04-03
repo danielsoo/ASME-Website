@@ -22,6 +22,7 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
   const [verificationSentToEmail, setVerificationSentToEmail] = useState(''); // Email address we sent verification to (for display)
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const isSigningUp = React.useRef(false);
+  const isGoogleSigningIn = React.useRef(false);
 
   // Check if user is already logged in and email verified
   useEffect(() => {
@@ -58,7 +59,8 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
               } else {
                 onNavigate('/'); // Allow pending users to log in; only admin panel is blocked
               }
-            } else {
+            } else if (isGoogleSigningIn.current) {
+              // New Google user — create a Firestore document for them
               await setDoc(doc(db, 'users', user.uid), {
                 name: user.displayName || user.email || '',
                 email: user.email ?? '',
@@ -67,7 +69,12 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
                 role: 'member',
                 createdAt: new Date(),
               });
+              isGoogleSigningIn.current = false;
               onNavigate('/');
+            } else {
+              // Firestore document was deleted — block access
+              await auth.signOut();
+              setError('Account not found. Please register again or contact us.');
             }
           } catch (error) {
             console.error('Error checking user status:', error);
@@ -161,7 +168,12 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
               setError('Registration has been rejected. Please contact us if you have questions.');
               return;
             }
-            // Both approved and pending go to home (handled in onAuthStateChanged or here)
+            // Both approved and pending go to home
+          } else {
+            // Firestore document was deleted — block access
+            await auth.signOut();
+            setError('Account not found. Please register again or contact us.');
+            return;
           }
         } catch (error) {
           console.error('Error checking user status:', error);
@@ -191,6 +203,7 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
   const handleGoogleSignIn = async () => {
     setError('');
     setLoading(true);
+    isGoogleSigningIn.current = true;
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
@@ -207,6 +220,7 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
 
       // Navigation will happen via onAuthStateChanged
     } catch (error: any) {
+      isGoogleSigningIn.current = false;
       if (error.code === 'auth/popup-closed-by-user') {
         setError('Login popup was closed.');
       } else {

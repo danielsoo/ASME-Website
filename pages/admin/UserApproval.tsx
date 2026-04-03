@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, updateDoc, doc, Timestamp, getDoc } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc, Timestamp, getDoc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../../src/firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Check, X } from 'lucide-react';
+import { Check, X, Trash2 } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
 
@@ -37,9 +37,18 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
   // Confirm restore to pending modal states
   const [showConfirmRestore, setShowConfirmRestore] = useState(false);
   const [userToRestore, setUserToRestore] = useState<string | null>(null);
-  
+
+  // Confirm delete modal states
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<PendingUser | null>(null);
+
   // Check if user can restore rejected/approved users to pending (President/VP only)
   const canRestoreToPending = (): boolean => {
+    return currentUserRole === 'President' || currentUserRole === 'Vice President';
+  };
+
+  // Check if user can permanently delete users (President/VP only)
+  const canDeleteUser = (): boolean => {
     return currentUserRole === 'President' || currentUserRole === 'Vice President';
   };
   
@@ -195,6 +204,37 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
   };
 
 
+  const handleDeleteClick = (user: PendingUser) => {
+    if (!canDeleteUser()) {
+      showAlert('error', 'Access Denied', 'Only President and Vice President can delete users.');
+      return;
+    }
+    setUserToDelete(user);
+    setShowConfirmDelete(true);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    if (!canDeleteUser()) {
+      showAlert('error', 'Access Denied', 'Only President and Vice President can delete users.');
+      setShowConfirmDelete(false);
+      setUserToDelete(null);
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, 'users', userToDelete.uid));
+      setUserToDelete(null);
+      setShowConfirmDelete(false);
+      await loadUsers();
+      showAlert('success', 'Success', 'User deleted successfully.');
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      showAlert('error', 'Error', 'An error occurred while deleting the user. Please try again.');
+    }
+  };
+
   const currentUsers = activeTab === 'pending' ? pendingUsers : activeTab === 'approved' ? approvedUsers : rejectedUsers;
 
   return (
@@ -313,10 +353,43 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
                           >
                             <X className="w-4 h-4 sm:w-5 sm:h-5" />
                           </button>
+                          {canDeleteUser() && (
+                            <button
+                              onClick={() => handleDeleteClick(user)}
+                              className="p-1.5 sm:p-2 bg-gray-700 hover:bg-gray-800 text-white rounded transition-colors shadow-sm hover:shadow flex items-center justify-center"
+                              title="Delete User"
+                            >
+                              <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </button>
+                          )}
                         </div>
                       )}
                       {activeTab === 'approved' && (
-                        <div className="flex justify-center flex-shrink-0">
+                        <div className="flex justify-center items-center gap-2 sm:gap-3 flex-shrink-0">
+                          {canRestoreToPending() ? (
+                            <button
+                              onClick={() => handleRestoreClick(user.uid)}
+                              className="px-2 py-1 sm:px-3 sm:py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded transition-colors shadow-sm hover:shadow whitespace-nowrap"
+                              title="Restore to Pending"
+                            >
+                              Restore
+                            </button>
+                          ) : (
+                            <span className="text-green-600 text-xs sm:text-sm">✓ Approved</span>
+                          )}
+                          {canDeleteUser() && (
+                            <button
+                              onClick={() => handleDeleteClick(user)}
+                              className="p-1.5 sm:p-2 bg-gray-700 hover:bg-gray-800 text-white rounded transition-colors shadow-sm hover:shadow flex items-center justify-center"
+                              title="Delete User"
+                            >
+                              <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {activeTab === 'rejected' && (
+                        <div className="flex justify-center items-center gap-2 sm:gap-3 flex-shrink-0">
                           {canRestoreToPending() && (
                             <button
                               onClick={() => handleRestoreClick(user.uid)}
@@ -326,20 +399,13 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
                               Restore
                             </button>
                           )}
-                          {!canRestoreToPending() && (
-                            <span className="text-green-600 text-xs sm:text-sm">✓ Approved</span>
-                          )}
-                        </div>
-                      )}
-                      {activeTab === 'rejected' && (
-                        <div className="flex justify-center flex-shrink-0">
-                          {canRestoreToPending() && (
+                          {canDeleteUser() && (
                             <button
-                              onClick={() => handleRestoreClick(user.uid)}
-                              className="px-2 py-1 sm:px-3 sm:py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded transition-colors shadow-sm hover:shadow whitespace-nowrap"
-                              title="Restore to Pending"
+                              onClick={() => handleDeleteClick(user)}
+                              className="p-1.5 sm:p-2 bg-gray-700 hover:bg-gray-800 text-white rounded transition-colors shadow-sm hover:shadow flex items-center justify-center"
+                              title="Delete User"
                             >
-                              Restore
+                              <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
                           )}
                         </div>
@@ -389,6 +455,21 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
           confirmText="Restore to Pending"
           cancelText="Cancel"
           type="info"
+        />
+
+        {/* Confirm Delete User Modal */}
+        <ConfirmModal
+          isOpen={showConfirmDelete}
+          onClose={() => {
+            setShowConfirmDelete(false);
+            setUserToDelete(null);
+          }}
+          onConfirm={handleDeleteUser}
+          title="Delete User"
+          message={`Are you sure you want to permanently delete ${userToDelete?.name || 'this user'} (${userToDelete?.email || ''})? This will remove their account data and they will not be able to log in again.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          type="danger"
         />
       </div>
     </div>
