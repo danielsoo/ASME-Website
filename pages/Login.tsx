@@ -141,10 +141,11 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
             setLoading(false);
             return;
           }
-          // Reset form
+          // Reset form and navigate home — banner will show verification reminder
           setName('');
           setMajor('');
           setYear('');
+          onNavigate('/');
         } finally {
           isSigningUp.current = false;
         }
