@@ -163,7 +163,6 @@ interface GoogleCalendarEvent {
   htmlLink?: string;
 }
 
-let _calendarWarned = false;
 
 const DEFAULT_CALENDAR_ID_BASE64 = 'ODJlM2NhNzNlYjEzZGZhNDk1Y2YxOGQyMjNhYWYxNDE0MjBkYzg3ZWE4NjcwMDRjOWI4MGY5NzhkMzNiNjBhYUBncm91cC5jYWxlbmRhci5nb29nbGUuY29t';
 // Decoded: 82e3ca73eb13dfa495cf18d223aaf141420dc87ea867004c9b80f978d33b60aa@group.calendar.google.com
@@ -263,24 +262,22 @@ export const getGoogleCalendarEvents = async (): Promise<Event[]> => {
       const response = await fetch(url);
 
       if (!response.ok) {
-        if (import.meta.env?.DEV && !_calendarWarned) {
-          _calendarWarned = true;
-          const msg = response.status === 404
-            ? 'Google Calendar: calendar not found (404). Check calendar ID or set VITE_GOOGLE_CALENDAR_ID(S) in .env.local.'
-            : `Google Calendar: request failed (${response.status}). For 403, add VITE_GOOGLE_CALENDAR_API_KEY and enable Calendar API.`;
-          console.warn(msg);
-        }
+        const errBody = await response.text().catch(() => '');
+        const msg = response.status === 404
+          ? `Google Calendar [${calendarId}]: calendar not found (404). Check calendar ID.`
+          : response.status === 403
+          ? `Google Calendar [${calendarId}]: access denied (403). The calendar must be set to "Make available to public" in Google Calendar sharing settings.`
+          : `Google Calendar [${calendarId}]: request failed (${response.status}). ${errBody}`;
+        console.error(msg);
         continue;
       }
 
       const data = await response.json();
       const events = (data.items || []).map((item: GoogleCalendarEvent) => mapCalendarItemToEvent(item, calendarId));
+      console.log(`Google Calendar [${calendarId}]: fetched ${events.length} events`);
       allEvents.push(...events);
     } catch (error) {
-      if (import.meta.env?.DEV && !_calendarWarned) {
-        _calendarWarned = true;
-        console.warn('Google Calendar error:', error);
-      }
+      console.error(`Google Calendar [${calendarId}]: fetch error`, error);
     }
   }
 
