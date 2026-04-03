@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, onSnapshot, query } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { db, auth, storage } from '../../src/firebase/config';
+import { db, auth } from '../../src/firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Sponsor } from '../../src/types';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
+import Uploader from '../../src/components/Uploader';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 
 interface SponsorManagementProps {
@@ -26,8 +26,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   // Form states
   const [sponsorName, setSponsorName] = useState('');
   const [sponsorLink, setSponsorLink] = useState('');
-  const [logoFile, setLogoFile] = useState<File | null>(null)
-  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [logoUrl, setLogoUrl] = useState<string>('');
 
   // Confirm delete modal state
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -135,38 +134,21 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     return currentUserRole === 'President' || currentUserRole === 'Vice President';
   };
 
-  // helper function to upload a file to firebase
-  const uploadSponsorLogo = async (file: File): Promise<string> => {
-    const fileRef = ref(
-      storage,
-      `sponsors/${Date.now()}-${file.name}`
-    );
-
-    await uploadBytes(fileRef, file);
-    return await getDownloadURL(fileRef);
-  }
-
   const handleAddSponsor = async () => {
     if (!sponsorName.trim()) {
       showAlert('warning', 'Validation Error', 'Please enter a sponsor name.');
       throw new Error('Validation failed');
     }
-
-    if (!logoFile) {
+    if (!logoUrl) {
       showAlert('warning', 'Validation Error', 'Please upload a sponsor logo.');
       throw new Error('Validation failed');
     }
 
-    // President/VP can create approved sponsors directly
-    const needsApproval = false;
-
     try {
-      const uploadedLogoUrl = await uploadSponsorLogo(logoFile);
-
       await addDoc(collection(db, 'sponsors'), {
         name: sponsorName.trim(),
         link: sponsorLink.trim() || '',
-        logoUrl: uploadedLogoUrl,
+        logoUrl,
         approvalStatus: 'approved',
         createdBy: currentUserId,
         approvedBy: currentUserId,
@@ -178,9 +160,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
       setShowCreateModal(false);
       setSponsorName('');
       setSponsorLink('');
-      setLogoFile(null);
-      setLogoPreview(null);
-
+      setLogoUrl('');
       await loadSponsors();
       showAlert('success', 'Success', 'Sponsor added successfully!');
     } catch (error) {
@@ -196,24 +176,16 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     }
 
     try {
-      let updatedLogoUrl = selectedSponsor.logoUrl;
-
-      if (logoFile) {
-        updatedLogoUrl = await uploadSponsorLogo(logoFile)
-      }
-
       await updateDoc(doc(db, 'sponsors', selectedSponsor.id), {
         name: sponsorName.trim(),
         link: sponsorLink.trim() || '',
-        logoUrl: updatedLogoUrl,
+        logoUrl: logoUrl || selectedSponsor.logoUrl,
         updatedAt: new Date().toISOString(),
       });
 
       setShowEditModal(false);
       setSelectedSponsor(null);
-      //setLogoFile(null);
-      //setLogoPreview(null);
-
+      setLogoUrl('');
       await loadSponsors();
       showAlert('success', 'Success', 'Sponsor updated successfully!');
     } catch (error) {
@@ -262,16 +234,15 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     setSelectedSponsor(sponsor);
     setSponsorName(sponsor.name);
     setSponsorLink(sponsor.link || '');
-    setLogoFile(null);
-    setLogoPreview(sponsor.logoUrl);
+    setLogoUrl('');
     setShowEditModal(true);
   };
 
-  const createModalDirty = showCreateModal && (sponsorName.trim() !== '' || sponsorLink.trim() !== '' || !!logoFile);
+  const createModalDirty = showCreateModal && (sponsorName.trim() !== '' || sponsorLink.trim() !== '' || !!logoUrl);
   const editModalDirty = showEditModal && !!selectedSponsor && (
     sponsorName.trim() !== (selectedSponsor.name || '').trim() ||
     sponsorLink.trim() !== (selectedSponsor.link || '').trim() ||
-    !!logoFile
+    !!logoUrl
   );
   const dirty = createModalDirty || editModalDirty;
   const saveForLeave = async () => {
@@ -285,16 +256,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     onSave: saveForLeave,
   });
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setLogoFile(file)
-
-    // Optional: preview before upload
-    const previewUrl = URL.createObjectURL(file)
-    setLogoPreview(previewUrl)
-  }
 
   // Check access: Only President/VP can manage sponsors
   if (!canManageSponsors()) {
@@ -328,8 +289,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                 onClick={() => {
                   setSponsorName('');
                   setSponsorLink('');
-                  setLogoFile(null);
-                  setLogoPreview(null);
+                  setLogoUrl('');
                   setShowCreateModal(true);
                 }}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base"
@@ -460,15 +420,16 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Sponsor Logo *
                   </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleLogoUpload(e)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                  <Uploader
+                    folder="/sponsors"
+                    tags={['sponsor']}
+                    buttonLabel="Upload Logo"
+                    onComplete={(u) => setLogoUrl(u.url)}
+                    onError={(msg) => showAlert('error', 'Upload Error', msg)}
                   />
-                  {logoPreview && (
+                  {logoUrl && (
                     <img
-                      src={logoPreview}
+                      src={logoUrl}
                       alt="Logo preview"
                       className="mt-4 h-32 object-contain border rounded"
                     />
@@ -533,15 +494,16 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Sponsor Logo
                   </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleLogoUpload(e)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                  <Uploader
+                    folder="/sponsors"
+                    tags={['sponsor']}
+                    buttonLabel="Replace Logo"
+                    onComplete={(u) => setLogoUrl(u.url)}
+                    onError={(msg) => showAlert('error', 'Upload Error', msg)}
                   />
-                  {logoPreview && (
+                  {(logoUrl || selectedSponsor?.logoUrl) && (
                     <img
-                      src={logoPreview}
+                      src={logoUrl || selectedSponsor?.logoUrl}
                       alt="Logo preview"
                       className="mt-4 h-32 object-contain border rounded"
                     />

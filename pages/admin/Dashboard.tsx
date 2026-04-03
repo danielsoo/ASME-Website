@@ -12,7 +12,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, currentUserRole = '' 
   const [pendingProjectsCount, setPendingProjectsCount] = useState(0);
   const [deletionRequestsCount, setDeletionRequestsCount] = useState(0);
   const [sponsorDeletionRequestsCount, setSponsorDeletionRequestsCount] = useState(0);
-  const [eventDeletionRequestsCount, setEventDeletionRequestsCount] = useState(0);
 
   useEffect(() => {
     // Listen for pending users
@@ -67,34 +66,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, currentUserRole = '' 
       setSponsorDeletionRequestsCount(count);
     });
 
-    // Listen for event deletion requests (event with permanentDeleteRequest that aren't fully approved)
-    const allEventsQuery = query(collection(db, 'events'));
-    const unsubscribeAllEvents = onSnapshot(allEventsQuery, (snapshot) => {
-      let count = 0;
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        if (data.permanentDeleteRequest) {
-          const request = data.permanentDeleteRequest;
-          // Count if not fully approved (both exec approvals are missing)
-          if (!request.approvedByExec1 || !request.approvedByExec2) {
-            count++;
-          }
-        }
-      });
-      setEventDeletionRequestsCount(count);
-    });
-
     return () => {
       unsubscribeUsers();
       unsubscribePendingProjects();
       unsubscribeAllProjects();
       unsubscribeAllSponsors();
-      unsubscribeAllEvents();
     };
   }, []);
 
   // Calculate total notifications
-  const totalNotifications = pendingUsersCount + pendingProjectsCount + deletionRequestsCount + sponsorDeletionRequestsCount + eventDeletionRequestsCount;
+  const totalNotifications = pendingUsersCount + pendingProjectsCount + deletionRequestsCount + sponsorDeletionRequestsCount;
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto">
@@ -189,19 +170,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, currentUserRole = '' 
             <span className="text-blue-600 hover:text-blue-800 font-medium text-sm sm:text-base">Manage →</span>
           </div>
 
-          <div
-            className="bg-white rounded-lg shadow-md p-4 sm:p-6 cursor-pointer hover:shadow-lg transition-shadow relative min-w-0"
-            onClick={() => onNavigate('/admin/events')}
-          >
-            {eventDeletionRequestsCount > 0 && (
-              <span className="absolute top-2 right-2 sm:top-4 sm:right-4 min-w-[22px] sm:min-w-[24px] h-[22px] sm:h-6 rounded-full bg-red-500 text-white text-xs sm:text-sm font-bold flex items-center justify-center px-1 sm:px-2 z-10 shadow">
-                {eventDeletionRequestsCount > 99 ? '99+' : eventDeletionRequestsCount}
-              </span>
-            )}
-            <h2 className="text-lg sm:text-xl font-bold mb-1 sm:mb-2 text-gray-800">Events</h2>
-            <p className="text-gray-600 text-sm sm:text-base mb-3 sm:mb-4">Manage past, current, and upcoming event information</p>
-            <span className="text-blue-600 hover:text-blue-800 font-medium text-sm sm:text-base">Manage →</span>
-          </div>
 
         </div>
       </div>

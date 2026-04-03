@@ -13,8 +13,6 @@ import ProjectTrash from './ProjectTrash';
 import ProjectEditPage from './ProjectEditPage';
 import MemberManagement from './MemberManagement';
 import SponsorTrash from './SponsorTrash';
-import EventManagement from './EventManagement';
-import EventTrash from './EventTrash';
 import AdminAccess from './AdminAccess';
 import SiteContent from './SiteContent';
 import PresidentHandover from './PresidentHandover';
@@ -215,19 +213,6 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
   // Sponsor Trash page
   if (currentPath === '/admin/sponsors/trash') {
     return <SponsorTrash onNavigate={onNavigate || (() => {})} />;
-  }
-
-  // Events Management page
-  if (currentPath === '/admin/events') {
-    return (
-      <div>
-        <EventManagement onNavigate={onNavigate || (() => {})} />
-      </div>
-    )
-  }
-  // Event Trash page
-  if (currentPath === '/admin/events/trash') {
-    return <EventTrash onNavigate={onNavigate || (() => {})} />;
   }
 
   // Default to dashboard

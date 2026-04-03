@@ -1,73 +1,66 @@
 import { IKUpload } from "imagekitio-react";
 import { useRef, useState } from "react";
 import React from "react";
-
-// NOTE::: fix this to actually work ; may need to add an API call somewhere in App.tsx or something
+import { Upload, CheckCircle } from "lucide-react";
 
 type Props = {
   folder?: string;
   tags?: string[];
   fileName?: string;
   buttonLabel?: string;
-  onComplete: (u: any) => void;
+  onComplete: (u: {
+    url: string;
+    fileId: string;
+    filePath: string;
+    thumbnailUrl: string | null;
+    height?: number;
+    width?: number;
+    size?: number;
+    name: string;
+  }) => void;
   onProgress?: (pct: number) => void;
   onError?: (message: string) => void;
 };
 
-//styles
-const ButtonStyle = {
-  color: "white",
-  fontWeight: "medium",
-  backgroundColor: "oklch(54.6% 0.245 262.881)",
-  padding: "10px",
-  borderRadius: "0.25rem",
-  margin: "8px",
-  cursor: "pointer"
-}
-const ButtonHover = {
-  color: "white",
-  fontWeight: "medium",
-  backgroundColor: "oklch(48.8% 0.243 264.376)",
-  padding: "10px",
-  borderRadius: "0.25rem",
-  margin: "8px",
-}
-
-const LoadStyle = {
-  color: "black",
-  margin: "8px",
-
-}
+const authEndpoint = import.meta.env.VITE_IMAGEKIT_AUTH_ENDPOINT as string | undefined;
 
 const Uploader: React.FC<Props> = ({
   folder,
   tags,
   fileName,
-  buttonLabel = "Upload image",
+  buttonLabel = "Upload Image",
   onComplete,
   onProgress,
   onError,
 }) => {
-  // Ref to the underlying <input type="file"> created by IKUpload
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [progress, setProgress] = useState<number>(0);
+  const [uploading, setUploading] = useState(false);
+  const [done, setDone] = useState(false);
 
-  const [isHovering, setIsHovering] = useState(false);
+  const authenticator = authEndpoint
+    ? async () => {
+        const resp = await fetch(authEndpoint);
+        if (!resp.ok) throw new Error("ImageKit auth failed");
+        return resp.json() as Promise<{ signature: string; expire: number; token: string }>;
+      }
+    : undefined;
 
-  const handleMouseEnter = () => setIsHovering(true);
-  const handleMouseLeave = () => setIsHovering(false);
-
-  const currentStyle = isHovering ? { ...ButtonStyle, ...ButtonHover } : ButtonStyle;
+  const handleClick = () => {
+    setDone(false);
+    setProgress(0);
+    fileInputRef.current?.click();
+  };
 
   return (
-    <div>
-      {/* Hide the default input and control it with our button */}
+    <div className="flex items-center gap-3 flex-wrap">
       <IKUpload
         inputRef={fileInputRef}
         fileName={fileName}
         folder={folder}
         tags={tags}
         useUniqueFileName
+        authenticator={authenticator}
         style={{ display: "none" }}
         validateFile={(file) => {
           if (!file.type.startsWith("image/")) {
@@ -76,13 +69,23 @@ const Uploader: React.FC<Props> = ({
           }
           return true;
         }}
-        onError={(err) => {
-          const msg =
-            (err && (err.message || err?.response?.data?.message)) ||
-            "Upload failed";
-          onError?.(msg);
+        onUploadStart={() => {
+          setUploading(true);
+          setDone(false);
+          setProgress(0);
+        }}
+        onUploadProgress={(evt) => {
+          const pct =
+            evt.total && evt.total > 0
+              ? Math.round((evt.loaded / evt.total) * 100)
+              : 0;
+          setProgress(pct);
+          onProgress?.(pct);
         }}
         onSuccess={(result) => {
+          setUploading(false);
+          setDone(true);
+          setProgress(100);
           onComplete({
             url: result.url,
             fileId: result.fileId,
@@ -93,32 +96,44 @@ const Uploader: React.FC<Props> = ({
             size: result.size,
             name: result.name,
           });
-          setProgress(100);
         }}
-        onUploadProgress={(evt) => {
-          const pct =
-            evt.total && evt.total > 0
-              ? Math.round((evt.loaded / evt.total) * 100)
-              : 0;
-          setProgress(pct);
-          onProgress?.(pct);
+        onError={(err) => {
+          setUploading(false);
+          const msg =
+            (err as any)?.message ||
+            (err as any)?.response?.data?.message ||
+            "Upload failed";
+          onError?.(msg);
         }}
       />
 
-      {/* Fix this to actually show up correctly */}
       <button
-        style={currentStyle}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
         type="button"
-        onClick={() => fileInputRef.current?.click()}
+        onClick={handleClick}
+        disabled={uploading}
+        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded transition-colors"
       >
-        {buttonLabel}
+        <Upload className="w-4 h-4" />
+        {uploading ? `Uploading... ${progress}%` : buttonLabel}
       </button>
 
-      <div style={LoadStyle}>
-        Upload progress: <progress value={progress} max={100} />
-      </div>
+      {done && !uploading && (
+        <span className="inline-flex items-center gap-1 text-green-600 text-sm font-medium">
+          <CheckCircle className="w-4 h-4" />
+          Uploaded
+        </span>
+      )}
+
+      {uploading && (
+        <div className="w-32">
+          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-500 transition-all duration-200"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

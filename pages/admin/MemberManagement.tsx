@@ -5,71 +5,11 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { Plus, Edit, Trash2, Save, X } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
-//import { uploadToImageKit } from '../../src/imagekit';
-// add Uploader instance to render() for the ability to add profile pictures
+import { TeamMember } from '../../src/types';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 
 interface MemberManagementProps {
   onNavigate: (path: string) => void;
-}
-
-// NOTE::: instead of using this, we could import TeamMember from types.tsx:
-// to do this, you would likely need to unify type names. Specifically, "users" use "role" but "TeamMembers" use "position"
-// additionally, you may need to add an automatic approval status to TeamMember in order to merge the two into one Array
-// VVVVVVV example:
-
-/*import { TeamMember } from "../../src/types"
-
-const [members, setMembers] = useState<TeamMember[]>([]);
-
-const loadMembers = async () => {
-    try {
-      setLoading(true);
-      const usersRef = collection(db, 'users');
-      const snapshot = await getDocs(usersRef);
-      const membersList: TeamMember[] = [];
-
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        if (data.status === 'approved') {
-          membersList.push({
-            uid: docSnap.id,
-            name: data.name || '',
-            email: data.email || '',
-            major: data.major || '',
-            year: data.year || '',
-            role: data.role || 'member',
-            team: data.team || undefined,
-            status: data.status,
-          });
-        }
-      });
-
-      // Sort: Executive Board first, then by name
-      membersList.sort((a, b) => {
-        const aIsExec = a.role !== 'member' && a.role !== 'admin';
-        const bIsExec = b.role !== 'member' && b.role !== 'admin';
-        if (aIsExec !== bIsExec) return aIsExec ? -1 : 1;
-        return a.name.localeCompare(b.name);
-      });
-
-      setMembers(membersList);
-    } catch (error) {
-      console.error('Error loading members:', error);
-    } finally {
-      setLoading(false);
-    }
-  };*/
-
-interface Member {
-  uid: string;
-  name: string;
-  email: string;
-  major: string;
-  year: string;
-  role?: string;
-  team?: 'Design Team' | 'General Body';
-  status: 'approved' | 'pending' | 'rejected';
 }
 
 interface ExecPosition {
@@ -79,7 +19,7 @@ interface ExecPosition {
 }
 
 const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<TeamMember[]>([]);
   const [execPositions, setExecPositions] = useState<ExecPosition[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
@@ -97,7 +37,12 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   // Delete confirmation modal states
   const [showDeleteErrorModal, setShowDeleteErrorModal] = useState(false);
   const [deleteErrorPosition, setDeleteErrorPosition] = useState<ExecPosition | null>(null);
-  const [assignedMembersForDeletion, setAssignedMembersForDeletion] = useState<Member[]>([]);
+  const [assignedMembersForDeletion, setAssignedMembersForDeletion] = useState<TeamMember[]>([]);
+
+  // Duplicate member modal states
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateUser, setDuplicateUser] = useState<TeamMember | null>(null);
+  const [pendingAddData, setPendingAddData] = useState<{ name: string; email: string; major: string; year: string; role: string; team: string } | null>(null);
   
   // Confirm delete modal state
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -121,7 +66,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   };
 
   // Member role assignment states
-  const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [selectedTeam, setSelectedTeam] = useState<'Design Team' | 'General Body' | ''>('');
 
@@ -162,18 +107,21 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
       setLoading(true);
       const usersRef = collection(db, 'users');
       const snapshot = await getDocs(usersRef);
-      const membersList: Member[] = [];
+      const membersList: TeamMember[] = [];
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
         if (data.status === 'approved') {
           membersList.push({
-            uid: docSnap.id,
+            id: docSnap.id,
             name: data.name || '',
             email: data.email || '',
             major: data.major || '',
             year: data.year || '',
-            role: data.role || 'member',
+            hometown: data.hometown || '',
+            imageUrl: data.imageUrl || '',
+            isExec: data.role !== 'member' && data.role !== 'admin',
+            position: data.role || 'member',
             team: data.team || undefined,
             status: data.status,
           });
@@ -182,8 +130,8 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
 
       // Sort: Executive Board first, then by name
       membersList.sort((a, b) => {
-        const aIsExec = a.role !== 'member' && a.role !== 'admin';
-        const bIsExec = b.role !== 'member' && b.role !== 'admin';
+        const aIsExec = a.position !== 'member' && a.position !== 'admin';
+        const bIsExec = b.position !== 'member' && b.position !== 'admin';
         if (aIsExec !== bIsExec) return aIsExec ? -1 : 1;
         return a.name.localeCompare(b.name);
       });
@@ -277,7 +225,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     }
 
     // Check if any members are assigned to this position
-    const assignedMembers = members.filter(m => m.role === position.name);
+    const assignedMembers = members.filter(m => m.position === position.name);
     
     if (assignedMembers.length > 0) {
       // Show custom error modal instead of alert
@@ -321,7 +269,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     // If role is 'member', no team assignment needed
     if (selectedRole === 'member') {
       try {
-        await updateDoc(doc(db, 'users', editingMember.uid), {
+        await updateDoc(doc(db, 'users', editingMember.id), {
           role: 'member',
           team: null,
         });
@@ -344,7 +292,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     }
 
     try {
-      await updateDoc(doc(db, 'users', editingMember.uid), {
+      await updateDoc(doc(db, 'users', editingMember.id), {
         role: selectedRole,
         team: selectedTeam,
       });
@@ -359,9 +307,9 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     }
   };
 
-  const openMemberEdit = (member: Member) => {
+  const openMemberEdit = (member: TeamMember) => {
     setEditingMember(member);
-    setSelectedRole(member.role || 'member');
+    setSelectedRole(member.position || 'member');
     setSelectedTeam(member.team || '');
   };
 
@@ -371,7 +319,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
       : positionName.trim() !== '' || positionTeam !== ''
   );
   const memberEditDirty = editingMember !== null && (
-    selectedRole !== (editingMember.role || 'member') || selectedTeam !== (editingMember.team || '')
+    selectedRole !== (editingMember.position || 'member') || selectedTeam !== (editingMember.team || '')
   );
   const addMemberDirty = showAddMemberModal && (
     newMemberName.trim() !== '' || newMemberEmail.trim() !== '' || newMemberMajor.trim() !== '' || newMemberYear.trim() !== ''
@@ -404,30 +352,80 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     }
     setAddingMember(true);
     try {
-      await addDoc(collection(db, 'users'), {
-        name,
-        email,
-        major: newMemberMajor.trim() || '',
-        year: newMemberYear.trim() || '',
-        role: newMemberRole,
-        team: newMemberRole === 'member' ? null : newMemberTeam || null,
-        status: 'approved',
-        isManualAdd: true,
-      });
-      setShowAddMemberModal(false);
-      setNewMemberName('');
-      setNewMemberEmail('');
-      setNewMemberMajor('');
-      setNewMemberYear('');
-      setNewMemberRole('member');
-      setNewMemberTeam('');
-      await loadMembers();
-      showAlert('success', 'Success', 'Member has been added to the list.');
+      // Check for duplicate email
+      const emailQuery = query(collection(db, 'users'), where('email', '==', email));
+      const emailSnapshot = await getDocs(emailQuery);
+      if (!emailSnapshot.empty) {
+        const existingDoc = emailSnapshot.docs[0];
+        const existingData = existingDoc.data();
+        const existingMember: TeamMember = {
+          id: existingDoc.id,
+          name: existingData.name || '',
+          email: existingData.email || '',
+          major: existingData.major || '',
+          year: existingData.year || '',
+          hometown: existingData.hometown || '',
+          imageUrl: existingData.imageUrl || '',
+          position: existingData.role || 'member',
+          team: existingData.team || undefined,
+          status: existingData.status,
+        };
+        setDuplicateUser(existingMember);
+        setPendingAddData({ name, email, major: newMemberMajor.trim() || '', year: newMemberYear.trim() || '', role: newMemberRole, team: newMemberTeam });
+        setAddingMember(false);
+        setShowDuplicateModal(true);
+        return;
+      }
+
+      await doAddMember({ name, email, major: newMemberMajor.trim() || '', year: newMemberYear.trim() || '', role: newMemberRole, team: newMemberTeam });
     } catch (error) {
       console.error('Error adding member:', error);
       showAlert('error', 'Error', 'Failed to add member. Please try again.');
     } finally {
       setAddingMember(false);
+    }
+  };
+
+  const doAddMember = async (data: { name: string; email: string; major: string; year: string; role: string; team: string }) => {
+    await addDoc(collection(db, 'users'), {
+      name: data.name,
+      email: data.email,
+      major: data.major,
+      year: data.year,
+      role: data.role,
+      team: data.role === 'member' ? null : data.team || null,
+      status: 'approved',
+      isManualAdd: true,
+    });
+    setShowAddMemberModal(false);
+    setNewMemberName(''); setNewMemberEmail(''); setNewMemberMajor(''); setNewMemberYear('');
+    setNewMemberRole('member'); setNewMemberTeam('');
+    await loadMembers();
+    showAlert('success', 'Success', 'Member has been added to the list.');
+  };
+
+  const handleDuplicateUpdate = async () => {
+    if (!duplicateUser || !pendingAddData) return;
+    try {
+      await updateDoc(doc(db, 'users', duplicateUser.id), {
+        name: pendingAddData.name,
+        major: pendingAddData.major,
+        year: pendingAddData.year,
+        role: pendingAddData.role,
+        team: pendingAddData.role === 'member' ? null : pendingAddData.team || null,
+        status: 'approved',
+      });
+      setShowDuplicateModal(false);
+      setDuplicateUser(null);
+      setPendingAddData(null);
+      setShowAddMemberModal(false);
+      setNewMemberName(''); setNewMemberEmail(''); setNewMemberMajor(''); setNewMemberYear('');
+      setNewMemberRole('member'); setNewMemberTeam('');
+      await loadMembers();
+      showAlert('success', 'Success', 'Existing member record has been updated.');
+    } catch (error) {
+      console.error('Error updating duplicate member:', error);
+      showAlert('error', 'Error', 'Failed to update member. Please try again.');
     }
   };
 
@@ -559,7 +557,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{member.major}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{member.year}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {editingMember?.uid === member.uid ? (
+                        {editingMember?.id === member.id ? (
                           <select
                             value={selectedRole}
                             onChange={(e) => {
@@ -577,11 +575,11 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                             ))}
                           </select>
                         ) : (
-                          <span className="text-gray-700">{member.role === 'member' ? 'Member' : member.role}</span>
+                          <span className="text-gray-700">{member.position === 'member' ? 'Member' : member.position}</span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {editingMember?.uid === member.uid ? (
+                        {editingMember?.id === member.id ? (
                           selectedRole !== 'member' ? (
                             <select
                               value={selectedTeam}
@@ -600,7 +598,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {editingMember?.uid === member.uid ? (
+                        {editingMember?.id === member.id ? (
                           <div className="flex gap-2">
                             <button
                               onClick={handleMemberRoleChange}
@@ -828,7 +826,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                   <p className="text-sm font-semibold text-yellow-800 mb-2">Assigned Members:</p>
                   <ul className="list-disc list-inside space-y-1">
                     {assignedMembersForDeletion.map((member) => (
-                      <li key={member.uid} className="text-sm text-yellow-900">
+                      <li key={member.id} className="text-sm text-yellow-900">
                         {member.name || member.email}
                       </li>
                     ))}
@@ -878,6 +876,22 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
           confirmText="Delete"
           cancelText="Cancel"
           type="danger"
+        />
+
+        {/* Duplicate Email Modal */}
+        <ConfirmModal
+          isOpen={showDuplicateModal}
+          onClose={() => {
+            setShowDuplicateModal(false);
+            setDuplicateUser(null);
+            setPendingAddData(null);
+          }}
+          onConfirm={handleDuplicateUpdate}
+          title="Duplicate Email Found"
+          message={`A member with this email already exists:\n\nName: ${duplicateUser?.name || '—'}\nEmail: ${duplicateUser?.email || '—'}\nRole: ${duplicateUser?.position || 'member'}\nStatus: ${duplicateUser?.status || '—'}\n\nDo you want to update their record with the new information instead of creating a duplicate?`}
+          confirmText="Update Existing"
+          cancelText="Cancel"
+          type="warning"
         />
       </div>
     </div>

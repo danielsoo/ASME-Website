@@ -11,6 +11,7 @@ export interface TeamMember {
   email?: string;
   team?: 'Design Team' | 'General Body'; // Team assignment for Exec Board members
   order?: number; // Display order for sorting
+  status?: 'approved' | 'pending' | 'rejected'; // From users collection
 }
 
 export interface Project {
