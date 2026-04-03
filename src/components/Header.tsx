@@ -3,7 +3,7 @@ import { signOut } from 'firebase/auth';
 import { doc, getDoc, collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { NAV_LINKS } from '../constants';
-import { Settings, LogOut, Menu, X } from 'lucide-react';
+import { Settings, LogOut, Menu, X, User } from 'lucide-react';
 
 interface HeaderProps {
   currentPath: string;
@@ -17,6 +17,7 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
   const [userData, setUserData] = useState<any>(null);
   const [allowedAdminRoles, setAllowedAdminRoles] = useState<string[]>(DEFAULT_ALLOWED_ADMIN_ROLES);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [adminNotificationCount, setAdminNotificationCount] = useState(0);
   
   // Check if a menu item is the current page (so we can underline it)
@@ -139,28 +140,42 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
     try {
       await signOut(auth);
       setMenuOpen(false);
+      setMobileNavOpen(false);
       onNavigate('/');
     } catch (error) {
       console.error('Logout error:', error);
     }
   };
 
-  // Close menu when clicking outside
+  // Close mobile nav when viewport becomes desktop-sized
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const onChange = () => {
+      if (mq.matches) setMobileNavOpen(false);
+    };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       if (menuOpen && !target.closest('[data-menu-container]')) {
         setMenuOpen(false);
       }
+      if (mobileNavOpen && !target.closest('[data-mobile-nav-container]')) {
+        setMobileNavOpen(false);
+      }
     };
 
-    if (menuOpen) {
+    if (menuOpen || mobileNavOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
-  }, [menuOpen]);
+  }, [menuOpen, mobileNavOpen]);
 
   return (
     // The main header container - this is the whole header bar at the top of the page
@@ -231,102 +246,184 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
           }}
         />
 
-        {/* Loop through all menu items and create a link for each one */}
-        {/* Menu items are directly rendered without wrapper div, allowing space-between to distribute them */}
-        {NAV_LINKS.map((link) => {
-          // Check if this menu item is the current page
-          const active = isActive(link.path);
-          return (
+        {/* Desktop: horizontal nav (md and up) */}
+        <div className="hidden md:flex md:flex-1 md:items-center md:justify-between md:min-w-0 md:mx-4 lg:mx-8">
+          {NAV_LINKS.map((link) => {
+            const active = isActive(link.path);
+            return (
+              <button
+                key={link.name}
+                onClick={() => onNavigate(link.path)}
+                style={{
+                  color: "#FFF",
+                  fontFamily: "var(--font-jost, 'Jost', sans-serif)",
+                  fontSize: "clamp(12px, 1.8vw, 34.575px)",
+                  fontWeight: 400,
+                  textDecoration: active ? "underline" : "none",
+                  textDecorationColor: active ? "#FFF" : "transparent",
+                  textUnderlineOffset: "clamp(2px, 0.26vw, 4px)",
+                  textDecorationThickness: "clamp(1px, 0.13vw, 2px)",
+                  whiteSpace: "nowrap",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                {link.name}
+              </button>
+            );
+          })}
+
+          {canAccessAdmin && (
             <button
-              key={link.name}
-              onClick={() => onNavigate(link.path)}
+              onClick={() => onNavigate('/admin')}
               style={{
-                // Make text white
+                position: "relative",
                 color: "#FFF",
-                // Use the Jost font we set up earlier
                 fontFamily: "var(--font-jost, 'Jost', sans-serif)",
-                // Make font size responsive: smallest is 12px, biggest is 34.575px
-                fontSize: "clamp(12px, 1.8vw, 34.575px)",
-                // Make text normal weight (not bold)
+                fontSize: "clamp(12px, 2.29vw, 34.575px)",
                 fontWeight: 400,
-                // If this is the active page, underline it. Otherwise, no underline
-                textDecoration: active ? "underline" : "none",
-                // Make underline white if it's active, invisible if not
-                textDecorationColor: active ? "#FFF" : "transparent",
-                // Make the underline a little bit below the text (responsive)
+                textDecoration: isActive('/admin') ? "underline" : "none",
+                textDecorationColor: isActive('/admin') ? "#FFF" : "transparent",
                 textUnderlineOffset: "clamp(2px, 0.26vw, 4px)",
-                // Make the underline thickness responsive
                 textDecorationThickness: "clamp(1px, 0.13vw, 2px)",
-                // Don't let the text wrap to a new line - keep it on one line
                 whiteSpace: "nowrap",
-                // Remove button default styles
                 background: "none",
                 border: "none",
                 cursor: "pointer",
                 padding: 0,
               }}
             >
-              {/* Show the menu item label (like "HOME", "ABOUT", etc.) */}
-              {link.name}
+              ADMIN
+              {adminNotificationCount > 0 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "-8px",
+                    right: "-6px",
+                    backgroundColor: "#EF4444",
+                    color: "#FFF",
+                    borderRadius: "50%",
+                    minWidth: "clamp(18px, 2vw, 24px)",
+                    height: "clamp(18px, 2vw, 24px)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "clamp(10px, 1.2vw, 14px)",
+                    fontWeight: "bold",
+                    padding: "0 clamp(4px, 0.5vw, 6px)",
+                    fontFamily: "var(--font-jost, 'Jost', sans-serif)",
+                    border: "2px solid rgba(0, 0, 0, 0.3)",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  {adminNotificationCount > 99 ? '99+' : adminNotificationCount}
+                </span>
+              )}
             </button>
-          );
-        })}
+          )}
+        </div>
 
-        {/* Admin Menu Item - Only show if user's role has admin access (Executive Board roles granted by President). */}
-        {canAccessAdmin && (
+        {/* Right cluster: mobile site nav + account (account only on md+) */}
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+        {/* Mobile: site nav hamburger (below md) */}
+        <div
+          className="relative md:hidden shrink-0"
+          data-mobile-nav-container
+        >
           <button
-            onClick={() => onNavigate('/admin')}
+            type="button"
+            onClick={() => {
+              setMobileNavOpen(!mobileNavOpen);
+              setMenuOpen(false);
+            }}
             style={{
-              position: "relative",
               color: "#FFF",
-              fontFamily: "var(--font-jost, 'Jost', sans-serif)",
-              fontSize: "clamp(12px, 2.29vw, 34.575px)",
-              fontWeight: 400,
-              textDecoration: isActive('/admin') ? "underline" : "none",
-              textDecorationColor: isActive('/admin') ? "#FFF" : "transparent",
-              textUnderlineOffset: "clamp(2px, 0.26vw, 4px)",
-              textDecorationThickness: "clamp(1px, 0.13vw, 2px)",
-              whiteSpace: "nowrap",
               background: "none",
               border: "none",
               cursor: "pointer",
-              padding: 0,
+              padding: "clamp(8px, 1vw, 12px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
+            aria-expanded={mobileNavOpen}
+            aria-label="Open site menu"
           >
-            ADMIN
-            {adminNotificationCount > 0 && (
-              <span
-                style={{
-                  position: "absolute",
-                  top: "-8px",
-                  right: "-6px",
-                  backgroundColor: "#EF4444",
-                  color: "#FFF",
-                  borderRadius: "50%",
-                  minWidth: "clamp(18px, 2vw, 24px)",
-                  height: "clamp(18px, 2vw, 24px)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "clamp(10px, 1.2vw, 14px)",
-                  fontWeight: "bold",
-                  padding: "0 clamp(4px, 0.5vw, 6px)",
-                  fontFamily: "var(--font-jost, 'Jost', sans-serif)",
-                  border: "2px solid rgba(0, 0, 0, 0.3)",
-                  boxSizing: "border-box",
-                }}
-              >
-                {adminNotificationCount > 99 ? '99+' : adminNotificationCount}
-              </span>
+            {mobileNavOpen ? (
+              <X style={{ width: 28, height: 28 }} />
+            ) : (
+              <Menu style={{ width: 28, height: 28 }} />
             )}
           </button>
-        )}
 
-        {/* User Menu - Hamburger Menu */}
-        <div style={{ position: "relative", flexShrink: 0 }} data-menu-container>
-          {/* Hamburger Menu Button */}
+          {mobileNavOpen && (
+            <div
+              className="absolute right-0 z-[60] mt-2 min-w-[min(100vw-2rem,280px)] rounded-lg border border-white/20 bg-black/95 p-3 shadow-lg backdrop-blur-md"
+              role="menu"
+            >
+              <div className="flex flex-col gap-1">
+                {NAV_LINKS.map((link) => {
+                  const active = isActive(link.path);
+                  return (
+                    <button
+                      key={link.name}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        onNavigate(link.path);
+                        setMobileNavOpen(false);
+                      }}
+                      className="w-full rounded px-3 py-2.5 text-left font-jost text-base text-white transition-colors hover:bg-white/10"
+                      style={{
+                        textDecoration: active ? "underline" : "none",
+                        textDecorationColor: active ? "#FFF" : "transparent",
+                        textUnderlineOffset: "4px",
+                      }}
+                    >
+                      {link.name}
+                    </button>
+                  );
+                })}
+                {canAccessAdmin && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      onNavigate('/admin');
+                      setMobileNavOpen(false);
+                    }}
+                    className="relative w-full rounded px-3 py-2.5 text-left font-jost text-base text-white transition-colors hover:bg-white/10"
+                    style={{
+                      textDecoration: isActive('/admin') ? "underline" : "none",
+                      textDecorationColor: isActive('/admin') ? "#FFF" : "transparent",
+                      textUnderlineOffset: "4px",
+                    }}
+                  >
+                    ADMIN
+                    {adminNotificationCount > 0 && (
+                      <span
+                        className="ml-2 inline-flex min-h-[22px] min-w-[22px] items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white"
+                      >
+                        {adminNotificationCount > 99 ? '99+' : adminNotificationCount}
+                      </span>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* User Menu — account (desktop: menu icon; mobile: user icon to distinguish from site nav) */}
+        <div className="relative shrink-0" data-menu-container>
           <button
-            onClick={() => setMenuOpen(!menuOpen)}
+            type="button"
+            onClick={() => {
+              setMenuOpen(!menuOpen);
+              setMobileNavOpen(false);
+            }}
             style={{
               color: "#FFF",
               background: "none",
@@ -337,13 +434,24 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
               alignItems: "center",
               justifyContent: "center",
             }}
-            title="Menu"
+            title="Account"
+            aria-expanded={menuOpen}
+            aria-label="Account menu"
           >
-            {menuOpen ? (
-              <X style={{ width: "clamp(24px, 2.29vw, 40px)", height: "clamp(24px, 2.29vw, 40px)" }} />
-            ) : (
-              <Menu style={{ width: "clamp(24px, 2.29vw, 40px)", height: "clamp(24px, 2.29vw, 40px)" }} />
-            )}
+            <span className="hidden md:inline">
+              {menuOpen ? (
+                <X style={{ width: "clamp(24px, 2.29vw, 40px)", height: "clamp(24px, 2.29vw, 40px)" }} />
+              ) : (
+                <Menu style={{ width: "clamp(24px, 2.29vw, 40px)", height: "clamp(24px, 2.29vw, 40px)" }} />
+              )}
+            </span>
+            <span className="md:hidden">
+              {menuOpen ? (
+                <X style={{ width: 28, height: 28 }} />
+              ) : (
+                <User style={{ width: 28, height: 28 }} />
+              )}
+            </span>
           </button>
 
           {/* Dropdown Menu */}
@@ -488,6 +596,7 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
               )}
             </div>
           )}
+        </div>
         </div>
       </div>
     </header>

@@ -164,18 +164,10 @@ interface GoogleCalendarEvent {
 }
 
 
-const DEFAULT_CALENDAR_ID_BASE64 = 'ODJlM2NhNzNlYjEzZGZhNDk1Y2YxOGQyMjNhYWYxNDE0MjBkYzg3ZWE4NjcwMDRjOWI4MGY5NzhkMzNiNjBhYUBncm91cC5jYWxlbmRhci5nb29nbGUuY29t';
-// Decoded: 82e3ca73eb13dfa495cf18d223aaf141420dc87ea867004c9b80f978d33b60aa@group.calendar.google.com
+// Default calendar ID — must match the fallback in Events.tsx
+const DEFAULT_CALENDAR_ID = 'k1n8agb7ecfitks2jflr6qrfjs@group.calendar.google.com';
 
-function decodeCalendarId(encoded: string): string {
-  try {
-    return atob(encoded);
-  } catch {
-    return decodeURIComponent(encoded);
-  }
-}
-
-/** Returns list of calendar IDs to fetch. Supports 1) multiple via VITE_GOOGLE_CALENDAR_IDS (comma), 2) single VITE_GOOGLE_CALENDAR_ID, 3) default encoded ID. */
+/** Returns list of calendar IDs to fetch. Supports 1) multiple via VITE_GOOGLE_CALENDAR_IDS (comma), 2) single VITE_GOOGLE_CALENDAR_ID, 3) default ID. */
 function getCalendarIds(): string[] {
   const env = typeof import.meta !== 'undefined' ? import.meta.env : undefined;
   const multiple = env?.VITE_GOOGLE_CALENDAR_IDS;
@@ -184,7 +176,7 @@ function getCalendarIds(): string[] {
   }
   const single = env?.VITE_GOOGLE_CALENDAR_ID;
   if (single) return [single];
-  return [decodeCalendarId(DEFAULT_CALENDAR_ID_BASE64)];
+  return [DEFAULT_CALENDAR_ID];
 }
 
 const CALENDAR_TZ = 'America/New_York';
