@@ -21,6 +21,7 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
   const [verificationSentToEmail, setVerificationSentToEmail] = useState(''); // Email address we sent verification to (for display)
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const isSigningUp = React.useRef(false);
 
   // Check if user is already logged in and email verified
   useEffect(() => {
@@ -28,6 +29,8 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
       if (user) {
         // Check email verification
         if (!user.emailVerified) {
+          // Skip error if we're in the middle of signup — handleSubmit will set the success state
+          if (isSigningUp.current) return;
           setError('Email verification not completed. Please check your email.');
           setEmailVerificationSent(true);
           setEmail(user.email || '');
@@ -100,38 +103,44 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
           return;
         }
 
-        // Sign up and send email verification
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        
-        // Save user info to Firestore (waiting for email verification)
-        await setDoc(doc(db, 'users', userCredential.user.uid), {
-          name: name.trim(),
-          email: email.toLowerCase(),
-          major: major.trim(),
-          year: year.trim(),
-          createdAt: new Date(),
-          emailVerified: false,
-          status: 'pending', // Waiting for email verification
-          role: 'member', // Default: regular member
-        });
-
+        // Flag that we're in signup so onAuthStateChanged doesn't flash an error
+        isSigningUp.current = true;
         try {
-          await sendEmailVerification(userCredential.user);
-          const sentTo = userCredential.user.email || email;
-          console.log('Email verification sent:', sentTo);
-          setVerificationSentToEmail(sentTo);
-          setEmailVerificationSent(true);
-          setError('');
-        } catch (emailError: any) {
-          console.error('Failed to send email verification:', emailError);
-          setError('Failed to send email verification. Please try again later.');
-          setLoading(false);
-          return;
+          // Sign up and send email verification
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+          // Save user info to Firestore (waiting for email verification)
+          await setDoc(doc(db, 'users', userCredential.user.uid), {
+            name: name.trim(),
+            email: email.toLowerCase(),
+            major: major.trim(),
+            year: year.trim(),
+            createdAt: new Date(),
+            emailVerified: false,
+            status: 'pending', // Waiting for email verification
+            role: 'member', // Default: regular member
+          });
+
+          try {
+            await sendEmailVerification(userCredential.user);
+            const sentTo = userCredential.user.email || email;
+            console.log('Email verification sent:', sentTo);
+            setVerificationSentToEmail(sentTo);
+            setEmailVerificationSent(true);
+            setError('');
+          } catch (emailError: any) {
+            console.error('Failed to send email verification:', emailError);
+            setError('Failed to send email verification. Please try again later.');
+            setLoading(false);
+            return;
+          }
+          // Reset form
+          setName('');
+          setMajor('');
+          setYear('');
+        } finally {
+          isSigningUp.current = false;
         }
-        // Reset form
-        setName('');
-        setMajor('');
-        setYear('');
         return;
       } else {
         // Check email verification and approval status on login
