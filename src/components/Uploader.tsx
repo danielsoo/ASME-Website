@@ -1,6 +1,5 @@
 import { IKUpload } from "imagekitio-react";
-import { useRef, useState } from "react";
-import React from "react";
+import React, { useRef, useState } from "react";
 import { Upload, CheckCircle } from "lucide-react";
 
 type Props = {
@@ -34,7 +33,7 @@ const Uploader: React.FC<Props> = ({
   onError,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [progress, setProgress] = useState<number>(0);
+  const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -42,7 +41,7 @@ const Uploader: React.FC<Props> = ({
     ? async () => {
         const resp = await fetch(authEndpoint);
         if (!resp.ok) throw new Error("ImageKit auth failed");
-        return resp.json() as Promise<{ signature: string; expire: number; token: string }>;
+        return (await resp.json()) as { signature: string; expire: number; token: string };
       }
     : undefined;
 
@@ -55,14 +54,14 @@ const Uploader: React.FC<Props> = ({
   return (
     <div className="flex items-center gap-3 flex-wrap">
       <IKUpload
-        inputRef={fileInputRef}
+        ref={fileInputRef}
         fileName={fileName}
         folder={folder}
         tags={tags}
         useUniqueFileName
         authenticator={authenticator}
         style={{ display: "none" }}
-        validateFile={(file) => {
+        validateFile={(file: any) => {
           if (!file.type.startsWith("image/")) {
             onError?.("Only image files are allowed.");
             return false;
@@ -74,7 +73,7 @@ const Uploader: React.FC<Props> = ({
           setDone(false);
           setProgress(0);
         }}
-        onUploadProgress={(evt) => {
+        onUploadProgress={(evt: any) => {
           const pct =
             evt.total && evt.total > 0
               ? Math.round((evt.loaded / evt.total) * 100)
@@ -82,7 +81,7 @@ const Uploader: React.FC<Props> = ({
           setProgress(pct);
           onProgress?.(pct);
         }}
-        onSuccess={(result) => {
+        onSuccess={(result: any) => {
           setUploading(false);
           setDone(true);
           setProgress(100);
@@ -97,7 +96,7 @@ const Uploader: React.FC<Props> = ({
             name: result.name,
           });
         }}
-        onError={(err) => {
+        onError={(err: any) => {
           setUploading(false);
           const msg =
             (err as any)?.message ||
