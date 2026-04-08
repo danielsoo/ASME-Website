@@ -176,14 +176,14 @@ export const AboutSiteLayoutPreview: React.FC<AboutSiteLayoutPreviewProps> = ({
 
     return (
       <div className={`rounded-lg border border-gray-200 bg-gray-100 ${pad}`}>
-        <div className="max-w-5xl mx-auto space-y-8">
-          <div className="flex flex-col md:flex-row gap-12 items-start">
-            <div className="w-full md:w-1/2">
-              <div className="mb-6">
-                <img src={teamPageLeftSrc} alt="" className="w-full h-auto rounded-lg border-2 border-blue-300" />
+        <div className="max-w-5xl mx-auto space-y-8 min-w-0">
+          <div className="flex flex-col gap-8 items-stretch">
+            <div className="w-full min-w-0">
+              <div className="mb-2">
+                <img src={teamPageLeftSrc} alt="" className="w-full max-w-2xl mx-auto h-auto rounded-lg border-2 border-blue-300" />
               </div>
             </div>
-            <div className="w-full md:w-1/2 min-w-0">
+            <div className="w-full min-w-0">
               <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">{renderAboutTitle(actTitle, 'Our Activities')}</h2>
               <ul className="space-y-4 font-jost">
                 {(activities.length ? activities : DEFAULT_GENERAL_BODY.activitiesList ?? []).map((item, idx) => (
@@ -230,8 +230,8 @@ export const AboutSiteLayoutPreview: React.FC<AboutSiteLayoutPreviewProps> = ({
   };
 
   const TileBlock = () => (
-    <div className={`rounded-lg border border-gray-200 bg-[#e5e7eb] ${pad}`}>
-      <div className="relative overflow-hidden rounded-xl h-48 w-full shadow-md max-w-3xl mx-auto">
+    <div className={`rounded-lg border border-gray-200 bg-[#e5e7eb] ${pad} min-w-0`}>
+      <div className="relative overflow-hidden rounded-xl h-48 w-full max-w-2xl mx-auto shadow-md">
         <img src={previewSrc} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black/35 flex items-center justify-center pointer-events-none">
           <span className="text-white text-sm font-jost font-semibold drop-shadow">{teamLabel}</span>
@@ -275,12 +275,12 @@ export const AboutSiteLayoutPreview: React.FC<AboutSiteLayoutPreviewProps> = ({
           Middle section uses your Design Team intro (section title + intro paragraphs), with this team-board layout.
         </p>
       ) : null}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="space-y-2">
+      <div className="space-y-6 min-w-0">
+        <div className="space-y-2 min-w-0">
           <p className="text-xs text-gray-500">Team / General Body page</p>
           <GeneralBodyDualBlock />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2 min-w-0">
           <p className="text-xs text-gray-500">Main About — Our Teams tile</p>
           <TileBlock />
         </div>
