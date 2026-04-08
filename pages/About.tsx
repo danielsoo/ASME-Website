@@ -349,13 +349,13 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     if (!teamSettings.teamNames.includes(routeTeam)) {
       return (
         <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center px-8">
-          <p className="text-lg font-jost text-gray-700 mb-8">팀을 찾을 수 없습니다.</p>
+          <p className="text-lg font-jost text-gray-700 mb-8">Team not found.</p>
           <button
             type="button"
             onClick={navigateToAbout}
             className="px-6 py-2 rounded-lg font-jost text-sm font-medium bg-[#3b4c6b] text-white hover:opacity-90"
           >
-            About으로 돌아가기
+            Back to About
           </button>
         </div>
       );
@@ -369,24 +369,24 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
 
     return (
       <div className="min-h-screen bg-white pb-20">
-        <div className="container mx-auto px-16 pt-8 pb-4">
-          <button
-            type="button"
-            onClick={navigateToAbout}
-            className="px-6 py-2 rounded-lg font-jost text-sm font-medium bg-[#DEE7ED] text-[#48597F] hover:bg-gray-300"
-          >
-            ← About으로 돌아가기
-          </button>
-          <div className="flex flex-wrap gap-2 mt-6">
+        <div className="container mx-auto px-16 pt-8">
+          <div className="flex flex-wrap gap-1 bg-[#DEE7ED] p-1 rounded-lg w-fit max-w-full mb-12 mx-auto md:mx-0 shadow-md">
+            <button
+              type="button"
+              onClick={navigateToAbout}
+              className="px-6 py-2 rounded-md font-jost text-sm font-medium transition-all text-gray-400 hover:text-[#48597F]"
+            >
+              Back
+            </button>
             {teamSettings.teamNames.map((name) => (
               <button
                 key={name}
                 type="button"
                 onClick={() => onNavigate?.(teamAboutPath(name))}
-                className={`px-4 py-2 rounded-lg text-sm font-jost transition-colors ${
+                className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all ${
                   name === routeTeam
                     ? 'bg-[#3b4c6b] text-white shadow'
-                    : 'bg-[#DEE7ED] text-gray-700 hover:bg-gray-300'
+                    : 'text-gray-400 hover:text-[#48597F]'
                 }`}
               >
                 {name}
