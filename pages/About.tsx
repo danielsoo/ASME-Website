@@ -260,6 +260,20 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
   const mergedTeamGeneralBody = (teamName: string): GeneralBodyContent =>
     mergeGeneralBodyForDisplay(aboutTeamBlocks[teamName], DEFAULT_GENERAL_BODY);
 
+  /** Our Teams tile + /about/team/:name hero: Design Team falls back to aboutDesignTeam image when team block has no photo. */
+  const heroOrTileImageForTeam = (teamName: string): string => {
+    const fallback = 'https://picsum.photos/seed/about/800/600';
+    if (teamName === teamSettings.execBoardTeamName) {
+      return generalBodyContent.leftImageUrl?.trim() || fallback;
+    }
+    if (teamName === teamSettings.designTeamTeamName) {
+      const fromBlock = aboutTeamBlocks[teamName]?.leftImageUrl?.trim();
+      const fromDesignPage = mergedDesignBlock.leftImageUrl?.trim();
+      return fromBlock || fromDesignPage || DEFAULT_GENERAL_BODY.leftImageUrl || fallback;
+    }
+    return mergedTeamGeneralBody(teamName).leftImageUrl?.trim() || DEFAULT_GENERAL_BODY.leftImageUrl || fallback;
+  };
+
   /** Team board tabs: Executive (exec team) always first, then others in config order. */
   const boardTabTeamOrder = useMemo(() => {
     const names = teamSettings.teamNames ?? [];
@@ -480,7 +494,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                   <div className="w-full md:w-1/2">
                     <div className="mb-6">
                       <img
-                        src={gb.leftImageUrl || 'https://picsum.photos/seed/about/800/600'}
+                        src={heroOrTileImageForTeam(routeTeam)}
                         className="w-full h-auto rounded-lg border-2 border-blue-300"
                         alt={routeTeam}
                       />
@@ -885,10 +899,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
 
           <div className="space-y-8">
             {teamSettings.teamNames.map((teamName) => {
-              const tileImg =
-                teamName === teamSettings.execBoardTeamName
-                  ? generalBodyContent.leftImageUrl || 'https://picsum.photos/seed/about/800/600'
-                  : mergedTeamGeneralBody(teamName).leftImageUrl || DEFAULT_GENERAL_BODY.leftImageUrl;
+              const tileImg = heroOrTileImageForTeam(teamName);
               return (
                 <div
                   key={teamName}

@@ -948,7 +948,13 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
                     <AboutSiteLayoutPreview
                       preview="dual-column-and-tile"
-                      previewSrc={editingTeamGeneralBody.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
+                      previewSrc={
+                        editingTeamGeneralBody.leftImageUrl?.trim() ||
+                        (activeTeamTab === teamSettings.designTeamTeamName
+                          ? aboutDesignTeam.leftImageUrl?.trim()
+                          : '') ||
+                        ABOUT_SITE_IMAGE_PLACEHOLDER
+                      }
                       context={{
                         generalBody: editingTeamGeneralBody,
                         mainAbout: {
