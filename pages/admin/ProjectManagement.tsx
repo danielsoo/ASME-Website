@@ -8,6 +8,11 @@ import { Plus, Edit, Trash2, Users, UserPlus } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
 import Uploader from '@/src/components/Uploader';
+import { ProjectAdminImagePreview } from '@/src/components/ProjectAdminImagePreview';
+import {
+  IMAGEKIT_PROJECT_NEW_UPLOAD_FOLDER,
+  imageKitTagsForProject,
+} from '@/src/utils/imagekitProjectUpload';
 import RichTextEditor from '../../src/components/RichTextEditor';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 
@@ -584,8 +589,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   <div className="space-y-3">
                     {/* File Upload Option */}
                     <Uploader
-                      folder={`/projects/${(projectTitle || '').replace(/<[^>]*>/g, '').trim() || 'untitled'}`}
-                      tags={['project', (projectTitle || '').replace(/<[^>]*>/g, '').trim()].filter(Boolean)}
+                      folder={IMAGEKIT_PROJECT_NEW_UPLOAD_FOLDER}
+                      tags={imageKitTagsForProject()}
                       onProgress={(pct) => {
                         setUploadPct(pct);
                         setUploadingImage(pct > 0 && pct < 100);
@@ -624,21 +629,10 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                       </p>
                     </div>
                     
-                    {/* Preview */}
-                    {(projectImageFile || projectImageUrl) && (
-                      <div className="mt-2">
-                        <img 
-                          id="create-image-preview"
-                          src={projectImageUrl} 
-                          alt="Preview" 
-                          className="w-full h-48 object-cover rounded-md" 
-                          style={{ display: projectImageFile ? 'block' : (projectImageUrl ? 'block' : 'none') }}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }} 
-                        />
-                      </div>
-                    )}
+                    <ProjectAdminImagePreview
+                      imageUrl={ikUrl || (projectImageUrl !== '#' ? projectImageUrl : '')}
+                      titleHint={(projectTitle || '').replace(/<[^>]*>/g, '').trim()}
+                    />
                   </div>
                 </div>
 

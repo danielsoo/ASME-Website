@@ -4,6 +4,8 @@ import { db, auth } from '../../src/firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Project } from '../../src/types';
 import Uploader from '../../src/components/Uploader';
+import { ProjectAdminImagePreview } from '../../src/components/ProjectAdminImagePreview';
+import { imageKitFolderForProjectId, imageKitTagsForProject } from '../../src/utils/imagekitProjectUpload';
 import AlertModal from '../../src/components/AlertModal';
 import RichTextEditor from '../../src/components/RichTextEditor';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
@@ -297,8 +299,8 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Main Image URL</label>
                 <Uploader
-                  folder={`/projects/${(title || '').replace(/<[^>]*>/g, '').trim() || 'untitled'}`}
-                  tags={['project', (title || '').replace(/<[^>]*>/g, '').trim()].filter(Boolean)}
+                  folder={imageKitFolderForProjectId(projectId)}
+                  tags={imageKitTagsForProject(projectId)}
                   onProgress={(pct) => {
                     setUploadPct(pct);
                     setUploadingImage(pct > 0 && pct < 100);
@@ -321,9 +323,10 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                   className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900 mt-2"
                   placeholder="Or paste image URL"
                 />
-                {imageUrl && (
-                  <img src={imageUrl} alt="Preview" className="mt-2 h-40 object-cover rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                )}
+                <ProjectAdminImagePreview
+                  imageUrl={ikUrl || imageUrl}
+                  titleHint={(title || '').replace(/<[^>]*>/g, '').trim()}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
