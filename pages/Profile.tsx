@@ -175,19 +175,18 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
             />
             {imageUrl && (
               <div className="mt-4">
-                <div className="relative h-56 w-full max-w-md rounded-lg overflow-hidden border border-gray-700 bg-[#0f131a]">
+                <div className="relative w-full max-w-sm aspect-square rounded-lg overflow-hidden border-2 border-white/80 bg-[#0f131a]">
                   <img
                     src={imageUrl}
                     alt="Profile crop preview"
                     className="absolute inset-0 w-full h-full object-cover"
                     style={{ objectPosition: `${imageFocusX}% ${imageFocusY}%`, transform: `scale(${imageZoom})`, transformOrigin: 'center' }}
                   />
-                  {/* Outside-frame fade overlay */}
-                  <div className="absolute inset-0 bg-white/20 pointer-events-none" />
-                  {/* Center square frame (actual kept area) */}
+                  {/* Subtle edge fade for focus, while keeping full-frame drag */}
+                  <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: 'inset 0 0 0 9999px rgba(255,255,255,0.08)' }} />
                   <div
                     ref={previewRef}
-                    className="absolute left-1/2 top-1/2 w-40 h-40 -translate-x-1/2 -translate-y-1/2 z-20 cursor-grab active:cursor-grabbing"
+                    className="absolute inset-0 z-20 cursor-grab active:cursor-grabbing"
                     onMouseDown={(e) => beginDrag(e.clientX, e.clientY)}
                     onMouseMove={(e) => {
                       if ((e.buttons & 1) === 1) moveDrag(e.clientX, e.clientY);
@@ -212,10 +211,9 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
                       dragStartRef.current = null;
                     }}
                   />
-                  <div className="absolute left-1/2 top-1/2 w-40 h-40 -translate-x-1/2 -translate-y-1/2 border-2 border-white shadow-[0_0_0_9999px_rgba(255,255,255,0.22)] pointer-events-none z-10" />
                 </div>
                 <p className="mt-2 text-xs text-gray-400">
-                  중앙 네모 틀 안이 실제 카드에 보이는 영역입니다. 틀 안에서 드래그해 위치를 맞추세요.
+                  이 정사각형 전체가 실제 프로필 영역입니다. 카톡/아이클라우드처럼 안에서 드래그+확대/축소로 맞춰 주세요.
                 </p>
                 <div className="mt-3 flex items-center gap-3">
                   <button
