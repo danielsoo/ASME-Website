@@ -29,6 +29,7 @@ export interface AboutSitePreviewContext {
   /** Design Team page: image column (stacked image + title + intro) */
   designTeam?: Pick<
     DesignTeamContent,
+    | 'leftImageUrl'
     | 'sectionTitle'
     | 'sectionTitleFontFamily'
     | 'sectionTitleFontWeight'
@@ -169,6 +170,9 @@ export const AboutSiteLayoutPreview: React.FC<AboutSiteLayoutPreviewProps> = ({
       aboutParagraph2: ab.aboutParagraph2,
       aboutLinkUrl: ab.aboutLinkUrl,
     };
+    /** Design Team tab: left photo is /about/designteam hero; tile still uses team-board URL (previewSrc). */
+    const teamPageLeftSrc =
+      dt?.leftImageUrl?.trim() ? dt.leftImageUrl.trim() : previewSrc;
 
     return (
       <div className={`rounded-lg border border-gray-200 bg-gray-100 ${pad}`}>
@@ -176,7 +180,7 @@ export const AboutSiteLayoutPreview: React.FC<AboutSiteLayoutPreviewProps> = ({
           <div className="flex flex-col md:flex-row gap-12 items-start">
             <div className="w-full md:w-1/2">
               <div className="mb-6">
-                <img src={previewSrc} alt="" className="w-full h-auto rounded-lg border-2 border-blue-300" />
+                <img src={teamPageLeftSrc} alt="" className="w-full h-auto rounded-lg border-2 border-blue-300" />
               </div>
             </div>
             <div className="w-full md:w-1/2 min-w-0">
