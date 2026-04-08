@@ -2,8 +2,10 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../src/firebase/config';
-import { User, Mail, GraduationCap, Calendar, Save, LogOut, MessageSquare, Image as ImageIcon } from 'lucide-react';
+import { User, Mail, GraduationCap, Calendar, Save, LogOut, MessageSquare, Image as ImageIcon, Check } from 'lucide-react';
 import Uploader from '../src/components/Uploader';
+import { cropFrameToSquareJpegBlob } from '../src/utils/cropFrameToSquareBlob';
+import { uploadImageKitBlob } from '../src/utils/imagekitUploadBlob';
 
 interface ProfileProps {
   onNavigate: (path: string) => void;
@@ -45,6 +47,7 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
   } | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [cropConfirming, setCropConfirming] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -339,6 +342,52 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
     return () => ro.disconnect();
   }, [measureDisplayedImage, imageUrl]);
 
+  const handleConfirmCrop = async () => {
+    if (!user || !imageUrl || !displayRect || frameSize <= 0) return;
+    setCropConfirming(true);
+    setError('');
+    try {
+      const blob = await cropFrameToSquareJpegBlob(
+        imageUrl,
+        displayRect,
+        frameLeft,
+        frameTop,
+        frameSize
+      );
+      const fileName = `profile-${user.uid}-${Date.now()}.jpg`;
+      const { url } = await uploadImageKitBlob(blob, fileName, {
+        folder: '/members',
+        tags: ['member-profile', 'cropped'],
+      });
+      setImageUrl(url);
+      setImageFocusX(50);
+      setImageFocusY(50);
+      setImageZoom(1);
+      setDisplayRect(null);
+      await updateDoc(doc(db, 'users', user.uid), {
+        imageUrl: url,
+        imageFocusX: 50,
+        imageFocusY: 50,
+        imageZoom: 1,
+        updatedAt: new Date().toISOString(),
+      });
+      setUserData((prev: any) => ({
+        ...prev,
+        imageUrl: url,
+        imageFocusX: 50,
+        imageFocusY: 50,
+        imageZoom: 1,
+      }));
+      setSuccess('프로필 사진이 확정되어 저장되었습니다.');
+      setTimeout(() => setSuccess(''), 4000);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg || '이미지 확정에 실패했습니다.');
+    } finally {
+      setCropConfirming(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -423,13 +472,14 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
                   )}
                 </div>
                 <p className="mt-2 text-xs text-gray-400">
-                  사진은 고정이고, 흰 테두리 정사각형을 드래그해 잘라낼 영역을 맞춥니다. + / − 로 확대·축소할 수 있습니다.
+                  사진은 고정이고, 흰 테두리 정사각형을 드래그해 잘라낼 영역을 맞춥니다. + / − 로 확대·축소한 뒤{' '}
+                  <span className="text-gray-300">확정</span>을 누르면 테두리 안만 잘린 정사각형이 프로필 사진으로 저장됩니다.
                 </p>
-                <div className="mt-3 flex items-center gap-3">
+                <div className="mt-3 flex flex-wrap items-center gap-3">
                   <button
                     type="button"
                     onClick={() => adjustZoom(-0.1)}
-                    disabled={!displayRect || frameSize <= 0}
+                    disabled={!displayRect || frameSize <= 0 || cropConfirming}
                     className="px-3 py-1.5 rounded bg-[#2d3a52] text-white text-sm hover:bg-[#3b4c6b] disabled:opacity-40"
                   >
                     −
@@ -440,10 +490,19 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
                   <button
                     type="button"
                     onClick={() => adjustZoom(0.1)}
-                    disabled={!displayRect || frameSize <= 0}
+                    disabled={!displayRect || frameSize <= 0 || cropConfirming}
                     className="px-3 py-1.5 rounded bg-[#2d3a52] text-white text-sm hover:bg-[#3b4c6b] disabled:opacity-40"
                   >
                     +
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmCrop}
+                    disabled={!displayRect || frameSize <= 0 || cropConfirming}
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded bg-emerald-700 text-white text-sm font-medium hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Check className="w-4 h-4" />
+                    {cropConfirming ? '확정 중…' : '확정'}
                   </button>
                 </div>
               </div>
