@@ -225,7 +225,7 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
   useEffect(() => {
     if (!displayRect || !imageUrl) return;
     restoreFrameFromCrop(displayRect, imageFocusX, imageFocusY, imageZoom);
-    // 레이아웃(image 표시 영역)이 바뀔 때만 저장된 포커스/줌으로 프레임을 맞춤 (드래그 시에는 프레임이 진실값)
+    // When layout (displayed image bounds) changes only: sync frame from saved focus/zoom (while dragging, the frame is the source of truth)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displayRect?.offX, displayRect?.offY, displayRect?.dw, displayRect?.dh, imageUrl, restoreFrameFromCrop]);
 
@@ -378,11 +378,11 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
         imageFocusY: 50,
         imageZoom: 1,
       }));
-      setSuccess('프로필 사진이 확정되어 저장되었습니다.');
+      setSuccess('Profile photo confirmed and saved.');
       setTimeout(() => setSuccess(''), 4000);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      setError(msg || '이미지 확정에 실패했습니다.');
+      setError(msg || 'Failed to confirm the cropped image.');
     } finally {
       setCropConfirming(false);
     }
@@ -472,8 +472,8 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
                   )}
                 </div>
                 <p className="mt-2 text-xs text-gray-400">
-                  사진은 고정이고, 흰 테두리 정사각형을 드래그해 잘라낼 영역을 맞춥니다. + / − 로 확대·축소한 뒤{' '}
-                  <span className="text-gray-300">확정</span>을 누르면 테두리 안만 잘린 정사각형이 프로필 사진으로 저장됩니다.
+                  The photo stays fixed; drag the white square to choose the crop. Use + / − to zoom, then tap{' '}
+                  <span className="text-gray-300">Confirm</span> to save only the area inside the frame as your profile photo.
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   <button
@@ -502,7 +502,7 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
                     className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded bg-emerald-700 text-white text-sm font-medium hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Check className="w-4 h-4" />
-                    {cropConfirming ? '확정 중…' : '확정'}
+                    {cropConfirming ? 'Confirming…' : 'Confirm'}
                   </button>
                 </div>
               </div>

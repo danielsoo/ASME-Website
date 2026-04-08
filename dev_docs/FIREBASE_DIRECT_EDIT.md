@@ -1,35 +1,35 @@
-# Firebase 콘솔에서 직접 계정 승급하기
+# Promote an account in the Firebase console
 
-## yqp5187@psu.edu 계정을 회장으로 승급시키기
+## Promote yqp5187@psu.edu to President
 
-### 1. Firebase Console 접속
+### 1. Open Firebase Console
 - https://console.firebase.google.com/
-- 프로젝트 선택
+- Select your project.
 
-### 2. Firestore Database 이동
-- 좌측 메뉴에서 "Firestore Database" 클릭
+### 2. Open Firestore Database
+- In the left menu, click **Firestore Database**.
 
-### 3. users 컬렉션 찾기
-- `users` 컬렉션 클릭
-- 문서 ID `uS6yWInENhfqiitg5djBftBclgD2` 클릭 (또는 yqp5187@psu.edu가 있는 문서)
+### 3. Find the `users` collection
+- Open the `users` collection.
+- Open document `uS6yWInENhfqiitg5djBftBclgD2` (or the document for yqp5187@psu.edu).
 
-### 4. 필드 수정
-다음 필드를 클릭하여 수정:
+### 4. Edit fields
+Update the following:
 
-**status 필드:**
-- 현재: `"pending"`
-- 변경: `"approved"`
+**`status` field:**
+- From: `"pending"`
+- To: `"approved"`
 
-**role 필드:**
-- 현재: 없음 (또는 `"member"`)
-- 변경: `"President"` (새 필드 추가 또는 기존 필드 수정)
+**`role` field:**
+- From: missing (or `"member"`)
+- To: `"President"` (add the field or edit the existing one)
 
-### 5. 저장
-- 우측 상단 "Update" 버튼 클릭
+### 5. Save
+- Click **Update** in the top right.
 
-### 6. 확인
-수정 후:
+### 6. Verify
+After saving you should see:
 - `status`: `approved`
 - `role`: `President`
 
-이제 `#/login`에서 로그인할 수 있습니다!
+You can now sign in at `#/login`.

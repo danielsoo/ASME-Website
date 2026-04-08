@@ -15,7 +15,7 @@
 
 html,
 body {
-  min-width: 320px; /* 가로 줄임 한계: 이보다 좁아지지 않음 */
+  min-width: 320px; /* Minimum horizontal width; layout will not shrink below this */
 }
 
 body {
@@ -52,7 +52,7 @@ footer::before {
   display: none !important;
 }
 
-/* Rich text 출력 시 Quill 글씨체 적용 (에디터에서 선택한 폰트가 모든 페이지에서 동일하게 표시) */
+/* Rich text: apply Quill font faces so rendered content matches the editor across pages */
 .about-rich-content .ql-font-sans,
 .home-rich-content .ql-font-sans,
 .sponsors-rich-content .ql-font-sans,
@@ -90,7 +90,7 @@ footer::before {
 .project-rich-content .ql-font-arial,
 .footer-rich-content .ql-font-arial { font-family: Arial, sans-serif; }
 
-/* 긴 글자/URL이 컨테이너를 넘지 않고 자동 줄바꿈 */
+/* Long words/URLs wrap instead of overflowing the container */
 .home-rich-content,
 .sponsors-rich-content,
 .about-rich-content,
