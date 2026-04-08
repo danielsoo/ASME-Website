@@ -255,15 +255,32 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
 
         {tab === 'main' && (
           <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Main About</h2>
-            <p className="text-gray-600 text-sm mb-4">
-              Content for the main About page (/about): hero image, about title, paragraphs, link URL, and paragraph font options.
-            </p>
             {loading ? (
               <div className="text-gray-500">Loading...</div>
             ) : (
-              <div className="grid grid-cols-1 gap-8 items-start max-w-[100rem] xl:grid-cols-[minmax(0,1fr)_560px]">
-                <div className="space-y-4 min-w-0 max-w-4xl">
+              <div className="space-y-6 max-w-5xl">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
+                  <AboutSiteLayoutPreview
+                    preview="main-hero"
+                    previewSrc={about.heroImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
+                    context={{
+                      mainAbout: {
+                        aboutTitle: about.aboutTitle,
+                        aboutParagraph1: about.aboutParagraph1,
+                        aboutParagraph2: about.aboutParagraph2,
+                        aboutLinkUrl: about.aboutLinkUrl,
+                        paragraphFontFamily: about.paragraphFontFamily,
+                        paragraphFontWeight: about.paragraphFontWeight,
+                      },
+                    }}
+                  />
+                </div>
+                <h2 className="text-lg font-bold text-gray-800">Main About</h2>
+                <p className="text-gray-600 text-sm">
+                  Content for the main About page (/about): hero image, about title, paragraphs, link URL, and paragraph font options.
+                </p>
+                <div className="space-y-4 min-w-0">
                 <AboutSiteImageField
                   label="Hero image (main About)"
                   description="Live preview uses a 344×259px hero frame (same weight as the public /about page)."
@@ -355,24 +372,6 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
                   {savedMessage === 'Main About saved.' && <span className="text-green-600 font-medium">Saved.</span>}
                 </div>
                 </div>
-                <div className="sticky top-4 self-start min-w-0 xl:min-w-[560px]">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
-                  <AboutSiteLayoutPreview
-                    compact
-                    preview="main-hero"
-                    previewSrc={about.heroImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
-                    context={{
-                      mainAbout: {
-                        aboutTitle: about.aboutTitle,
-                        aboutParagraph1: about.aboutParagraph1,
-                        aboutParagraph2: about.aboutParagraph2,
-                        aboutLinkUrl: about.aboutLinkUrl,
-                        paragraphFontFamily: about.paragraphFontFamily,
-                        paragraphFontWeight: about.paragraphFontWeight,
-                      },
-                    }}
-                  />
-                </div>
               </div>
             )}
           </div>
@@ -380,15 +379,32 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
 
         {tab === 'generalBody' && (
           <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">General Body</h2>
-            <p className="text-gray-600 text-sm mb-4">
-              Content for the General Body page (/about/generalbody): activities list, image, and past events.
-            </p>
             {loading ? (
               <div className="text-gray-500">Loading...</div>
             ) : (
-              <div className="grid grid-cols-1 gap-8 items-start max-w-[100rem] xl:grid-cols-[minmax(0,1fr)_560px]">
-                <div className="space-y-4 min-w-0 max-w-5xl">
+              <div className="space-y-6 max-w-5xl">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
+                  <AboutSiteLayoutPreview
+                    preview="dual-column-and-tile"
+                    previewSrc={generalBody.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
+                    context={{
+                      generalBody,
+                      mainAbout: {
+                        aboutTitle: about.aboutTitle,
+                        aboutParagraph1: about.aboutParagraph1,
+                        aboutParagraph2: about.aboutParagraph2,
+                        aboutLinkUrl: about.aboutLinkUrl,
+                      },
+                      teamNameLabel: DEFAULT_TEAM_SETTINGS.execBoardTeamName,
+                    }}
+                  />
+                </div>
+                <h2 className="text-lg font-bold text-gray-800">General Body</h2>
+                <p className="text-gray-600 text-sm">
+                  Content for the General Body page (/about/generalbody): activities list, image, and past events.
+                </p>
+                <div className="space-y-4 min-w-0">
                 <AboutSiteImageField
                   label="Team image (General Body / Executive Board)"
                   description="General Body team page and main About “Our Teams” tile for the Executive Board team."
@@ -457,24 +473,6 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
                   {savedMessage === 'General Body saved.' && <span className="text-green-600 font-medium">Saved.</span>}
                 </div>
                 </div>
-                <div className="sticky top-4 self-start min-w-0 xl:min-w-[560px]">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
-                  <AboutSiteLayoutPreview
-                    compact
-                    preview="dual-column-and-tile"
-                    previewSrc={generalBody.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
-                    context={{
-                      generalBody,
-                      mainAbout: {
-                        aboutTitle: about.aboutTitle,
-                        aboutParagraph1: about.aboutParagraph1,
-                        aboutParagraph2: about.aboutParagraph2,
-                        aboutLinkUrl: about.aboutLinkUrl,
-                      },
-                      teamNameLabel: DEFAULT_TEAM_SETTINGS.execBoardTeamName,
-                    }}
-                  />
-                </div>
               </div>
             )}
           </div>
@@ -482,15 +480,31 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
 
         {tab === 'designTeam' && (
           <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Design Team</h2>
-            <p className="text-gray-600 text-sm mb-4">
-              Content for the Design Team page (/about/designteam): image, section title, intro paragraphs and fonts, link URL, and project section titles.
-            </p>
             {loading ? (
               <div className="text-gray-500">Loading...</div>
             ) : (
-              <div className="grid grid-cols-1 gap-8 items-start max-w-[100rem] xl:grid-cols-[minmax(0,1fr)_560px]">
-                <div className="space-y-4 min-w-0 max-w-5xl">
+              <div className="space-y-6 max-w-5xl">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
+                  <AboutSiteLayoutPreview
+                    preview="two-col-left"
+                    previewSrc={designTeam.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
+                    context={{
+                      designTeam,
+                      mainAbout: {
+                        aboutTitle: about.aboutTitle,
+                        aboutParagraph1: about.aboutParagraph1,
+                        aboutParagraph2: about.aboutParagraph2,
+                        aboutLinkUrl: about.aboutLinkUrl,
+                      },
+                    }}
+                  />
+                </div>
+                <h2 className="text-lg font-bold text-gray-800">Design Team</h2>
+                <p className="text-gray-600 text-sm">
+                  Content for the Design Team page (/about/designteam): image, section title, intro paragraphs and fonts, link URL, and project section titles.
+                </p>
+                <div className="space-y-4 min-w-0">
                 <AboutSiteImageField
                   label="Design Team page image (/about/designteam)"
                   description="Left column on the Design Team page."
@@ -650,23 +664,6 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
                   </button>
                   {savedMessage === 'Design Team saved.' && <span className="text-green-600 font-medium">Saved.</span>}
                 </div>
-                </div>
-                <div className="sticky top-4 self-start min-w-0 xl:min-w-[560px]">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
-                  <AboutSiteLayoutPreview
-                    compact
-                    preview="two-col-left"
-                    previewSrc={designTeam.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
-                    context={{
-                      designTeam,
-                      mainAbout: {
-                        aboutTitle: about.aboutTitle,
-                        aboutParagraph1: about.aboutParagraph1,
-                        aboutParagraph2: about.aboutParagraph2,
-                        aboutLinkUrl: about.aboutLinkUrl,
-                      },
-                    }}
-                  />
                 </div>
               </div>
             )}

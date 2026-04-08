@@ -778,15 +778,32 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
 
           {aboutSubTab === 'main' && (
             <>
-              <h2 className="text-lg font-bold text-gray-800 mb-4">Main About</h2>
-              <p className="text-gray-600 text-sm mb-4">
-                Content for the main About page (/about): hero image, about title, paragraphs, link URL, and paragraph font options.
-              </p>
               {loading ? (
                 <div className="text-gray-500">Loading...</div>
               ) : (
-                <div className="grid grid-cols-1 gap-8 items-start max-w-[100rem] xl:grid-cols-[minmax(0,1fr)_560px]">
-                  <div className="space-y-4 min-w-0 max-w-4xl">
+                <div className="space-y-6 max-w-5xl">
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
+                    <AboutSiteLayoutPreview
+                      preview="main-hero"
+                      previewSrc={about.heroImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
+                      context={{
+                        mainAbout: {
+                          aboutTitle: about.aboutTitle,
+                          aboutParagraph1: about.aboutParagraph1,
+                          aboutParagraph2: about.aboutParagraph2,
+                          aboutLinkUrl: about.aboutLinkUrl,
+                          paragraphFontFamily: about.paragraphFontFamily,
+                          paragraphFontWeight: about.paragraphFontWeight,
+                        },
+                      }}
+                    />
+                  </div>
+                  <h2 className="text-lg font-bold text-gray-800">Main About</h2>
+                  <p className="text-gray-600 text-sm">
+                    Content for the main About page (/about): hero image, about title, paragraphs, link URL, and paragraph font options.
+                  </p>
+                  <div className="space-y-4 min-w-0">
                   <AboutSiteImageField
                     label="Hero image (main About)"
                     description="Shown on /about — live preview uses a 344×259px hero frame (same weight as the public page)."
@@ -846,24 +863,6 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
                     {savedMessage === 'Main About saved.' && <span className="text-green-600 font-medium">Saved.</span>}
                   </div>
                   </div>
-                  <div className="sticky top-4 self-start min-w-0 xl:min-w-[560px]">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
-                    <AboutSiteLayoutPreview
-                      compact
-                      preview="main-hero"
-                      previewSrc={about.heroImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
-                      context={{
-                        mainAbout: {
-                          aboutTitle: about.aboutTitle,
-                          aboutParagraph1: about.aboutParagraph1,
-                          aboutParagraph2: about.aboutParagraph2,
-                          aboutLinkUrl: about.aboutLinkUrl,
-                          paragraphFontFamily: about.paragraphFontFamily,
-                          paragraphFontWeight: about.paragraphFontWeight,
-                        },
-                      }}
-                    />
-                  </div>
                 </div>
               )}
             </>
@@ -871,13 +870,32 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
 
           {aboutSubTab === 'generalBody' && (
             <>
-              <h2 className="text-lg font-bold text-gray-800 mb-4">General Body</h2>
-              <p className="text-gray-600 text-sm mb-4">Content for the General Body page (/about/generalbody): activities list, image, and past events.</p>
               {loading ? (
                 <div className="text-gray-500">Loading...</div>
               ) : (
-                <div className="grid grid-cols-1 gap-8 items-start max-w-[100rem] xl:grid-cols-[minmax(0,1fr)_560px]">
-                  <div className="space-y-4 min-w-0 max-w-5xl">
+                <div className="space-y-6 max-w-5xl">
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
+                    <AboutSiteLayoutPreview
+                      preview="dual-column-and-tile"
+                      previewSrc={generalBody.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
+                      context={{
+                        generalBody,
+                        mainAbout: {
+                          aboutTitle: about.aboutTitle,
+                          aboutParagraph1: about.aboutParagraph1,
+                          aboutParagraph2: about.aboutParagraph2,
+                          aboutLinkUrl: about.aboutLinkUrl,
+                        },
+                        teamNameLabel: teamSettings.execBoardTeamName,
+                      }}
+                    />
+                  </div>
+                  <h2 className="text-lg font-bold text-gray-800">General Body</h2>
+                  <p className="text-gray-600 text-sm">
+                    Content for the General Body page (/about/generalbody): activities list, image, and past events.
+                  </p>
+                  <div className="space-y-4 min-w-0">
                   <AboutSiteImageField
                     label="Team image (General Body / Executive Board)"
                     description="Used on the General Body team page and on the main About “Our Teams” tile for the Executive Board team."
@@ -914,24 +932,6 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
                     {savedMessage === 'General Body saved.' && <span className="text-green-600 font-medium">Saved.</span>}
                   </div>
                   </div>
-                  <div className="sticky top-4 self-start min-w-0 xl:min-w-[560px]">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
-                    <AboutSiteLayoutPreview
-                      compact
-                      preview="dual-column-and-tile"
-                      previewSrc={generalBody.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
-                      context={{
-                        generalBody,
-                        mainAbout: {
-                          aboutTitle: about.aboutTitle,
-                          aboutParagraph1: about.aboutParagraph1,
-                          aboutParagraph2: about.aboutParagraph2,
-                          aboutLinkUrl: about.aboutLinkUrl,
-                        },
-                        teamNameLabel: teamSettings.execBoardTeamName,
-                      }}
-                    />
-                  </div>
                 </div>
               )}
             </>
@@ -939,12 +939,61 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
 
           {activeTeamTab && (
             <>
-              <h2 className="text-lg font-bold text-gray-800 mb-4">{activeTeamTab}</h2>
               {loading ? (
                 <div className="text-gray-500">Loading...</div>
               ) : (
-                <div className="grid grid-cols-1 gap-8 items-start max-w-[100rem] xl:grid-cols-[minmax(0,1fr)_560px]">
-                  <div className="space-y-4 min-w-0 max-w-5xl">
+                <div className="space-y-6 max-w-5xl">
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
+                    {activeTeamTab === teamSettings.designTeamTeamName ? (
+                      <div className="space-y-8">
+                        <AboutSiteLayoutPreview
+                          preview="two-col-left"
+                          previewSrc={aboutDesignTeam.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
+                          context={{
+                            designTeam: aboutDesignTeam,
+                            mainAbout: {
+                              aboutTitle: about.aboutTitle,
+                              aboutParagraph1: about.aboutParagraph1,
+                              aboutParagraph2: about.aboutParagraph2,
+                              aboutLinkUrl: about.aboutLinkUrl,
+                            },
+                          }}
+                        />
+                        <AboutSiteLayoutPreview
+                          preview="dual-column-and-tile"
+                          previewSrc={editingTeamGeneralBody.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
+                          context={{
+                            generalBody: editingTeamGeneralBody,
+                            mainAbout: {
+                              aboutTitle: about.aboutTitle,
+                              aboutParagraph1: about.aboutParagraph1,
+                              aboutParagraph2: about.aboutParagraph2,
+                              aboutLinkUrl: about.aboutLinkUrl,
+                            },
+                            teamNameLabel: activeTeamTab,
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <AboutSiteLayoutPreview
+                        preview="dual-column-and-tile"
+                        previewSrc={editingTeamGeneralBody.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
+                        context={{
+                          generalBody: editingTeamGeneralBody,
+                          mainAbout: {
+                            aboutTitle: about.aboutTitle,
+                            aboutParagraph1: about.aboutParagraph1,
+                            aboutParagraph2: about.aboutParagraph2,
+                            aboutLinkUrl: about.aboutLinkUrl,
+                          },
+                          teamNameLabel: activeTeamTab,
+                        }}
+                      />
+                    )}
+                  </div>
+                  <h2 className="text-lg font-bold text-gray-800">{activeTeamTab}</h2>
+                  <div className="space-y-4 min-w-0">
                   {activeTeamTab === teamSettings.designTeamTeamName && (
                     <>
                       <p className="text-gray-600 text-sm mb-4">
@@ -1158,58 +1207,6 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
                     </button>
                     {savedMessage === 'Team sections saved.' && <span className="text-green-600 font-medium">Saved.</span>}
                   </div>
-                  </div>
-                  <div className="sticky top-4 self-start min-w-0 xl:min-w-[560px]">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
-                    {activeTeamTab === teamSettings.designTeamTeamName ? (
-                      <div className="space-y-8">
-                        <AboutSiteLayoutPreview
-                          compact
-                          preview="two-col-left"
-                          previewSrc={aboutDesignTeam.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
-                          context={{
-                            designTeam: aboutDesignTeam,
-                            mainAbout: {
-                              aboutTitle: about.aboutTitle,
-                              aboutParagraph1: about.aboutParagraph1,
-                              aboutParagraph2: about.aboutParagraph2,
-                              aboutLinkUrl: about.aboutLinkUrl,
-                            },
-                          }}
-                        />
-                        <AboutSiteLayoutPreview
-                          compact
-                          preview="dual-column-and-tile"
-                          previewSrc={editingTeamGeneralBody.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
-                          context={{
-                            generalBody: editingTeamGeneralBody,
-                            mainAbout: {
-                              aboutTitle: about.aboutTitle,
-                              aboutParagraph1: about.aboutParagraph1,
-                              aboutParagraph2: about.aboutParagraph2,
-                              aboutLinkUrl: about.aboutLinkUrl,
-                            },
-                            teamNameLabel: activeTeamTab,
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <AboutSiteLayoutPreview
-                        compact
-                        preview="dual-column-and-tile"
-                        previewSrc={editingTeamGeneralBody.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
-                        context={{
-                          generalBody: editingTeamGeneralBody,
-                          mainAbout: {
-                            aboutTitle: about.aboutTitle,
-                            aboutParagraph1: about.aboutParagraph1,
-                            aboutParagraph2: about.aboutParagraph2,
-                            aboutLinkUrl: about.aboutLinkUrl,
-                          },
-                          teamNameLabel: activeTeamTab,
-                        }}
-                      />
-                    )}
                   </div>
                 </div>
               )}
