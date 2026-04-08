@@ -138,6 +138,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
   const [designTeamContent, setDesignTeamContent] = useState<DesignTeamContent>({ ...DEFAULT_DESIGN_TEAM });
   const [teamSettings, setTeamSettings] = useState<TeamSettings>(DEFAULT_TEAM_SETTINGS);
   const [executiveBoardMembers, setExecutiveBoardMembers] = useState<TeamMember[]>([]);
+  /** Main About: which team board tab is visible (index into teamNames). */
+  const [activeBoardTabIndex, setActiveBoardTabIndex] = useState(0);
   /** Which list is being reordered (EXEC_REORDER_KEY or a team name). Set on drag start. */
   const reorderContextRef = useRef<string | null>(null);
 
@@ -262,6 +264,12 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
       unsubs.forEach((u) => u());
     };
   }, [JSON.stringify(teamSettings.teamNames), teamSettings.designTeamTeamName]);
+
+  useEffect(() => {
+    const n = teamSettings.teamNames?.length ?? 0;
+    if (n === 0) return;
+    setActiveBoardTabIndex((i) => Math.min(Math.max(0, i), n - 1));
+  }, [JSON.stringify(teamSettings.teamNames)]);
 
   const designTeam = membersByTeam[teamSettings.designTeamTeamName] ?? [];
   const mergedDesignBlock = useMemo(
@@ -946,55 +954,104 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
         </div>
       </div>
 
-      {/* Stacked boards only — full copy lives on each team page */}
-      {teamSettings.teamNames.map((teamName, i) => {
-        const isExecTeam = teamName === teamSettings.execBoardTeamName;
-        const isDesignTeam = teamName === teamSettings.designTeamTeamName;
-        const members = membersByTeam[teamName] ?? [];
-        const boardHeading = isExecTeam
-          ? 'Executive Board'
-          : isDesignTeam
-            ? 'Design Board'
-            : `${teamName} Board`;
-        const roster = isExecTeam ? executiveBoardMembers : members;
-        const reorderKey = isExecTeam ? EXEC_REORDER_KEY : teamName;
-
-        return (
-          <div key={teamName} id={`about-team-${i}`} className="border-t border-gray-200">
-            <div className="bg-[#e5e7eb] py-16">
-              <div className="container mx-auto px-16">
-                <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-2 md:pl-4">{boardHeading}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                  {loading ? (
-                    <div className="col-span-2 text-center py-8">Loading...</div>
-                  ) : roster.length === 0 ? (
-                    <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
-                  ) : (
-                    roster.map((member, index) => (
-                      <div
-                        key={member.id}
-                        draggable={canEdit}
-                        onDragStart={(e) => handleDragStart(e, index, reorderKey)}
-                        onDragOver={(e) => handleDragOver(e, index)}
-                        onDragEnd={handleDragEnd}
-                        style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
-                      >
-                        <TeamCard
-                          member={member}
-                          showDragHandle={canEdit}
-                          onDragHandleMouseDown={(e) => {
-                            e.stopPropagation();
-                          }}
-                        />
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+      {/* Team boards: red tabs switch one board at a time (full copy on each team page) */}
+      {teamSettings.teamNames.length > 0 && (
+        <div className="border-t border-gray-200 bg-[#e5e7eb] py-10 px-4 sm:px-8">
+          <div className="container mx-auto max-w-5xl">
+            <h2 className="text-2xl sm:text-3xl font-jost font-bold text-[#1E2B48] text-center mb-6">
+              Team boards
+            </h2>
+            <div
+              className="flex flex-wrap justify-center gap-2 mb-10"
+              role="tablist"
+              aria-label="Team boards"
+            >
+              {teamSettings.teamNames.map((teamName, i) => {
+                const isExecTeam = teamName === teamSettings.execBoardTeamName;
+                const isDesignTeam = teamName === teamSettings.designTeamTeamName;
+                const tabLabel = isExecTeam
+                  ? 'Executive Board'
+                  : isDesignTeam
+                    ? 'Design Board'
+                    : `${teamName} Board`;
+                const selected = activeBoardTabIndex === i;
+                return (
+                  <button
+                    key={teamName}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    id={`about-board-tab-${i}`}
+                    className={`px-4 py-2.5 rounded-lg font-jost text-sm sm:text-base font-semibold transition-all shadow-sm border-2 ${
+                      selected
+                        ? 'bg-asme-red text-white border-asme-red'
+                        : 'bg-white text-asme-red border-asme-red/35 hover:bg-[#800020]/10'
+                    }`}
+                    onClick={() => setActiveBoardTabIndex(i)}
+                  >
+                    {tabLabel}
+                  </button>
+                );
+              })}
             </div>
+
+            {(() => {
+              const teamName = teamSettings.teamNames[activeBoardTabIndex];
+              if (!teamName) return null;
+              const isExecTeam = teamName === teamSettings.execBoardTeamName;
+              const isDesignTeam = teamName === teamSettings.designTeamTeamName;
+              const members = membersByTeam[teamName] ?? [];
+              const boardHeading = isExecTeam
+                ? 'Executive Board'
+                : isDesignTeam
+                  ? 'Design Board'
+                  : `${teamName} Board`;
+              const roster = isExecTeam ? executiveBoardMembers : members;
+              const reorderKey = isExecTeam ? EXEC_REORDER_KEY : teamName;
+              const i = activeBoardTabIndex;
+
+              return (
+                <div
+                  key={teamName}
+                  id={`about-team-${i}`}
+                  role="tabpanel"
+                  aria-labelledby={`about-board-tab-${i}`}
+                >
+                  <h3 className="text-xl font-jost font-bold text-black mb-6 text-center sm:text-left pl-0 sm:pl-1">
+                    {boardHeading}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                    {loading ? (
+                      <div className="col-span-2 text-center py-8">Loading...</div>
+                    ) : roster.length === 0 ? (
+                      <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
+                    ) : (
+                      roster.map((member, index) => (
+                        <div
+                          key={member.id}
+                          draggable={canEdit}
+                          onDragStart={(e) => handleDragStart(e, index, reorderKey)}
+                          onDragOver={(e) => handleDragOver(e, index)}
+                          onDragEnd={handleDragEnd}
+                          style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
+                        >
+                          <TeamCard
+                            member={member}
+                            showDragHandle={canEdit}
+                            onDragHandleMouseDown={(e) => {
+                              e.stopPropagation();
+                            }}
+                          />
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
-        );
-      })}
+        </div>
+      )}
     </div>
   );
 };
