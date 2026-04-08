@@ -108,8 +108,6 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
 
   const [teamSettings, setTeamSettings] = useState<TeamSettings>(DEFAULT_TEAM_SETTINGS);
   const [newTeamName, setNewTeamName] = useState('');
-  const [teamRoutingSaving, setTeamRoutingSaving] = useState(false);
-
   useEffect(() => {
     const unsubTeams = subscribeTeamSettings(
       setTeamSettings,
@@ -256,18 +254,6 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     } catch (e) {
       console.error(e);
       showAlert('error', 'Error', 'Failed to delete team.');
-    }
-  };
-
-  const applyDesignTeamRouting = async (designName: string) => {
-    setTeamRoutingSaving(true);
-    try {
-      await saveTeamSettings({ designTeamTeamName: designName });
-    } catch (e) {
-      console.error(e);
-      showAlert('error', 'Error', 'Failed to save Design Team routing.');
-    } finally {
-      setTeamRoutingSaving(false);
     }
   };
 
@@ -631,11 +617,9 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Teams</h2>
           <p className="text-sm text-gray-600 mb-4 max-w-3xl">
-            Add or remove team labels used when assigning roles. The <strong>Design Team</strong> block on the public About
-            page uses the team you pick below (members are filtered by their{' '}
-            <code className="text-xs bg-gray-100 px-1 rounded">team</code> field). The{' '}
-            <strong>Executive Board</strong> on the main About page is controlled per member with the &quot;Executive
-            Board (About)&quot; checkbox in the members table.
+            Add or remove team labels used when assigning roles. Team boards on the public About page list members by
+            their <code className="text-xs bg-gray-100 px-1 rounded">team</code> field. The{' '}
+            <strong>Executive Board</strong> block uses the &quot;Executive Board (About)&quot; checkbox on each member.
           </p>
 
           <div className="flex flex-wrap gap-2 mb-4">
@@ -656,18 +640,13 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-6">
-            {teamSettings.teamNames.map((t) => {
-              const isDesignRouted = t === teamSettings.designTeamTeamName;
-              return (
+            {teamSettings.teamNames.map((t) => (
                 <div
                   key={t}
                   className="flex flex-wrap items-center justify-between gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-gray-50"
                 >
                   <div className="min-w-0">
                     <span className="font-medium text-gray-800">{t}</span>
-                    {isDesignRouted && (
-                      <span className="ml-2 text-xs text-gray-500">(Design Team page)</span>
-                    )}
                   </div>
                   <button
                     type="button"
@@ -678,32 +657,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                     <Trash2 className="w-4 h-4 inline" /> Remove
                   </button>
                 </div>
-              );
-            })}
-          </div>
-
-          <div className="border-t border-gray-200 pt-4 space-y-3 max-w-xl">
-            <p className="text-sm font-semibold text-gray-800">About page routing</p>
-            <p className="text-sm text-gray-600">
-              Choose which team label supplies members for the Design Team / Design Board section on About (and{' '}
-              <code className="text-xs bg-gray-100 px-1 rounded">/about/designteam</code>). Executive Board uses the
-              checkbox on each member, not this setting.
-            </p>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <label className="text-sm text-gray-700 sm:w-48">Design Team section uses</label>
-              <select
-                value={teamSettings.designTeamTeamName}
-                disabled={teamRoutingSaving}
-                onChange={(e) => applyDesignTeamRouting(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded text-sm bg-white text-gray-900 flex-1"
-              >
-                {teamSettings.teamNames.map((t) => (
-                  <option key={`design-${t}`} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
+            ))}
           </div>
         </div>
 
@@ -714,8 +668,8 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
               <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Members</h2>
               <p className="text-sm text-gray-500 mt-1 max-w-3xl">
                 Assign roles and teams here. Use &quot;Executive Board (About)&quot; to show someone on the main About
-                page regardless of team. Design Team on About uses the team selected under About page routing. Profile
-                fields (photo, email, year, major, fun fact) come from each member&apos;s Profile settings.
+                page regardless of team. Profile fields (photo, email, year, major, fun fact) come from each
+                member&apos;s Profile settings.
               </p>
             </div>
             <button

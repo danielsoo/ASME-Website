@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { PROJECTS } from '../src/constants';
 import {
   subscribeMembersForTeam,
@@ -103,18 +103,6 @@ export function teamAboutPath(teamName: string): string {
   return `${TEAM_PATH_PREFIX}${encodeURIComponent(teamName.trim())}`;
 }
 
-function getReorderTeamKey(path: string, ts: TeamSettings): string | null {
-  const p = normalizeAboutPath(path);
-  if (p === '/about/designteam') return ts.designTeamTeamName;
-  if (p === '/about' || p === '/about/generalbody') return EXEC_REORDER_KEY;
-  const t = parseTeamFromAboutPath(p);
-  if (t && ts.teamNames.includes(t)) {
-    if (t === ts.execBoardTeamName) return null;
-    return t;
-  }
-  return null;
-}
-
 /** Render paragraph content: HTML (from rich editor) or plain text with optional "visit this link" link. */
 function renderParagraph(content: string | undefined, linkUrl?: string): React.ReactNode {
   const c = content ?? '';
@@ -150,6 +138,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
   const [designTeamContent, setDesignTeamContent] = useState<DesignTeamContent>({ ...DEFAULT_DESIGN_TEAM });
   const [teamSettings, setTeamSettings] = useState<TeamSettings>(DEFAULT_TEAM_SETTINGS);
   const [executiveBoardMembers, setExecutiveBoardMembers] = useState<TeamMember[]>([]);
+  /** Which list is being reordered (EXEC_REORDER_KEY or a team name). Set on drag start. */
+  const reorderContextRef = useRef<string | null>(null);
 
   // Check user permissions
   useEffect(() => {
@@ -286,7 +276,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
 
   const canEdit = userRole === 'President' || userRole === 'Vice President';
 
-  const handleDragStart = (e: React.DragEvent, index: number) => {
+  const handleDragStart = (e: React.DragEvent, index: number, reorderKey: string) => {
+    reorderContextRef.current = reorderKey;
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = 'move';
   };
@@ -295,7 +286,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     e.preventDefault();
     if (draggedIndex === null || draggedIndex === index) return;
 
-    const teamKey = getReorderTeamKey(path, teamSettings);
+    const teamKey = reorderContextRef.current;
     if (!teamKey) return;
 
     if (teamKey === EXEC_REORDER_KEY) {
@@ -321,9 +312,9 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
 
   const handleDragEnd = async () => {
     if (draggedIndex === null) return;
+    const teamKey = reorderContextRef.current;
+    reorderContextRef.current = null;
     setDraggedIndex(null);
-
-    const teamKey = getReorderTeamKey(path, teamSettings);
     if (!teamKey) return;
 
     if (teamKey === EXEC_REORDER_KEY) {
@@ -543,7 +534,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                       <div
                         key={member.id}
                         draggable={canEdit}
-                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragStart={(e) => handleDragStart(e, index, routeTeam)}
                         onDragOver={(e) => handleDragOver(e, index)}
                         onDragEnd={handleDragEnd}
                         style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
@@ -661,7 +652,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                 <div
                   key={member.id}
                   draggable={canEdit}
-                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragStart={(e) => handleDragStart(e, index, EXEC_REORDER_KEY)}
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
                   style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
@@ -855,7 +846,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                 <div
                   key={member.id}
                   draggable={canEdit}
-                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragStart={(e) => handleDragStart(e, index, teamSettings.designTeamTeamName)}
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
                   style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
@@ -913,7 +904,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
          </div>
       </div>
 
-      {/* Our Teams Section */}
+      {/* Our Teams — tiles link to full team pages */}
       <div className="bg-[#e5e7eb] py-16 px-16">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-jost font-bold text-[#1E2B48] text-center mb-12">
@@ -955,37 +946,186 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
         </div>
       </div>
 
-      <div className="bg-[#e5e7eb] py-16 px-16 border-t border-gray-200">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-jost font-bold text-[#1E2B48] text-center mb-10">Executive Board</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {loading ? (
-              <div className="col-span-2 text-center py-8">Loading...</div>
-            ) : executiveBoardMembers.length === 0 ? (
-              <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
-            ) : (
-              executiveBoardMembers.map((member, index) => (
-                <div
-                  key={member.id}
-                  draggable={canEdit}
-                  onDragStart={(e) => handleDragStart(e, index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnd={handleDragEnd}
-                  style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
-                >
-                  <TeamCard
-                    member={member}
-                    showDragHandle={canEdit}
-                    onDragHandleMouseDown={(e) => {
-                      e.stopPropagation();
-                    }}
-                  />
+      {/* Stacked team sections (Executive + each team board) */}
+      {teamSettings.teamNames.map((teamName, i) => {
+        const isExecTeam = teamName === teamSettings.execBoardTeamName;
+        const isDesignTeam = teamName === teamSettings.designTeamTeamName;
+        const gb = mergedTeamGeneralBody(teamName);
+        const members = membersByTeam[teamName] ?? [];
+        const boardHeading = isExecTeam
+          ? 'Executive Board'
+          : isDesignTeam
+            ? 'Design Board'
+            : `${teamName} Board`;
+
+        if (isExecTeam) {
+          return (
+            <div key={teamName} id={`about-team-${i}`} className="border-t border-gray-200">
+              <div className="bg-gray-100 pb-16 px-16">
+                <div className="container mx-auto px-4 pt-12">
+                  <div className="flex flex-col md:flex-row gap-12 items-start">
+                    <div className="w-full md:w-1/2">
+                      <div className="mb-6">
+                        <img
+                          src={generalBodyContent.leftImageUrl || 'https://picsum.photos/seed/about/800/600'}
+                          className="w-full h-auto rounded-lg border-2 border-blue-300"
+                          alt="Our General Body"
+                        />
+                      </div>
+                    </div>
+                    <div className="w-full md:w-1/2">
+                      <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">
+                        {renderTitle(generalBodyContent.activitiesTitle, 'Our Activities')}
+                      </h2>
+                      <ul className="space-y-4 font-jost">
+                        {(generalBodyContent.activitiesList ?? []).map((item, idx) => (
+                          <li key={idx} className="text-gray-800 text-lg">
+                            • {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="mt-8">
+                    <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">
+                      {renderTitle(generalBodyContent.bodySectionTitle ?? aboutContent.aboutTitle, 'Our General Body')}
+                    </h2>
+                    <div className="space-y-4 text-gray-800 leading-relaxed font-jost">
+                      <div>{renderParagraph(aboutContent.aboutParagraph1)}</div>
+                      <div>{renderParagraph(aboutContent.aboutParagraph2, aboutContent.aboutLinkUrl)}</div>
+                    </div>
+                    <div className="mt-8">
+                      <h3 className="text-xl font-jost font-bold text-black mb-4">
+                        {renderTitle(generalBodyContent.pastEventsTitle, 'Past Events')}
+                      </h3>
+                      <div className="bg-white border border-gray-300 rounded-lg p-4">
+                        <ul className="space-y-2 font-jost text-gray-800">
+                          {(generalBodyContent.pastEventsList ?? []).map((item, idx) => (
+                            <li key={idx}>• {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              ))
-            )}
+              </div>
+              <div className="bg-[#e5e7eb] py-16">
+                <div className="container mx-auto px-16">
+                  <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-4">{boardHeading}</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                    {loading ? (
+                      <div className="col-span-2 text-center py-8">Loading...</div>
+                    ) : executiveBoardMembers.length === 0 ? (
+                      <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
+                    ) : (
+                      executiveBoardMembers.map((member, index) => (
+                        <div
+                          key={member.id}
+                          draggable={canEdit}
+                          onDragStart={(e) => handleDragStart(e, index, EXEC_REORDER_KEY)}
+                          onDragOver={(e) => handleDragOver(e, index)}
+                          onDragEnd={handleDragEnd}
+                          style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
+                        >
+                          <TeamCard
+                            member={member}
+                            showDragHandle={canEdit}
+                            onDragHandleMouseDown={(e) => {
+                              e.stopPropagation();
+                            }}
+                          />
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div key={teamName} id={`about-team-${i}`} className="border-t border-gray-200">
+            <div className="bg-gray-100 pb-16 px-16">
+              <div className="container mx-auto px-4 pt-12">
+                <div className="flex flex-col md:flex-row gap-12 items-start">
+                  <div className="w-full md:w-1/2">
+                    <div className="mb-6">
+                      <img
+                        src={gb.leftImageUrl || 'https://picsum.photos/seed/about/800/600'}
+                        className="w-full h-auto rounded-lg border-2 border-blue-300"
+                        alt={teamName}
+                      />
+                    </div>
+                  </div>
+                  <div className="w-full md:w-1/2">
+                    <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">
+                      {renderTitle(gb.activitiesTitle, 'Our Activities')}
+                    </h2>
+                    <ul className="space-y-4 font-jost">
+                      {(gb.activitiesList ?? []).map((item, idx) => (
+                        <li key={idx} className="text-gray-800 text-lg">
+                          • {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <div className="mt-8">
+                  <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">
+                    {renderTitle(gb.bodySectionTitle ?? aboutContent.aboutTitle, teamName)}
+                  </h2>
+                  <div className="space-y-4 text-gray-800 leading-relaxed font-jost">
+                    <div>{renderParagraph(aboutContent.aboutParagraph1)}</div>
+                    <div>{renderParagraph(aboutContent.aboutParagraph2, aboutContent.aboutLinkUrl)}</div>
+                  </div>
+                  <div className="mt-8">
+                    <h3 className="text-xl font-jost font-bold text-black mb-4">{renderTitle(gb.pastEventsTitle, 'Past Events')}</h3>
+                    <div className="bg-white border border-gray-300 rounded-lg p-4">
+                      <ul className="space-y-2 font-jost text-gray-800">
+                        {(gb.pastEventsList ?? []).map((item, idx) => (
+                          <li key={idx}>• {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-[#e5e7eb] py-16">
+              <div className="container mx-auto px-16">
+                <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-2">{boardHeading}</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                  {loading ? (
+                    <div className="col-span-2 text-center py-8">Loading...</div>
+                  ) : members.length === 0 ? (
+                    <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
+                  ) : (
+                    members.map((member, index) => (
+                      <div
+                        key={member.id}
+                        draggable={canEdit}
+                        onDragStart={(e) => handleDragStart(e, index, teamName)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                        style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
+                      >
+                        <TeamCard
+                          member={member}
+                          showDragHandle={canEdit}
+                          onDragHandleMouseDown={(e) => {
+                            e.stopPropagation();
+                          }}
+                        />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 };
