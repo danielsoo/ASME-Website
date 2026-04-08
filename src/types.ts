@@ -7,6 +7,9 @@ export interface TeamMember {
   hometown: string;
   funFact?: string;
   imageUrl: string;
+  imageFocusX?: number; // 0~100, horizontal focus point for square crop
+  imageFocusY?: number; // 0~100, vertical focus point for square crop
+  imageZoom?: number; // >=1, visual zoom level for square crop
   isExec?: boolean;
   email?: string;
   team?: 'Design Team' | 'General Body'; // Team assignment for Exec Board members

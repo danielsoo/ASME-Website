@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../src/firebase/config';
@@ -22,6 +22,11 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
   const [year, setYear] = useState('');
   const [funFact, setFunFact] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [imageFocusX, setImageFocusX] = useState(50);
+  const [imageFocusY, setImageFocusY] = useState(50);
+  const [imageZoom, setImageZoom] = useState(1);
+  const dragStartRef = useRef<{ x: number; y: number; fx: number; fy: number } | null>(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -40,6 +45,9 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
             setYear(data.year || '');
             setFunFact(data.funFact || '');
             setImageUrl(data.imageUrl || '');
+            setImageFocusX(typeof data.imageFocusX === 'number' ? data.imageFocusX : 50);
+            setImageFocusY(typeof data.imageFocusY === 'number' ? data.imageFocusY : 50);
+            setImageZoom(typeof data.imageZoom === 'number' && data.imageZoom >= 1 ? data.imageZoom : 1);
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
@@ -74,6 +82,9 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
         year: year.trim(),
         funFact: funFact.trim(),
         imageUrl: imageUrl.trim(),
+        imageFocusX,
+        imageFocusY,
+        imageZoom,
         updatedAt: new Date().toISOString(),
       });
 
@@ -87,6 +98,9 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
         year: year.trim(),
         funFact: funFact.trim(),
         imageUrl: imageUrl.trim(),
+        imageFocusX,
+        imageFocusY,
+        imageZoom,
       });
       
       setTimeout(() => setSuccess(''), 3000);
@@ -96,6 +110,22 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+  const beginDrag = (clientX: number, clientY: number) => {
+    dragStartRef.current = { x: clientX, y: clientY, fx: imageFocusX, fy: imageFocusY };
+  };
+
+  const moveDrag = (clientX: number, clientY: number) => {
+    if (!dragStartRef.current || !previewRef.current) return;
+    const rect = previewRef.current.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const dxPct = ((clientX - dragStartRef.current.x) / rect.width) * 100;
+    const dyPct = ((clientY - dragStartRef.current.y) / rect.height) * 100;
+    setImageFocusX(clamp(dragStartRef.current.fx - dxPct, 0, 100));
+    setImageFocusY(clamp(dragStartRef.current.fy - dyPct, 0, 100));
   };
 
   const handleLogout = async () => {
@@ -144,8 +174,67 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
               onError={(msg) => setError(msg)}
             />
             {imageUrl && (
-              <div className="mt-4 w-40 aspect-square rounded-lg overflow-hidden border border-gray-700 bg-[#0f131a]">
-                <img src={imageUrl} alt="Profile preview" className="w-full h-full object-cover object-center" />
+              <div className="mt-4">
+                <div className="relative h-56 w-full max-w-md rounded-lg overflow-hidden border border-gray-700 bg-[#0f131a]">
+                  <div
+                    ref={previewRef}
+                    className="absolute inset-0 z-10 cursor-grab active:cursor-grabbing"
+                    onMouseDown={(e) => beginDrag(e.clientX, e.clientY)}
+                    onMouseMove={(e) => {
+                      if ((e.buttons & 1) === 1) moveDrag(e.clientX, e.clientY);
+                    }}
+                    onMouseUp={() => {
+                      dragStartRef.current = null;
+                    }}
+                    onMouseLeave={() => {
+                      dragStartRef.current = null;
+                    }}
+                    onTouchStart={(e) => {
+                      const t = e.touches[0];
+                      if (!t) return;
+                      beginDrag(t.clientX, t.clientY);
+                    }}
+                    onTouchMove={(e) => {
+                      const t = e.touches[0];
+                      if (!t) return;
+                      moveDrag(t.clientX, t.clientY);
+                    }}
+                    onTouchEnd={() => {
+                      dragStartRef.current = null;
+                    }}
+                  />
+                  <img
+                    src={imageUrl}
+                    alt="Profile crop preview"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ objectPosition: `${imageFocusX}% ${imageFocusY}%`, transform: `scale(${imageZoom})`, transformOrigin: 'center' }}
+                  />
+                  {/* Outside-frame fade so users feel only center square is kept */}
+                  <div className="absolute inset-0 bg-white/25 pointer-events-none" />
+                  <div className="absolute left-1/2 top-1/2 w-40 h-40 -translate-x-1/2 -translate-y-1/2 border-2 border-white shadow-[0_0_0_9999px_rgba(255,255,255,0.28)] pointer-events-none" />
+                </div>
+                <p className="mt-2 text-xs text-gray-400">
+                  사진을 드래그해 위치를 맞추고, 확대/축소로 프레임에 맞춰 주세요.
+                </p>
+                <div className="mt-3 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setImageZoom((z) => clamp(Number((z - 0.1).toFixed(2)), 1, 3))}
+                    className="px-3 py-1.5 rounded bg-[#2d3a52] text-white text-sm hover:bg-[#3b4c6b]"
+                  >
+                    -
+                  </button>
+                  <div className="text-xs text-gray-300 min-w-[72px] text-center">
+                    Zoom {Math.round(imageZoom * 100)}%
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setImageZoom((z) => clamp(Number((z + 0.1).toFixed(2)), 1, 3))}
+                    className="px-3 py-1.5 rounded bg-[#2d3a52] text-white text-sm hover:bg-[#3b4c6b]"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             )}
           </div>

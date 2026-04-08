@@ -9,6 +9,10 @@ interface TeamCardProps {
 }
 
 const TeamCard: React.FC<TeamCardProps> = ({ member, showDragHandle, onDragHandleMouseDown }) => {
+  const focusX = typeof member.imageFocusX === 'number' ? member.imageFocusX : 50;
+  const focusY = typeof member.imageFocusY === 'number' ? member.imageFocusY : 50;
+  const zoom = typeof member.imageZoom === 'number' && member.imageZoom >= 1 ? member.imageZoom : 1;
+
   return (
     <div className="bg-asme-red rounded-xl p-6 flex flex-col shadow-lg transform hover:scale-[1.02] transition-transform duration-300 relative">
       <div className="flex items-center justify-between mb-4 gap-2">
@@ -27,7 +31,12 @@ const TeamCard: React.FC<TeamCardProps> = ({ member, showDragHandle, onDragHandl
       </div>
       <div className="flex flex-row gap-6 items-center">
         <div className="w-28 sm:w-32 aspect-square flex-shrink-0 bg-white rounded-lg overflow-hidden ring-1 ring-white/40">
-            <img src={member.imageUrl} alt={member.name} className="w-full h-full object-cover object-center" />
+            <img
+              src={member.imageUrl}
+              alt={member.name}
+              className="w-full h-full object-cover"
+              style={{ objectPosition: `${focusX}% ${focusY}%`, transform: `scale(${zoom})`, transformOrigin: 'center' }}
+            />
         </div>
         <div className="flex flex-col text-xs text-white space-y-2 font-jost">
           <p><span className="underline decoration-white/50 underline-offset-2">Year</span>: {member.year}</p>
