@@ -954,7 +954,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
         </div>
       </div>
 
-      {/* Team boards: red tabs switch one board at a time (full copy on each team page) */}
+      {/* Team boards: segmented tabs (same classes as General Body / Design Team route toggles) */}
       {teamSettings.teamNames.length > 0 && (
         <div className="border-t border-gray-200 bg-[#e5e7eb] py-10 px-4 sm:px-8">
           <div className="container mx-auto max-w-5xl">
@@ -962,7 +962,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
               Team boards
             </h2>
             <div
-              className="flex flex-wrap justify-center gap-2 mb-10"
+              className="flex flex-wrap gap-1 bg-[#DEE7ED] p-1 rounded-lg w-fit max-w-full mb-10 mx-auto md:mx-0 shadow-md justify-center md:justify-start"
               role="tablist"
               aria-label="Team boards"
             >
@@ -982,10 +982,10 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                     role="tab"
                     aria-selected={selected}
                     id={`about-board-tab-${i}`}
-                    className={`px-4 py-2.5 rounded-lg font-jost text-sm sm:text-base font-semibold transition-all shadow-sm border-2 ${
+                    className={`px-6 py-2 rounded-md font-jost text-sm font-medium transition-all ${
                       selected
-                        ? 'bg-asme-red text-white border-asme-red'
-                        : 'bg-white text-asme-red border-asme-red/35 hover:bg-[#800020]/10'
+                        ? 'bg-[#3b4c6b] text-white shadow'
+                        : 'text-gray-400 hover:text-[#48597F]'
                     }`}
                     onClick={() => setActiveBoardTabIndex(i)}
                   >
