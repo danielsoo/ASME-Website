@@ -83,6 +83,10 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   const [deleteErrorPosition, setDeleteErrorPosition] = useState<ExecPosition | null>(null);
   const [assignedMembersForDeletion, setAssignedMembersForDeletion] = useState<TeamMember[]>([]);
 
+  const [showTeamDeleteBlockedModal, setShowTeamDeleteBlockedModal] = useState(false);
+  const [teamDeleteBlockedTeamLabel, setTeamDeleteBlockedTeamLabel] = useState('');
+  const [teamDeleteBlockedNames, setTeamDeleteBlockedNames] = useState<string[]>([]);
+
   // Duplicate member modal states
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [duplicateUser, setDuplicateUser] = useState<TeamMember | null>(null);
@@ -276,16 +280,9 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
             return n || em || 'Unknown';
           })
           .filter(Boolean);
-        const maxShow = 12;
-        const listed =
-          names.length <= maxShow
-            ? names.join(', ')
-            : `${names.slice(0, maxShow).join(', ')}… (${names.length} members total)`;
-        showAlert(
-          'warning',
-          'Cannot delete',
-          `These members are still assigned to this team: ${listed}. Change each member's team in the table below, then try again.`
-        );
+        setTeamDeleteBlockedTeamLabel(teamLabel);
+        setTeamDeleteBlockedNames(names);
+        setShowTeamDeleteBlockedModal(true);
         return;
       }
 
@@ -1072,6 +1069,55 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                     setShowDeleteErrorModal(false);
                     setDeleteErrorPosition(null);
                     setAssignedMembersForDeletion([]);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Team delete blocked: members still assigned (same layout as position delete error) */}
+        {showTeamDeleteBlockedModal && (
+          <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <X className="w-6 h-6 text-yellow-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800">Cannot Delete Team</h2>
+              </div>
+
+              <div className="mb-6">
+                <p className="text-gray-700 mb-4">
+                  Cannot delete the team <span className="font-semibold">"{teamDeleteBlockedTeamLabel}"</span> because{' '}
+                  <span className="font-semibold">{teamDeleteBlockedNames.length}</span> member(s) are still assigned to this team.
+                </p>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-yellow-800 mb-2">Assigned Members:</p>
+                  <ul className="list-disc list-inside space-y-1 max-h-60 overflow-y-auto">
+                    {teamDeleteBlockedNames.map((name, idx) => (
+                      <li key={`${name}-${idx}`} className="text-sm text-yellow-900 break-words">
+                        {name}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <p className="text-gray-600 text-sm mt-4">
+                  Change each member&apos;s team in the table below, then try again.
+                </p>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={() => {
+                    setShowTeamDeleteBlockedModal(false);
+                    setTeamDeleteBlockedTeamLabel('');
+                    setTeamDeleteBlockedNames([]);
                   }}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded"
                 >
