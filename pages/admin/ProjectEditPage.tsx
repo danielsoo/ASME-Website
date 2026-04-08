@@ -18,6 +18,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState('');
+  const [roleReady, setRoleReady] = useState(false);
   const [allUsers, setAllUsers] = useState<{ uid: string; name?: string; email?: string; role?: string }[]>([]);
   const [execPositions, setExecPositions] = useState<string[]>([]);
 
@@ -54,12 +55,19 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
-      if (!user) return;
+      if (!user) {
+        setRoleReady(false);
+        return;
+      }
       try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) setCurrentUserRole(userDoc.data()?.role || '');
+        else setCurrentUserRole('');
       } catch (e) {
         console.error(e);
+        setCurrentUserRole('');
+      } finally {
+        setRoleReady(true);
       }
     });
     return () => unsub();
@@ -224,6 +232,14 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
         >
           Back to Projects
         </button>
+      </div>
+    );
+  }
+
+  if (!roleReady) {
+    return (
+      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center">
+        <p className="text-gray-600">Loading...</p>
       </div>
     );
   }

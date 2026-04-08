@@ -68,6 +68,8 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   const [execPositions, setExecPositions] = useState<ExecPosition[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
+  /** False until Firestore returns the signed-in user's role — avoids a flash of "Access Denied". */
+  const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
 
   // Position management states
@@ -162,17 +164,24 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     );
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setCurrentUserId(user.uid);
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setCurrentUserRole(userData.role || 'member');
-          }
-        } catch (error) {
-          console.error('Error fetching current user role:', error);
+      if (!user) {
+        setRoleReady(false);
+        return;
+      }
+      setCurrentUserId(user.uid);
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setCurrentUserRole(userData.role || 'member');
+        } else {
+          setCurrentUserRole('member');
         }
+      } catch (error) {
+        console.error('Error fetching current user role:', error);
+        setCurrentUserRole('member');
+      } finally {
+        setRoleReady(true);
       }
     });
 
@@ -596,6 +605,14 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     { id: 'member', value: 'member', label: 'Member' },
     ...execPositions.map((p) => ({ id: p.id, value: p.name, label: p.name })),
   ];
+
+  if (!roleReady) {
+    return (
+      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
 
   if (!canManage()) {
     return (

@@ -15,6 +15,7 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
   const [deletedProjects, setDeletedProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
+  const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [deletionRequestsCount, setDeletionRequestsCount] = useState(0);
 
@@ -52,17 +53,24 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
     loadAllUsers();
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setCurrentUserId(user.uid);
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setCurrentUserRole(userData.role || 'member');
-          }
-        } catch (error) {
-          console.error('Error fetching current user role:', error);
+      if (!user) {
+        setRoleReady(false);
+        return;
+      }
+      setCurrentUserId(user.uid);
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setCurrentUserRole(userData.role || 'member');
+        } else {
+          setCurrentUserRole('member');
         }
+      } catch (error) {
+        console.error('Error fetching current user role:', error);
+        setCurrentUserRole('member');
+      } finally {
+        setRoleReady(true);
       }
     });
 
@@ -586,6 +594,14 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
     }
     return isProjectLeader(project); // Leaders can only see their own projects
   });
+
+  if (!roleReady) {
+    return (
+      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
 
   if (!canManageTrash() && visibleProjects.length === 0 && !loading) {
     return (

@@ -17,6 +17,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
+  const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -54,17 +55,24 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
 
     // Get current user's role
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setCurrentUserId(user.uid);
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setCurrentUserRole(userData.role || 'member');
-          }
-        } catch (error) {
-          console.error('Error fetching current user role:', error);
+      if (!user) {
+        setRoleReady(false);
+        return;
+      }
+      setCurrentUserId(user.uid);
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setCurrentUserRole(userData.role || 'member');
+        } else {
+          setCurrentUserRole('member');
         }
+      } catch (error) {
+        console.error('Error fetching current user role:', error);
+        setCurrentUserRole('member');
+      } finally {
+        setRoleReady(true);
       }
     });
 
@@ -256,6 +264,14 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     onSave: saveForLeave,
   });
 
+
+  if (!roleReady) {
+    return (
+      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
 
   // Check access: Only President/VP can manage sponsors
   if (!canManageSponsors()) {

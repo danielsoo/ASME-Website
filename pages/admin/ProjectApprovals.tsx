@@ -15,6 +15,7 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
   const [pendingProjects, setPendingProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
+  const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -48,17 +49,24 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
 
     // Get current user's role
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setCurrentUserId(user.uid);
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setCurrentUserRole(userData.role || 'member');
-          }
-        } catch (error) {
-          console.error('Error fetching current user role:', error);
+      if (!user) {
+        setRoleReady(false);
+        return;
+      }
+      setCurrentUserId(user.uid);
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setCurrentUserRole(userData.role || 'member');
+        } else {
+          setCurrentUserRole('member');
         }
+      } catch (error) {
+        console.error('Error fetching current user role:', error);
+        setCurrentUserRole('member');
+      } finally {
+        setRoleReady(true);
       }
     });
 
@@ -187,6 +195,14 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
     setProjectLeaderId('');
     setShowApproveModal(true);
   };
+
+  if (!roleReady) {
+    return (
+      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
 
   if (!canApproveProjects()) {
     return (
