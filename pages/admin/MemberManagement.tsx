@@ -231,7 +231,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
       showAlert(
         'warning',
         'Cannot delete',
-        'This team is used for the About page (Design Team routing or General Body content). Change routing or reassign members first, then delete.'
+        'This team name is reserved for the About page (General Body or Design Team). It cannot be removed while it is used in that role.'
       );
       return;
     }
@@ -239,10 +239,23 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
       const userTeamQuery = query(collection(db, 'users'), where('team', '==', teamLabel));
       const snap = await getDocs(userTeamQuery);
       if (!snap.empty) {
+        const names = snap.docs
+          .map((d) => {
+            const data = d.data();
+            const n = String(data.name ?? '').trim();
+            const em = String(data.email ?? '').trim();
+            return n || em || 'Unknown';
+          })
+          .filter(Boolean);
+        const maxShow = 12;
+        const listed =
+          names.length <= maxShow
+            ? names.join(', ')
+            : `${names.slice(0, maxShow).join(', ')}… (${names.length} members total)`;
         showAlert(
           'warning',
           'Cannot delete',
-          'At least one member is assigned to this team. Reassign them in the table first.'
+          `These members are still assigned to this team: ${listed}. Change each member's team in the table below, then try again.`
         );
         return;
       }
