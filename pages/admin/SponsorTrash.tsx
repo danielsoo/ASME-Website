@@ -524,11 +524,11 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
                   <div className="flex-1 min-w-0">
                     <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-2 break-words">{sponsor.name}</h2>
                     {sponsor.logoUrl && (
-                      <div className="mb-3">
+                      <div className="mb-3 w-24 aspect-square rounded-lg overflow-hidden border bg-gray-100">
                         <img
                           src={sponsor.logoUrl}
                           alt={sponsor.name}
-                          className="h-20 object-contain"
+                          className="w-full h-full object-cover object-center"
                         />
                       </div>
                     )}

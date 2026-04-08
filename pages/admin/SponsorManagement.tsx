@@ -344,11 +344,11 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                     )}
 
                     {sponsor.logoUrl && (
-                      <div className="mt-3">
+                      <div className="mt-3 w-24 aspect-square rounded-lg overflow-hidden border bg-gray-100">
                         <img
                           src={sponsor.logoUrl}
                           alt={sponsor.name}
-                          className="h-20 object-contain rounded-lg"
+                          className="w-full h-full object-cover object-center"
                         />
                       </div>
                     )}
@@ -428,11 +428,13 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                     onError={(msg) => showAlert('error', 'Upload Error', msg)}
                   />
                   {logoUrl && (
-                    <img
-                      src={logoUrl}
-                      alt="Logo preview"
-                      className="mt-4 h-32 object-contain border rounded"
-                    />
+                    <div className="mt-4 w-32 aspect-square border rounded overflow-hidden bg-gray-100">
+                      <img
+                        src={logoUrl}
+                        alt="Logo preview"
+                        className="w-full h-full object-cover object-center"
+                      />
+                    </div>
                   )}
                 </div>
 
@@ -502,11 +504,13 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                     onError={(msg) => showAlert('error', 'Upload Error', msg)}
                   />
                   {(logoUrl || selectedSponsor?.logoUrl) && (
-                    <img
-                      src={logoUrl || selectedSponsor?.logoUrl}
-                      alt="Logo preview"
-                      className="mt-4 h-32 object-contain border rounded"
-                    />
+                    <div className="mt-4 w-32 aspect-square border rounded overflow-hidden bg-gray-100">
+                      <img
+                        src={logoUrl || selectedSponsor?.logoUrl}
+                        alt="Logo preview"
+                        className="w-full h-full object-cover object-center"
+                      />
+                    </div>
                   )}
                 </div>
               </div>

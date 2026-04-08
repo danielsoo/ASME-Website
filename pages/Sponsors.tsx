@@ -112,19 +112,15 @@ const Sponsors: React.FC = () => {
               <div className="bg-[#3b4c6b] p-8 md:p-12 rounded-lg">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                       {SPONSORS.map(sponsor => (
-                          <div key={sponsor.id} className="aspect-square bg-white rounded shadow-lg flex items-center justify-center p-4 hover:scale-105 transition-transform duration-300">
-                              {/* Logo Placeholder */}
-                               <div className="relative w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 font-bold text-xs uppercase tracking-wider text-center">
-                                <a href={sponsor.link} target="_blank" className="relative block w-full h-full">
-                                    <img src={sponsor.logoUrl} alt={sponsor.name} className="w-full h-full object-cover"></img>
-                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
-                                        <span className="text-white text-sm font-bold uppercase tracking-wider text-center px-2">
-                                            {sponsor.name}
-                                        </span>
-                                    </div>
-                                </a>
-                                
-                               </div>
+                          <div key={sponsor.id} className="aspect-square bg-white rounded shadow-lg overflow-hidden hover:scale-105 transition-transform duration-300">
+                               <a href={sponsor.link} target="_blank" className="relative block w-full h-full">
+                                  <img src={sponsor.logoUrl} alt={sponsor.name} className="w-full h-full object-cover object-center" />
+                                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
+                                      <span className="text-white text-sm font-bold uppercase tracking-wider text-center px-2">
+                                          {sponsor.name}
+                                      </span>
+                                  </div>
+                               </a>
                           </div>
                       ))}
                   </div>

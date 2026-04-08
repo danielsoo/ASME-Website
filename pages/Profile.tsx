@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../src/firebase/config';
-import { User, Mail, GraduationCap, Calendar, Save, LogOut } from 'lucide-react';
+import { User, Mail, GraduationCap, Calendar, Save, LogOut, MessageSquare, Image as ImageIcon } from 'lucide-react';
+import Uploader from '../src/components/Uploader';
 
 interface ProfileProps {
   onNavigate: (path: string) => void;
@@ -16,8 +17,11 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
   
   // Editable fields
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [major, setMajor] = useState('');
   const [year, setYear] = useState('');
+  const [funFact, setFunFact] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -31,8 +35,11 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
             const data = userDoc.data();
             setUserData(data);
             setName(data.name || '');
+            setEmail(data.email || firebaseUser.email || '');
             setMajor(data.major || '');
             setYear(data.year || '');
+            setFunFact(data.funFact || '');
+            setImageUrl(data.imageUrl || '');
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
@@ -49,6 +56,11 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
 
   const handleSave = async () => {
     if (!user) return;
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setError('Email is required.');
+      return;
+    }
     
     setSaving(true);
     setError('');
@@ -57,8 +69,11 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
     try {
       await updateDoc(doc(db, 'users', user.uid), {
         name: name.trim(),
+        email: normalizedEmail,
         major: major.trim(),
         year: year.trim(),
+        funFact: funFact.trim(),
+        imageUrl: imageUrl.trim(),
         updatedAt: new Date().toISOString(),
       });
 
@@ -67,8 +82,11 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
       setUserData({
         ...userData,
         name: name.trim(),
+        email: normalizedEmail,
         major: major.trim(),
         year: year.trim(),
+        funFact: funFact.trim(),
+        imageUrl: imageUrl.trim(),
       });
       
       setTimeout(() => setSuccess(''), 3000);
@@ -112,19 +130,24 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
 
         {/* Profile Card */}
         <div className="bg-[#1a1f2e] rounded-lg shadow-xl p-8 mb-6">
-          {/* Email (Read-only) */}
+          {/* Profile Photo */}
           <div className="mb-6">
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2">
-              <Mail className="w-5 h-5" />
-              Email
+              <ImageIcon className="w-5 h-5" />
+              Profile Photo
             </label>
-            <input
-              type="email"
-              value={user.email || ''}
-              disabled
-              className="w-full px-4 py-3 bg-[#0f131a] border border-gray-700 rounded-lg text-gray-400 cursor-not-allowed"
+            <Uploader
+              folder="/members"
+              tags={['member-profile']}
+              buttonLabel={imageUrl ? 'Replace Photo' : 'Upload Photo'}
+              onComplete={(u) => setImageUrl(u.url)}
+              onError={(msg) => setError(msg)}
             />
-            <p className="mt-1 text-xs text-gray-500">Email cannot be changed</p>
+            {imageUrl && (
+              <div className="mt-4 w-40 aspect-square rounded-lg overflow-hidden border border-gray-700 bg-[#0f131a]">
+                <img src={imageUrl} alt="Profile preview" className="w-full h-full object-cover object-center" />
+              </div>
+            )}
           </div>
 
           {/* Name */}
@@ -140,6 +163,22 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
               className="w-full px-4 py-3 bg-[#0f131a] border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#3b4c6b] focus:border-transparent transition"
               placeholder="Enter your name"
             />
+          </div>
+
+          {/* Display Email */}
+          <div className="mb-6">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2">
+              <Mail className="w-5 h-5" />
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 bg-[#0f131a] border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#3b4c6b] focus:border-transparent transition"
+              placeholder="Enter your contact email"
+            />
+            <p className="mt-1 text-xs text-gray-500">Shown on the About board card when you are assigned to a board role.</p>
           </div>
 
           {/* Major */}
@@ -175,6 +214,21 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
               <option value="Senior">Senior</option>
               <option value="Graduate">Graduate</option>
             </select>
+          </div>
+
+          {/* Fun Fact */}
+          <div className="mb-6">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2">
+              <MessageSquare className="w-5 h-5" />
+              Fun Fact
+            </label>
+            <input
+              type="text"
+              value={funFact}
+              onChange={(e) => setFunFact(e.target.value)}
+              className="w-full px-4 py-3 bg-[#0f131a] border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#3b4c6b] focus:border-transparent transition"
+              placeholder="Share a short fun fact"
+            />
           </div>
 
           {/* Role & Status (Read-only) */}

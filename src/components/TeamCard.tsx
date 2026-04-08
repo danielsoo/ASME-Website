@@ -26,8 +26,8 @@ const TeamCard: React.FC<TeamCardProps> = ({ member, showDragHandle, onDragHandl
         )}
       </div>
       <div className="flex flex-row gap-6 items-center">
-        <div className="w-32 h-32 flex-shrink-0 bg-white rounded-lg overflow-hidden">
-            <img src={member.imageUrl} alt={member.name} className="w-full h-full object-cover" />
+        <div className="w-28 sm:w-32 aspect-square flex-shrink-0 bg-white rounded-lg overflow-hidden ring-1 ring-white/40">
+            <img src={member.imageUrl} alt={member.name} className="w-full h-full object-cover object-center" />
         </div>
         <div className="flex flex-col text-xs text-white space-y-2 font-jost">
           <p><span className="underline decoration-white/50 underline-offset-2">Year</span>: {member.year}</p>

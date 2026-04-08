@@ -19,10 +19,29 @@ import { TeamMember, Project, Event, Sponsor, HomePageWhatWeDo } from '../types'
 // ============ Team Members (Exec Board & Design Team) ============
 
 export const getExecBoard = async (): Promise<TeamMember[]> => {
-  const execBoardRef = collection(db, 'execBoard');
-  const snapshot = await getDocs(execBoardRef);
-  const members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TeamMember));
-  // Sort by order field, then by id if order is not set
+  const usersRef = collection(db, 'users');
+  const snapshot = await getDocs(query(usersRef, where('status', '==', 'approved'), where('team', '==', 'General Body')));
+  const members = snapshot.docs
+    .map((docSnap) => {
+      const data = docSnap.data() as any;
+      return {
+        id: docSnap.id,
+        name: data.name || '',
+        position: data.role || 'member',
+        year: data.year || '',
+        major: data.major || '',
+        hometown: data.hometown || '',
+        imageUrl: data.imageUrl || '',
+        email: data.email || '',
+        funFact: data.funFact || '',
+        isExec: data.role !== 'member' && data.role !== 'admin',
+        order: data.execOrder,
+        status: data.status,
+        team: data.team,
+      } as TeamMember;
+    })
+    .filter((member) => member.position !== 'member' && member.position !== 'admin');
+
   return members.sort((a, b) => {
     if (a.order !== undefined && b.order !== undefined) {
       return a.order - b.order;
@@ -34,10 +53,29 @@ export const getExecBoard = async (): Promise<TeamMember[]> => {
 };
 
 export const getDesignTeam = async (): Promise<TeamMember[]> => {
-  const designTeamRef = collection(db, 'designTeam');
-  const snapshot = await getDocs(designTeamRef);
-  const members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TeamMember));
-  // Sort by order field, then by id if order is not set
+  const usersRef = collection(db, 'users');
+  const snapshot = await getDocs(query(usersRef, where('status', '==', 'approved'), where('team', '==', 'Design Team')));
+  const members = snapshot.docs
+    .map((docSnap) => {
+      const data = docSnap.data() as any;
+      return {
+        id: docSnap.id,
+        name: data.name || '',
+        position: data.role || 'member',
+        year: data.year || '',
+        major: data.major || '',
+        hometown: data.hometown || '',
+        imageUrl: data.imageUrl || '',
+        email: data.email || '',
+        funFact: data.funFact || '',
+        isExec: data.role !== 'member' && data.role !== 'admin',
+        order: data.designOrder,
+        status: data.status,
+        team: data.team,
+      } as TeamMember;
+    })
+    .filter((member) => member.position !== 'member' && member.position !== 'admin');
+
   return members.sort((a, b) => {
     if (a.order !== undefined && b.order !== undefined) {
       return a.order - b.order;
@@ -52,9 +90,10 @@ export const updateTeamMemberOrder = async (
   members: TeamMember[],
   collectionName: 'execBoard' | 'designTeam'
 ): Promise<void> => {
+  const orderField = collectionName === 'execBoard' ? 'execOrder' : 'designOrder';
   const batch = members.map(async (member, index) => {
-    const docRef = doc(db, collectionName, member.id);
-    await updateDoc(docRef, { order: index });
+    const docRef = doc(db, 'users', member.id);
+    await updateDoc(docRef, { [orderField]: index });
   });
   await Promise.all(batch);
 };
