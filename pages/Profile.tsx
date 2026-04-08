@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../src/firebase/config';
@@ -25,8 +25,24 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
   const [imageFocusX, setImageFocusX] = useState(50);
   const [imageFocusY, setImageFocusY] = useState(50);
   const [imageZoom, setImageZoom] = useState(1);
-  const dragStartRef = useRef<{ x: number; y: number; fx: number; fy: number } | null>(null);
-  const previewRef = useRef<HTMLDivElement | null>(null);
+  /** Fixed image + movable crop frame (pixels inside crop container) */
+  const cropContainerRef = useRef<HTMLDivElement | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const [displayRect, setDisplayRect] = useState<{
+    offX: number;
+    offY: number;
+    dw: number;
+    dh: number;
+  } | null>(null);
+  const [frameSize, setFrameSize] = useState(0);
+  const [frameLeft, setFrameLeft] = useState(0);
+  const [frameTop, setFrameTop] = useState(0);
+  const frameDragRef = useRef<{
+    startClientX: number;
+    startClientY: number;
+    startLeft: number;
+    startTop: number;
+  } | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -114,19 +130,214 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
 
   const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
-  const beginDrag = (clientX: number, clientY: number) => {
-    dragStartRef.current = { x: clientX, y: clientY, fx: imageFocusX, fy: imageFocusY };
+  /** Map frame (px) + display rect → focus % + zoom (same convention as TeamCard). */
+  const frameToCrop = useCallback(
+    (
+      fs: number,
+      fl: number,
+      ft: number,
+      rect: { offX: number; offY: number; dw: number; dh: number }
+    ) => {
+      const { offX, offY, dw, dh } = rect;
+      const zoom = Math.min(dw, dh) / fs;
+      const cx = fl + fs / 2;
+      const cy = ft + fs / 2;
+      const focusX = ((cx - offX) / dw) * 100;
+      const focusY = ((cy - offY) / dh) * 100;
+      return {
+        focusX: clamp(focusX, 0, 100),
+        focusY: clamp(focusY, 0, 100),
+        zoom: clamp(zoom, 1, 3),
+      };
+    },
+    []
+  );
+
+  const applyFrameToState = useCallback(
+    (
+      fs: number,
+      fl: number,
+      ft: number,
+      rect: { offX: number; offY: number; dw: number; dh: number } | null
+    ) => {
+      if (!rect) return;
+      const { focusX, focusY, zoom } = frameToCrop(fs, fl, ft, rect);
+      setImageFocusX(focusX);
+      setImageFocusY(focusY);
+      setImageZoom(zoom);
+    },
+    [frameToCrop]
+  );
+
+  const restoreFrameFromCrop = useCallback(
+    (
+      rect: { offX: number; offY: number; dw: number; dh: number },
+      fx: number,
+      fy: number,
+      zm: number
+    ) => {
+      const { offX, offY, dw, dh } = rect;
+      const z = clamp(zm, 1, 3);
+      const minFs = Math.max(24, Math.min(dw, dh) / 3);
+      const maxFs = Math.min(dw, dh);
+      let fs = Math.min(dw, dh) / z;
+      fs = clamp(fs, minFs, maxFs);
+      const cx = offX + (fx / 100) * dw;
+      const cy = offY + (fy / 100) * dh;
+      let fl = cx - fs / 2;
+      let ft = cy - fs / 2;
+      fl = clamp(fl, offX, offX + dw - fs);
+      ft = clamp(ft, offY, offY + dh - fs);
+      setFrameSize(fs);
+      setFrameLeft(fl);
+      setFrameTop(ft);
+      const u = frameToCrop(fs, fl, ft, rect);
+      setImageFocusX(u.focusX);
+      setImageFocusY(u.focusY);
+      setImageZoom(u.zoom);
+    },
+    [frameToCrop]
+  );
+
+  const measureDisplayedImage = useCallback(() => {
+    const container = cropContainerRef.current;
+    const img = imgRef.current;
+    if (!container || !img || !img.naturalWidth) return;
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    const nw = img.naturalWidth;
+    const nh = img.naturalHeight;
+    const scale = Math.min(cw / nw, ch / nh);
+    const dw = nw * scale;
+    const dh = nh * scale;
+    const offX = (cw - dw) / 2;
+    const offY = (ch - dh) / 2;
+    setDisplayRect({ offX, offY, dw, dh });
+  }, []);
+
+  useEffect(() => {
+    setDisplayRect(null);
+  }, [imageUrl]);
+
+  useEffect(() => {
+    if (!displayRect || !imageUrl) return;
+    restoreFrameFromCrop(displayRect, imageFocusX, imageFocusY, imageZoom);
+    // 레이아웃(image 표시 영역)이 바뀔 때만 저장된 포커스/줌으로 프레임을 맞춤 (드래그 시에는 프레임이 진실값)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayRect?.offX, displayRect?.offY, displayRect?.dw, displayRect?.dh, imageUrl, restoreFrameFromCrop]);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      const d = frameDragRef.current;
+      const rect = displayRect;
+      if (!d || !rect) return;
+      const dx = e.clientX - d.startClientX;
+      const dy = e.clientY - d.startClientY;
+      const fs = frameSize;
+      const { offX, offY, dw, dh } = rect;
+      let fl = d.startLeft + dx;
+      let ft = d.startTop + dy;
+      fl = clamp(fl, offX, offX + dw - fs);
+      ft = clamp(ft, offY, offY + dh - fs);
+      setFrameLeft(fl);
+      setFrameTop(ft);
+      applyFrameToState(fs, fl, ft, rect);
+    };
+    const onUp = () => {
+      frameDragRef.current = null;
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [displayRect, frameSize, applyFrameToState]);
+
+  useEffect(() => {
+    const onTouchMove = (e: TouchEvent) => {
+      const d = frameDragRef.current;
+      const rect = displayRect;
+      if (!d || !rect) return;
+      e.preventDefault();
+      const t = e.touches[0];
+      if (!t) return;
+      const dx = t.clientX - d.startClientX;
+      const dy = t.clientY - d.startClientY;
+      const fs = frameSize;
+      const { offX, offY, dw, dh } = rect;
+      let fl = d.startLeft + dx;
+      let ft = d.startTop + dy;
+      fl = clamp(fl, offX, offX + dw - fs);
+      ft = clamp(ft, offY, offY + dh - fs);
+      setFrameLeft(fl);
+      setFrameTop(ft);
+      applyFrameToState(fs, fl, ft, rect);
+    };
+    const onTouchEnd = () => {
+      frameDragRef.current = null;
+    };
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd);
+    window.addEventListener('touchcancel', onTouchEnd);
+    return () => {
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [displayRect, frameSize, applyFrameToState]);
+
+  const onFrameMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    frameDragRef.current = {
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      startLeft: frameLeft,
+      startTop: frameTop,
+    };
   };
 
-  const moveDrag = (clientX: number, clientY: number) => {
-    if (!dragStartRef.current || !previewRef.current) return;
-    const rect = previewRef.current.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const dxPct = ((clientX - dragStartRef.current.x) / rect.width) * 100;
-    const dyPct = ((clientY - dragStartRef.current.y) / rect.height) * 100;
-    setImageFocusX(clamp(dragStartRef.current.fx - dxPct, 0, 100));
-    setImageFocusY(clamp(dragStartRef.current.fy - dyPct, 0, 100));
+  const onFrameTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    if (!t) return;
+    e.preventDefault();
+    e.stopPropagation();
+    frameDragRef.current = {
+      startClientX: t.clientX,
+      startClientY: t.clientY,
+      startLeft: frameLeft,
+      startTop: frameTop,
+    };
   };
+
+  const adjustZoom = (delta: number) => {
+    const rect = displayRect;
+    if (!rect) return;
+    const { offX, offY, dw, dh } = rect;
+    const maxFs = Math.min(dw, dh);
+    const minFs = Math.max(32, maxFs / 3);
+    const cx = frameLeft + frameSize / 2;
+    const cy = frameTop + frameSize / 2;
+    let fs = frameSize * (1 + delta);
+    fs = clamp(fs, minFs, maxFs);
+    let fl = cx - fs / 2;
+    let ft = cy - fs / 2;
+    fl = clamp(fl, offX, offX + dw - fs);
+    ft = clamp(ft, offY, offY + dh - fs);
+    setFrameSize(fs);
+    setFrameLeft(fl);
+    setFrameTop(ft);
+    applyFrameToState(fs, fl, ft, rect);
+  };
+
+  useEffect(() => {
+    const el = cropContainerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => measureDisplayedImage());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [measureDisplayedImage, imageUrl]);
 
   const handleLogout = async () => {
     try {
@@ -170,66 +381,67 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
               folder="/members"
               tags={['member-profile']}
               buttonLabel={imageUrl ? 'Replace Photo' : 'Upload Photo'}
-              onComplete={(u) => setImageUrl(u.url)}
+              onComplete={(u) => {
+                setImageUrl(u.url);
+                setImageFocusX(50);
+                setImageFocusY(50);
+                setImageZoom(1);
+                setDisplayRect(null);
+              }}
               onError={(msg) => setError(msg)}
             />
             {imageUrl && (
               <div className="mt-4">
-                <div className="relative w-full max-w-sm aspect-square rounded-lg overflow-hidden border-2 border-white/80 bg-[#0f131a]">
+                <div
+                  ref={cropContainerRef}
+                  className="relative w-full max-w-sm aspect-square rounded-lg overflow-hidden border-2 border-white/80 bg-[#0f131a]"
+                >
                   <img
+                    ref={imgRef}
                     src={imageUrl}
                     alt="Profile crop preview"
-                    className="absolute inset-0 w-full h-full object-cover"
-                    style={{ objectPosition: `${imageFocusX}% ${imageFocusY}%`, transform: `scale(${imageZoom})`, transformOrigin: 'center' }}
+                    draggable={false}
+                    className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+                    onLoad={measureDisplayedImage}
                   />
-                  {/* Subtle edge fade for focus, while keeping full-frame drag */}
-                  <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: 'inset 0 0 0 9999px rgba(255,255,255,0.08)' }} />
-                  <div
-                    ref={previewRef}
-                    className="absolute inset-0 z-20 cursor-grab active:cursor-grabbing"
-                    onMouseDown={(e) => beginDrag(e.clientX, e.clientY)}
-                    onMouseMove={(e) => {
-                      if ((e.buttons & 1) === 1) moveDrag(e.clientX, e.clientY);
-                    }}
-                    onMouseUp={() => {
-                      dragStartRef.current = null;
-                    }}
-                    onMouseLeave={() => {
-                      dragStartRef.current = null;
-                    }}
-                    onTouchStart={(e) => {
-                      const t = e.touches[0];
-                      if (!t) return;
-                      beginDrag(t.clientX, t.clientY);
-                    }}
-                    onTouchMove={(e) => {
-                      const t = e.touches[0];
-                      if (!t) return;
-                      moveDrag(t.clientX, t.clientY);
-                    }}
-                    onTouchEnd={() => {
-                      dragStartRef.current = null;
-                    }}
-                  />
+                  {displayRect && frameSize > 0 && (
+                    <div
+                      className="absolute z-20 touch-none"
+                      style={{
+                        left: frameLeft,
+                        top: frameTop,
+                        width: frameSize,
+                        height: frameSize,
+                        boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)',
+                        cursor: 'move',
+                      }}
+                      onMouseDown={onFrameMouseDown}
+                      onTouchStart={onFrameTouchStart}
+                    >
+                      <div className="absolute inset-0 border-2 border-white rounded-sm pointer-events-none" />
+                    </div>
+                  )}
                 </div>
                 <p className="mt-2 text-xs text-gray-400">
-                  이 정사각형 전체가 실제 프로필 영역입니다. 카톡/아이클라우드처럼 안에서 드래그+확대/축소로 맞춰 주세요.
+                  사진은 고정이고, 흰 테두리 정사각형을 드래그해 잘라낼 영역을 맞춥니다. + / − 로 확대·축소할 수 있습니다.
                 </p>
                 <div className="mt-3 flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => setImageZoom((z) => clamp(Number((z - 0.1).toFixed(2)), 1, 3))}
-                    className="px-3 py-1.5 rounded bg-[#2d3a52] text-white text-sm hover:bg-[#3b4c6b]"
+                    onClick={() => adjustZoom(-0.1)}
+                    disabled={!displayRect || frameSize <= 0}
+                    className="px-3 py-1.5 rounded bg-[#2d3a52] text-white text-sm hover:bg-[#3b4c6b] disabled:opacity-40"
                   >
-                    -
+                    −
                   </button>
                   <div className="text-xs text-gray-300 min-w-[72px] text-center">
                     Zoom {Math.round(imageZoom * 100)}%
                   </div>
                   <button
                     type="button"
-                    onClick={() => setImageZoom((z) => clamp(Number((z + 0.1).toFixed(2)), 1, 3))}
-                    className="px-3 py-1.5 rounded bg-[#2d3a52] text-white text-sm hover:bg-[#3b4c6b]"
+                    onClick={() => adjustZoom(0.1)}
+                    disabled={!displayRect || frameSize <= 0}
+                    className="px-3 py-1.5 rounded bg-[#2d3a52] text-white text-sm hover:bg-[#3b4c6b] disabled:opacity-40"
                   >
                     +
                   </button>
