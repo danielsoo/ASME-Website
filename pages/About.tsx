@@ -892,9 +892,12 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
       {/* Hero / About Us Text */}
       <div className="container mx-auto px-16 py-16">
          <div className="flex flex-col md:flex-row gap-12 items-start">
-             <div className="w-full md:w-1/3 h-64 bg-slate-700 rounded-lg">
-                 {/* Placeholder for About Image */}
-                 <img src="https://picsum.photos/seed/about/800/600" className="w-full h-full object-cover rounded-lg opacity-80" alt="About Us" />
+             <div className="w-full md:w-1/3 h-64 bg-slate-700 rounded-lg overflow-hidden">
+                 <img
+                   src={aboutContent.heroImageUrl?.trim() || 'https://picsum.photos/seed/about/800/600'}
+                   className="w-full h-full object-cover rounded-lg"
+                   alt="About Us"
+                 />
              </div>
              
              <div className="w-full md:w-2/3 text-white font-jost">

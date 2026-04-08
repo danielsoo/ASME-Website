@@ -4,6 +4,7 @@ import { db } from '../../src/firebase/config';
 import type { AboutContent, GeneralBodyContent, DesignTeamContent } from '../../src/types';
 import { DEFAULT_ABOUT, DEFAULT_GENERAL_BODY, DEFAULT_DESIGN_TEAM } from '../../src/types';
 import RichTextEditor from '../../src/components/RichTextEditor';
+import AboutSiteImageField from '../../src/components/AboutSiteImageField';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 
 const CONFIG_PATH = 'config';
@@ -20,7 +21,15 @@ interface AboutManagementProps {
 }
 
 function aboutEquals(a: AboutContent, b: AboutContent): boolean {
-  const keys: (keyof AboutContent)[] = ['aboutTitle', 'aboutParagraph1', 'aboutParagraph2', 'aboutLinkUrl', 'paragraphFontFamily', 'paragraphFontWeight'];
+  const keys: (keyof AboutContent)[] = [
+    'aboutTitle',
+    'heroImageUrl',
+    'aboutParagraph1',
+    'aboutParagraph2',
+    'aboutLinkUrl',
+    'paragraphFontFamily',
+    'paragraphFontWeight',
+  ];
   return keys.every((k) => (a[k] ?? '') === (b[k] ?? ''));
 }
 
@@ -244,12 +253,20 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
           <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
             <h2 className="text-lg font-bold text-gray-800 mb-4">Main About</h2>
             <p className="text-gray-600 text-sm mb-4">
-              Content for the main About page (/about): about title, paragraphs, link URL, and paragraph font options.
+              Content for the main About page (/about): hero image, about title, paragraphs, link URL, and paragraph font options.
             </p>
             {loading ? (
               <div className="text-gray-500">Loading...</div>
             ) : (
-              <div className="space-y-4 max-w-2xl">
+              <div className="space-y-4 max-w-4xl">
+                <AboutSiteImageField
+                  label="Hero image (main About)"
+                  description="Left column on /about — preview matches public layout."
+                  value={about.heroImageUrl ?? ''}
+                  onChange={(v) => handleAboutChange('heroImageUrl', v)}
+                  preview="main-hero"
+                  folder="/site/about/main"
+                />
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">About title</label>
                   <RichTextEditor
@@ -345,16 +362,15 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
             {loading ? (
               <div className="text-gray-500">Loading...</div>
             ) : (
-              <div className="space-y-4 max-w-2xl">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Left column image URL</label>
-                  <input
-                    type="url"
-                    value={generalBody.leftImageUrl ?? ''}
-                    onChange={(e) => setGeneralBody((p) => ({ ...p, leftImageUrl: e.target.value }))}
-                    className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
-                  />
-                </div>
+              <div className="space-y-4 max-w-5xl">
+                <AboutSiteImageField
+                  label="Team image (General Body / Executive Board)"
+                  description="General Body team page and main About “Our Teams” tile for the Executive Board team."
+                  value={generalBody.leftImageUrl ?? ''}
+                  onChange={(v) => setGeneralBody((p) => ({ ...p, leftImageUrl: v }))}
+                  preview="dual-column-and-tile"
+                  folder="/site/about/general-body"
+                />
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Activities section title</label>
                   <RichTextEditor
@@ -427,16 +443,15 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
             {loading ? (
               <div className="text-gray-500">Loading...</div>
             ) : (
-              <div className="space-y-4 max-w-2xl">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Left column image URL</label>
-                  <input
-                    type="url"
-                    value={designTeam.leftImageUrl ?? ''}
-                    onChange={(e) => setDesignTeam((p) => ({ ...p, leftImageUrl: e.target.value }))}
-                    className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
-                  />
-                </div>
+              <div className="space-y-4 max-w-5xl">
+                <AboutSiteImageField
+                  label="Design Team page image (/about/designteam)"
+                  description="Left column on the Design Team page."
+                  value={designTeam.leftImageUrl ?? ''}
+                  onChange={(v) => setDesignTeam((p) => ({ ...p, leftImageUrl: v }))}
+                  preview="two-col-left"
+                  folder="/site/about/design-team"
+                />
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Section title (intro block)</label>
                   <RichTextEditor

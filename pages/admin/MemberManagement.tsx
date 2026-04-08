@@ -135,6 +135,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   const [teamSettings, setTeamSettings] = useState<TeamSettings>(DEFAULT_TEAM_SETTINGS);
   const [newTeamName, setNewTeamName] = useState('');
   const [showConfirmDeleteAboutTeam, setShowConfirmDeleteAboutTeam] = useState(false);
+  const [showConfirmDeleteTeam, setShowConfirmDeleteTeam] = useState(false);
   const [teamLabelPendingDelete, setTeamLabelPendingDelete] = useState<string | null>(null);
   useEffect(() => {
     const unsubTeams = subscribeTeamSettings(
@@ -315,7 +316,8 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
         return;
       }
 
-      await performTeamDelete(teamLabel);
+      setTeamLabelPendingDelete(teamLabel);
+      setShowConfirmDeleteTeam(true);
     } catch (e) {
       console.error(e);
       showAlert('error', 'Error', 'Failed to delete team.');
@@ -1198,6 +1200,28 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
           message={
             teamLabelPendingDelete
               ? `"${teamLabelPendingDelete}" is linked to the About page (General Body or Design Team). Removing it will remove that team from About and related site content. Delete this team anyway?`
+              : ''
+          }
+          confirmText="Delete team"
+          cancelText="Cancel"
+          type="warning"
+        />
+
+        <ConfirmModal
+          isOpen={showConfirmDeleteTeam}
+          onClose={() => {
+            setShowConfirmDeleteTeam(false);
+            setTeamLabelPendingDelete(null);
+          }}
+          onConfirm={async () => {
+            if (teamLabelPendingDelete) {
+              await performTeamDelete(teamLabelPendingDelete);
+            }
+          }}
+          title="Delete team"
+          message={
+            teamLabelPendingDelete
+              ? `Deleting "${teamLabelPendingDelete}" removes it from team settings and deletes its saved About / Site Content block (team board). Executive positions that reference this team may still show the old name until you edit them.\n\nThis cannot be undone. Delete this team?`
               : ''
           }
           confirmText="Delete team"

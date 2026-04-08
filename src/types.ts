@@ -229,6 +229,8 @@ export const DEFAULT_HOME: HomeContent = {
 /** Site content: about page (stored in config/about). */
 export interface AboutContent {
   aboutTitle?: string;
+  /** Hero image on main /about (left column, h-64 on md — matches public layout) */
+  heroImageUrl?: string;
   aboutParagraph1?: string;
   aboutParagraph2?: string;
   aboutLinkUrl?: string;

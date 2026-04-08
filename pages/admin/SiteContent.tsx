@@ -20,6 +20,7 @@ import {
   EMPTY_GENERAL_BODY_FORM,
 } from '../../src/types';
 import RichTextEditor from '../../src/components/RichTextEditor';
+import AboutSiteImageField from '../../src/components/AboutSiteImageField';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 import {
   subscribeTeamSettings,
@@ -55,7 +56,15 @@ function homeEquals(a: HomeContent, b: HomeContent): boolean {
   return HOME_KEYS.every((k) => (a[k] ?? '') === (b[k] ?? ''));
 }
 
-const ABOUT_KEYS: (keyof AboutContent)[] = ['aboutTitle', 'aboutParagraph1', 'aboutParagraph2', 'aboutLinkUrl', 'paragraphFontFamily', 'paragraphFontWeight'];
+const ABOUT_KEYS: (keyof AboutContent)[] = [
+  'aboutTitle',
+  'heroImageUrl',
+  'aboutParagraph1',
+  'aboutParagraph2',
+  'aboutLinkUrl',
+  'paragraphFontFamily',
+  'paragraphFontWeight',
+];
 function aboutEquals(a: AboutContent, b: AboutContent): boolean {
   return ABOUT_KEYS.every((k) => (a[k] ?? '') === (b[k] ?? ''));
 }
@@ -768,12 +777,20 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
             <>
               <h2 className="text-lg font-bold text-gray-800 mb-4">Main About</h2>
               <p className="text-gray-600 text-sm mb-4">
-                Content for the main About page (/about): about title, paragraphs, link URL, and paragraph font options.
+                Content for the main About page (/about): hero image, about title, paragraphs, link URL, and paragraph font options.
               </p>
               {loading ? (
                 <div className="text-gray-500">Loading...</div>
               ) : (
-                <div className="space-y-4 max-w-2xl">
+                <div className="space-y-4 max-w-4xl">
+                  <AboutSiteImageField
+                    label="Hero image (main About)"
+                    description="Shown in the left column on /about — preview matches live size (1/3 width on desktop, height 16rem)."
+                    value={about.heroImageUrl ?? ''}
+                    onChange={(v) => handleAboutChange('heroImageUrl', v)}
+                    preview="main-hero"
+                    folder="/site/about/main"
+                  />
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">About title</label>
                     <RichTextEditor value={about.aboutTitle ?? ''} onChange={(v) => handleAboutChange('aboutTitle', v)} minHeight="60px" />
@@ -835,11 +852,15 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
               {loading ? (
                 <div className="text-gray-500">Loading...</div>
               ) : (
-                <div className="space-y-4 max-w-2xl">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Left column image URL</label>
-                    <input type="url" value={generalBody.leftImageUrl ?? ''} onChange={(e) => setGeneralBody((p) => ({ ...p, leftImageUrl: e.target.value }))} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800" />
-                  </div>
+                <div className="space-y-4 max-w-5xl">
+                  <AboutSiteImageField
+                    label="Team image (General Body / Executive Board)"
+                    description="Used on the General Body team page and on the main About “Our Teams” tile for the Executive Board team."
+                    value={generalBody.leftImageUrl ?? ''}
+                    onChange={(v) => setGeneralBody((p) => ({ ...p, leftImageUrl: v }))}
+                    preview="dual-column-and-tile"
+                    folder="/site/about/general-body"
+                  />
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Activities section title</label>
                     <RichTextEditor value={generalBody.activitiesTitle ?? ''} onChange={(v) => setGeneralBody((p) => ({ ...p, activitiesTitle: v }))} minHeight="60px" placeholder="Our Activities" />
@@ -877,21 +898,20 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
               {loading ? (
                 <div className="text-gray-500">Loading...</div>
               ) : (
-                <div className="space-y-4 max-w-2xl">
+                <div className="space-y-4 max-w-5xl">
                   {activeTeamTab === teamSettings.designTeamTeamName && (
                     <>
                       <p className="text-gray-600 text-sm mb-4">
                         Content for the Design Team page (/about/designteam): image, section title, intro paragraphs and fonts, link URL, and project section titles.
                       </p>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Left column image URL</label>
-                        <input
-                          type="url"
-                          value={aboutDesignTeam.leftImageUrl ?? ''}
-                          onChange={(e) => setAboutDesignTeam((p) => ({ ...p, leftImageUrl: e.target.value }))}
-                          className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
-                        />
-                      </div>
+                      <AboutSiteImageField
+                        label="Design Team page image (/about/designteam)"
+                        description="Left column photo on the Design Team page only (not the Our Teams tile — that uses the team block below)."
+                        value={aboutDesignTeam.leftImageUrl ?? ''}
+                        onChange={(v) => setAboutDesignTeam((p) => ({ ...p, leftImageUrl: v }))}
+                        preview="two-col-left"
+                        folder="/site/about/design-team"
+                      />
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Section title (intro block)</label>
                         <RichTextEditor
@@ -1056,10 +1076,14 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
                     </p>
                   )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Left column image URL</label>
-                    <input type="url" value={editingTeamGeneralBody.leftImageUrl ?? ''} onChange={(e) => updateTeamGeneralBody('leftImageUrl', e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800" />
-                  </div>
+                  <AboutSiteImageField
+                    label={`Team image (${activeTeamTab})`}
+                    description="Shown on this team’s page (left column) and on the main About “Our Teams” tile."
+                    value={editingTeamGeneralBody.leftImageUrl ?? ''}
+                    onChange={(v) => updateTeamGeneralBody('leftImageUrl', v)}
+                    preview="dual-column-and-tile"
+                    folder={`/site/about/team-blocks`}
+                  />
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Activities section title</label>
                     <RichTextEditor value={editingTeamGeneralBody.activitiesTitle ?? ''} onChange={(v) => updateTeamGeneralBody('activitiesTitle', v)} minHeight="60px" placeholder="Our Activities" />
