@@ -1,8 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../src/firebase/config';
-import type { FooterContent, HomeContent, AboutContent, AboutTeamBlocksDoc, SponsorsContent, GeneralBodyContent } from '../../src/types';
-import { DEFAULT_FOOTER, DEFAULT_HOME, DEFAULT_ABOUT, DEFAULT_SPONSORS, DEFAULT_GENERAL_BODY, EMPTY_GENERAL_BODY_FORM } from '../../src/types';
+import type {
+  FooterContent,
+  HomeContent,
+  AboutContent,
+  AboutTeamBlocksDoc,
+  SponsorsContent,
+  GeneralBodyContent,
+  DesignTeamContent,
+} from '../../src/types';
+import {
+  DEFAULT_FOOTER,
+  DEFAULT_HOME,
+  DEFAULT_ABOUT,
+  DEFAULT_SPONSORS,
+  DEFAULT_GENERAL_BODY,
+  DEFAULT_DESIGN_TEAM,
+  EMPTY_GENERAL_BODY_FORM,
+} from '../../src/types';
 import RichTextEditor from '../../src/components/RichTextEditor';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 import {
@@ -18,6 +34,7 @@ const HOME_DOC = 'home';
 const ABOUT_DOC = 'about';
 const GENERAL_BODY_DOC = 'aboutGeneralBody';
 const ABOUT_TEAM_BLOCKS_DOC = 'aboutTeamBlocks';
+const DESIGN_TEAM_DOC = 'aboutDesignTeam';
 const SPONSORS_DOC = 'sponsors';
 
 type SiteContentTab = 'footer' | 'home' | 'about' | 'sponsors';
@@ -83,6 +100,25 @@ function sponsorsEquals(a: SponsorsContent, b: SponsorsContent): boolean {
   return SPONSORS_KEYS.every((k) => (a[k] ?? '') === (b[k] ?? ''));
 }
 
+const DESIGN_TEAM_KEYS: (keyof DesignTeamContent)[] = [
+  'sectionTitle',
+  'leftImageUrl',
+  'pastProjectsTitle',
+  'currentProjectsTitle',
+  'introParagraph1',
+  'introParagraph2',
+  'introParagraph3',
+  'introLinkUrl',
+  'introParagraph4',
+  'introFontFamily',
+  'introFontWeight',
+  'sectionTitleFontFamily',
+  'sectionTitleFontWeight',
+];
+function designTeamEquals(a: DesignTeamContent, b: DesignTeamContent): boolean {
+  return DESIGN_TEAM_KEYS.every((k) => (a[k] ?? '') === (b[k] ?? ''));
+}
+
 const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, currentPath = '/admin/site' }) => {
   const [footer, setFooter] = useState<FooterContent>({ ...DEFAULT_FOOTER });
   const [initialFooter, setInitialFooter] = useState<FooterContent>({ ...DEFAULT_FOOTER });
@@ -94,6 +130,8 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
   const [initialSponsors, setInitialSponsors] = useState<SponsorsContent>({ ...DEFAULT_SPONSORS });
   const [generalBody, setGeneralBody] = useState<GeneralBodyContent>({ ...DEFAULT_GENERAL_BODY });
   const [initialGeneralBody, setInitialGeneralBody] = useState<GeneralBodyContent>({ ...DEFAULT_GENERAL_BODY });
+  const [aboutDesignTeam, setAboutDesignTeam] = useState<DesignTeamContent>({ ...DEFAULT_DESIGN_TEAM });
+  const [initialAboutDesignTeam, setInitialAboutDesignTeam] = useState<DesignTeamContent>({ ...DEFAULT_DESIGN_TEAM });
   const [teamAboutBlocks, setTeamAboutBlocks] = useState<Record<string, GeneralBodyContent>>({});
   const [initialTeamAboutBlocks, setInitialTeamAboutBlocks] = useState<Record<string, GeneralBodyContent>>({});
   const [teamSettings, setTeamSettings] = useState<TeamSettings>(DEFAULT_TEAM_SETTINGS);
@@ -109,6 +147,7 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
   const hasHomeChanges = !homeEquals(home, initialHome);
   const hasAboutChanges = !aboutEquals(about, initialAbout);
   const hasGeneralBodyChanges = !generalBodyEquals(generalBody, initialGeneralBody);
+  const hasAboutDesignTeamChanges = !designTeamEquals(aboutDesignTeam, initialAboutDesignTeam);
   const hasTeamBlocksChanges = !teamGeneralBodiesEquals(teamAboutBlocks, initialTeamAboutBlocks);
   const hasSponsorsChanges = !sponsorsEquals(sponsors, initialSponsors);
 
@@ -136,10 +175,11 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
       getDoc(doc(db, CONFIG_PATH, HOME_DOC)),
       getDoc(doc(db, CONFIG_PATH, ABOUT_DOC)),
       getDoc(doc(db, CONFIG_PATH, GENERAL_BODY_DOC)),
+      getDoc(doc(db, CONFIG_PATH, DESIGN_TEAM_DOC)),
       getDoc(doc(db, CONFIG_PATH, SPONSORS_DOC)),
       getDoc(doc(db, CONFIG_PATH, ABOUT_TEAM_BLOCKS_DOC)),
     ])
-      .then(([footerSnap, homeSnap, aboutSnap, gbSnap, sponsorsSnap, teamBlocksSnap]) => {
+      .then(([footerSnap, homeSnap, aboutSnap, gbSnap, designTeamSnap, sponsorsSnap, teamBlocksSnap]) => {
         if (cancelled) return;
         const nextFooter = footerSnap.exists()
           ? { ...DEFAULT_FOOTER, ...(footerSnap.data() as FooterContent) }
@@ -161,6 +201,11 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
           : { ...DEFAULT_GENERAL_BODY };
         setGeneralBody(nextGb);
         setInitialGeneralBody(nextGb);
+        const nextDesignTeam = designTeamSnap.exists()
+          ? { ...DEFAULT_DESIGN_TEAM, ...(designTeamSnap.data() as DesignTeamContent) }
+          : { ...DEFAULT_DESIGN_TEAM };
+        setAboutDesignTeam(nextDesignTeam);
+        setInitialAboutDesignTeam(nextDesignTeam);
         const rawBlocks = teamBlocksSnap.exists()
           ? ((teamBlocksSnap.data() as AboutTeamBlocksDoc).blocks ?? {})
           : {};
@@ -295,6 +340,22 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
     }
   };
 
+  const saveAboutDesignTeam = async () => {
+    if (!isPresident || saving || !hasAboutDesignTeamChanges) return;
+    setSaving(true);
+    setSavedMessage(null);
+    try {
+      await setDoc(doc(db, CONFIG_PATH, DESIGN_TEAM_DOC), aboutDesignTeam);
+      setInitialAboutDesignTeam(aboutDesignTeam);
+      setSavedMessage('Design Team page saved.');
+      setTimeout(() => setSavedMessage(null), 3000);
+    } catch (e) {
+      console.error('Failed to save Design Team page:', e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const saveTeamBlocks = async () => {
     if (!isPresident || saving || !hasTeamBlocksChanges) return;
     setSaving(true);
@@ -347,11 +408,19 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
     if (hasHomeChanges) await saveHome();
     if (hasAboutChanges) await saveAbout();
     if (hasGeneralBodyChanges) await saveGeneralBody();
+    if (hasAboutDesignTeamChanges) await saveAboutDesignTeam();
     if (hasTeamBlocksChanges) await saveTeamBlocks();
     if (hasSponsorsChanges) await saveSponsors();
   };
 
-  const dirty = hasFooterChanges || hasHomeChanges || hasAboutChanges || hasGeneralBodyChanges || hasTeamBlocksChanges || hasSponsorsChanges;
+  const dirty =
+    hasFooterChanges ||
+    hasHomeChanges ||
+    hasAboutChanges ||
+    hasGeneralBodyChanges ||
+    hasAboutDesignTeamChanges ||
+    hasTeamBlocksChanges ||
+    hasSponsorsChanges;
 
   const editingTeamGeneralBody: GeneralBodyContent = useMemo(
     () => ({
@@ -805,13 +874,188 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
           {activeTeamTab && (
             <>
               <h2 className="text-lg font-bold text-gray-800 mb-4">{activeTeamTab}</h2>
-              <p className="text-gray-600 text-sm mb-4">
-                Content for the {activeTeamTab} page ({teamAboutPath(activeTeamTab)}): activities list, image, and past events.
-              </p>
               {loading ? (
                 <div className="text-gray-500">Loading...</div>
               ) : (
                 <div className="space-y-4 max-w-2xl">
+                  {activeTeamTab === teamSettings.designTeamTeamName && (
+                    <>
+                      <p className="text-gray-600 text-sm mb-4">
+                        Content for the Design Team page (/about/designteam): image, section title, intro paragraphs and fonts, link URL, and project section titles.
+                      </p>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Left column image URL</label>
+                        <input
+                          type="url"
+                          value={aboutDesignTeam.leftImageUrl ?? ''}
+                          onChange={(e) => setAboutDesignTeam((p) => ({ ...p, leftImageUrl: e.target.value }))}
+                          className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Section title (intro block)</label>
+                        <RichTextEditor
+                          value={aboutDesignTeam.sectionTitle ?? ''}
+                          onChange={(v) => setAboutDesignTeam((p) => ({ ...p, sectionTitle: v }))}
+                          minHeight="60px"
+                          placeholder="Our Design Team"
+                        />
+                      </div>
+                      <div className="border-t border-gray-200 pt-4 mt-4">
+                        <h3 className="text-sm font-semibold text-gray-700 mb-2">Intro font (family &amp; weight)</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph font family</label>
+                            <select
+                              value={aboutDesignTeam.introFontFamily ?? ''}
+                              onChange={(e) => setAboutDesignTeam((p) => ({ ...p, introFontFamily: e.target.value }))}
+                              className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
+                            >
+                              <option value="">Default (Jost)</option>
+                              <option value="Jost, sans-serif">Jost</option>
+                              <option value="Inter, sans-serif">Inter</option>
+                              <option value="Georgia, serif">Georgia</option>
+                              <option value="Arial, sans-serif">Arial</option>
+                              <option value="system-ui, sans-serif">system-ui</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph font weight</label>
+                            <select
+                              value={aboutDesignTeam.introFontWeight ?? ''}
+                              onChange={(e) => setAboutDesignTeam((p) => ({ ...p, introFontWeight: e.target.value }))}
+                              className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
+                            >
+                              <option value="">Default</option>
+                              <option value="300">Light (300)</option>
+                              <option value="400">Normal (400)</option>
+                              <option value="500">Medium (500)</option>
+                              <option value="600">Semi-bold (600)</option>
+                              <option value="700">Bold (700)</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Section title font family</label>
+                            <select
+                              value={aboutDesignTeam.sectionTitleFontFamily ?? ''}
+                              onChange={(e) => setAboutDesignTeam((p) => ({ ...p, sectionTitleFontFamily: e.target.value }))}
+                              className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
+                            >
+                              <option value="">Default (Jost)</option>
+                              <option value="Jost, sans-serif">Jost</option>
+                              <option value="Inter, sans-serif">Inter</option>
+                              <option value="Georgia, serif">Georgia</option>
+                              <option value="Arial, sans-serif">Arial</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Section title font weight</label>
+                            <select
+                              value={aboutDesignTeam.sectionTitleFontWeight ?? ''}
+                              onChange={(e) => setAboutDesignTeam((p) => ({ ...p, sectionTitleFontWeight: e.target.value }))}
+                              className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
+                            >
+                              <option value="">Default</option>
+                              <option value="400">Normal (400)</option>
+                              <option value="500">Medium (500)</option>
+                              <option value="600">Semi-bold (600)</option>
+                              <option value="700">Bold (700)</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="border-t border-gray-200 pt-4 mt-4">
+                        <h3 className="text-sm font-semibold text-gray-700 mb-2">Intro paragraphs</h3>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph 1</label>
+                          <RichTextEditor
+                            value={aboutDesignTeam.introParagraph1 ?? ''}
+                            onChange={(v) => setAboutDesignTeam((p) => ({ ...p, introParagraph1: v }))}
+                            placeholder="First paragraph"
+                            minHeight="80px"
+                          />
+                        </div>
+                        <div className="mt-3">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph 2</label>
+                          <RichTextEditor
+                            value={aboutDesignTeam.introParagraph2 ?? ''}
+                            onChange={(v) => setAboutDesignTeam((p) => ({ ...p, introParagraph2: v }))}
+                            placeholder="Second paragraph"
+                            minHeight="100px"
+                          />
+                        </div>
+                        <div className="mt-3">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph 3 (use toolbar link button for links)</label>
+                          <RichTextEditor
+                            value={aboutDesignTeam.introParagraph3 ?? ''}
+                            onChange={(v) => setAboutDesignTeam((p) => ({ ...p, introParagraph3: v }))}
+                            placeholder="To learn more about the international ASME organization, visit this link."
+                            minHeight="60px"
+                          />
+                        </div>
+                        <div className="mt-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph 3 link URL (when using plain text only)</label>
+                          <input
+                            type="url"
+                            value={aboutDesignTeam.introLinkUrl ?? ''}
+                            onChange={(e) => setAboutDesignTeam((p) => ({ ...p, introLinkUrl: e.target.value }))}
+                            className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
+                            placeholder="https://www.asme.org"
+                          />
+                        </div>
+                        <div className="mt-3">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph 4</label>
+                          <RichTextEditor
+                            value={aboutDesignTeam.introParagraph4 ?? ''}
+                            onChange={(v) => setAboutDesignTeam((p) => ({ ...p, introParagraph4: v }))}
+                            placeholder="WE ARE! the Penn State's chapter of ASME..."
+                            minHeight="100px"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Past Projects dropdown title</label>
+                        <RichTextEditor
+                          value={aboutDesignTeam.pastProjectsTitle ?? ''}
+                          onChange={(v) => setAboutDesignTeam((p) => ({ ...p, pastProjectsTitle: v }))}
+                          minHeight="60px"
+                          placeholder="Past Projects"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Current projects section title</label>
+                        <RichTextEditor
+                          value={aboutDesignTeam.currentProjectsTitle ?? ''}
+                          onChange={(v) => setAboutDesignTeam((p) => ({ ...p, currentProjectsTitle: v }))}
+                          minHeight="60px"
+                          placeholder="Fall 2025 Projects"
+                        />
+                      </div>
+                      <div className="flex items-center gap-3 pb-6 border-b border-gray-200">
+                        <button
+                          type="button"
+                          disabled={saving || !hasAboutDesignTeamChanges}
+                          onClick={saveAboutDesignTeam}
+                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium"
+                        >
+                          {saving ? 'Saving...' : 'Save Design Team page'}
+                        </button>
+                        {savedMessage === 'Design Team page saved.' && <span className="text-green-600 font-medium">Saved.</span>}
+                      </div>
+
+                      <h3 className="text-base font-semibold text-gray-800 pt-2">Team board (same layout as other teams)</h3>
+                      <p className="text-gray-600 text-sm mb-4">
+                        Content for the team board ({teamAboutPath(activeTeamTab)}): activities list, image, and past events.
+                      </p>
+                    </>
+                  )}
+
+                  {activeTeamTab !== teamSettings.designTeamTeamName && (
+                    <p className="text-gray-600 text-sm mb-4">
+                      Content for the {activeTeamTab} page ({teamAboutPath(activeTeamTab)}): activities list, image, and past events.
+                    </p>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Left column image URL</label>
                     <input type="url" value={editingTeamGeneralBody.leftImageUrl ?? ''} onChange={(e) => updateTeamGeneralBody('leftImageUrl', e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800" />
