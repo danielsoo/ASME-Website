@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc, updateDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, getDocs, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../../src/firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Project } from '../../src/types';
@@ -66,21 +66,19 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
   }, []);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const posRef = collection(db, 'execPositions');
-        const posSnap = await getDocs(posRef);
+    const unsub = onSnapshot(
+      collection(db, 'execPositions'),
+      (posSnap) => {
         const list: string[] = ['admin'];
         posSnap.forEach((d) => {
           const name = d.data().name;
           if (name) list.push(name);
         });
         setExecPositions(list.length > 1 ? list : ['President', 'Vice President', 'admin']);
-      } catch {
-        setExecPositions(['President', 'Vice President', 'admin']);
-      }
-    };
-    load();
+      },
+      () => setExecPositions(['President', 'Vice President', 'admin'])
+    );
+    return () => unsub();
   }, []);
 
   useEffect(() => {

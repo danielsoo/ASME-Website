@@ -12,7 +12,8 @@ export interface TeamMember {
   imageZoom?: number; // >=1, visual zoom level for square crop
   isExec?: boolean;
   email?: string;
-  team?: 'Design Team' | 'General Body'; // Team assignment for Exec Board members
+  /** Team assignment for exec roles; labels come from config/teamSettings.teamNames */
+  team?: string;
   order?: number; // Display order for sorting
   status?: 'approved' | 'pending' | 'rejected'; // From users collection
 }

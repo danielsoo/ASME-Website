@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../src/firebase/config';
 import { Lock, Unlock } from 'lucide-react';
+import { pruneAdminAccessToExecPositions } from '../../src/firebase/execPositionSync';
 
 const DEFAULT_ALLOWED_ROLES = ['President', 'Vice President'];
 const CONFIG_PATH = 'config';
@@ -29,37 +30,48 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
   useEffect(() => {
     if (!isPresident) return;
 
-    let cancelled = false;
+    setLoading(true);
 
-    const load = async () => {
-      try {
-        const [positionsSnap, configSnap] = await Promise.all([
-          getDocs(collection(db, 'execPositions')),
-          getDoc(doc(db, CONFIG_PATH, ADMIN_ACCESS_DOC)),
-        ]);
-
-        if (cancelled) return;
-
+    const unsubPositions = onSnapshot(
+      collection(db, 'execPositions'),
+      (snapshot) => {
         const positionsList: ExecPosition[] = [];
-        positionsSnap.forEach((d) => {
+        snapshot.forEach((d) => {
           positionsList.push({ id: d.id, ...d.data() } as ExecPosition);
         });
         positionsList.sort((a, b) => a.name.localeCompare(b.name));
         setPositions(positionsList);
+        setLoading(false);
+        pruneAdminAccessToExecPositions(positionsList.map((p) => p.name)).catch((e) =>
+          console.error('pruneAdminAccessToExecPositions:', e)
+        );
+      },
+      (e) => {
+        console.error('AdminAccess execPositions subscription:', e);
+        setLoading(false);
+      }
+    );
 
-        const roles = configSnap.exists()
-          ? (configSnap.data()?.allowedRoles || DEFAULT_ALLOWED_ROLES)
+    const unsubAccess = onSnapshot(
+      doc(db, CONFIG_PATH, ADMIN_ACCESS_DOC),
+      (snap) => {
+        const roles = snap.exists()
+          ? (snap.data()?.allowedRoles || DEFAULT_ALLOWED_ROLES)
           : DEFAULT_ALLOWED_ROLES;
         setAllowedRoles(Array.isArray(roles) ? roles : DEFAULT_ALLOWED_ROLES);
-      } catch (e) {
-        console.error('AdminAccess load error:', e);
-      } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
+      },
+      (e) => {
+        console.error('AdminAccess config subscription:', e);
+        setAllowedRoles(DEFAULT_ALLOWED_ROLES);
+        setLoading(false);
       }
-    };
+    );
 
-    load();
-    return () => { cancelled = true; };
+    return () => {
+      unsubPositions();
+      unsubAccess();
+    };
   }, [isPresident]);
 
   const toggleRole = async (positionName: string) => {
@@ -121,6 +133,8 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
           <p className="text-gray-600 text-sm sm:text-base mb-4 sm:mb-6">
             Enable or disable admin panel access for each Executive Board position. Only enabled roles can open the admin panel.
+            Position names come from <strong>Member Management → Executive Board Positions</strong> (same <code className="text-xs bg-gray-100 px-1 rounded">execPositions</code> collection).
+            When you add, rename, or remove a position there, this list and the header admin link update automatically.
           </p>
 
           {loading ? (

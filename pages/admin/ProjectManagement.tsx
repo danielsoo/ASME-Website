@@ -177,44 +177,39 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
   const [execPositions, setExecPositions] = useState<string[]>([]);
 
   useEffect(() => {
-    loadExecPositions();
+    const unsub = onSnapshot(
+      collection(db, 'execPositions'),
+      (snapshot) => {
+        const positionsList: string[] = ['admin'];
+        snapshot.forEach((docSnap) => {
+          const positionName = docSnap.data().name;
+          if (positionName) positionsList.push(positionName);
+        });
+        setExecPositions(positionsList);
+      },
+      (error) => {
+        console.error('execPositions subscription error:', error);
+        setExecPositions([
+          'President',
+          'Vice President',
+          'Treasurer',
+          'Secretary',
+          'Corporate Outreach Lead',
+          'THON Chair',
+          'Design Director',
+          'Internal Outreach',
+          'Events Coordinator',
+          'Logistics Officer',
+          'admin',
+        ]);
+      }
+    );
+    return () => unsub();
   }, []);
 
-  const loadExecPositions = async () => {
-    try {
-      const positionsRef = collection(db, 'execPositions');
-      const snapshot = await getDocs(positionsRef);
-      const positionsList: string[] = ['admin']; // Always include admin
-      
-      snapshot.forEach((docSnap) => {
-        const positionName = docSnap.data().name;
-        if (positionName) {
-          positionsList.push(positionName);
-        }
-      });
-
-      setExecPositions(positionsList);
-    } catch (error) {
-      console.error('Error loading exec positions:', error);
-      // Fallback to default positions if collection doesn't exist
-      setExecPositions([
-        'President',
-        'Vice President',
-        'Treasurer',
-        'Secretary',
-        'Corporate Outreach Lead',
-        'THON Chair',
-        'Design Director',
-        'Internal Outreach',
-        'Events Coordinator',
-        'Logistics Officer',
-        'admin',
-      ]);
-    }
-  };
-
-  // Check if user is Executive Board member
+  // Executive roles from Member Management (execPositions) + common titles
   const isExecBoardMember = (): boolean => {
+    if (currentUserRole === 'President' || currentUserRole === 'Vice President') return true;
     return execPositions.includes(currentUserRole);
   };
 

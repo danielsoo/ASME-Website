@@ -7,6 +7,11 @@ import {
   getDesignTeam,
   updateTeamMemberOrder,
 } from '../src/firebase/services';
+import {
+  subscribeTeamSettings,
+  DEFAULT_TEAM_SETTINGS,
+  type TeamSettings,
+} from '../src/firebase/teamSettings';
 import { TeamMember } from '../src/types';
 import TeamCard from '../src/components/TeamCard';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -55,6 +60,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
   const [aboutContent, setAboutContent] = useState<AboutContent>({ ...DEFAULT_ABOUT });
   const [generalBodyContent, setGeneralBodyContent] = useState<GeneralBodyContent>({ ...DEFAULT_GENERAL_BODY });
   const [designTeamContent, setDesignTeamContent] = useState<DesignTeamContent>({ ...DEFAULT_DESIGN_TEAM });
+  const [teamSettings, setTeamSettings] = useState<TeamSettings>(DEFAULT_TEAM_SETTINGS);
 
   // Check user permissions
   useEffect(() => {
@@ -111,7 +117,14 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     };
   }, []);
 
-  // Live sync: Executive Board / Design Team lists come from `users` (same docs as Profile + Member Management)
+  useEffect(() => {
+    return subscribeTeamSettings(
+      setTeamSettings,
+      (e) => console.error('teamSettings subscription error:', e)
+    );
+  }, []);
+
+  // Live sync: Executive Board / Design Team lists use config/teamSettings for which `users.team` value each section shows
   useEffect(() => {
     setLoading(true);
     let execReady = false;
@@ -121,6 +134,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     };
 
     const unsubExec = subscribeExecBoard(
+      teamSettings.execBoardTeamName,
       (list) => {
         setExecBoard(list);
         execReady = true;
@@ -135,6 +149,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     );
 
     const unsubDesign = subscribeDesignTeam(
+      teamSettings.designTeamTeamName,
       (list) => {
         setDesignTeam(list);
         designReady = true;
@@ -152,7 +167,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
       unsubExec();
       unsubDesign();
     };
-  }, []);
+  }, [teamSettings.execBoardTeamName, teamSettings.designTeamTeamName]);
 
   const canEdit = userRole === 'President' || userRole === 'Vice President';
 

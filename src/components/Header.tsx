@@ -42,18 +42,25 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
     }
   }, [user]);
 
-  // Fetch which roles can access admin (config/adminAccess)
+  // Live list of roles allowed to open the admin panel (same doc as Admin Access page)
   useEffect(() => {
     if (!user) return;
-    getDoc(doc(db, 'config', 'adminAccess'))
-      .then((snap) => {
-        const roles = snap.exists() ? (snap.data()?.allowedRoles || DEFAULT_ALLOWED_ADMIN_ROLES) : DEFAULT_ALLOWED_ADMIN_ROLES;
+    const unsub = onSnapshot(
+      doc(db, 'config', 'adminAccess'),
+      (snap) => {
+        const roles = snap.exists()
+          ? (snap.data()?.allowedRoles || DEFAULT_ALLOWED_ADMIN_ROLES)
+          : DEFAULT_ALLOWED_ADMIN_ROLES;
         setAllowedAdminRoles(Array.isArray(roles) ? roles : DEFAULT_ALLOWED_ADMIN_ROLES);
-      })
-      .catch(() => setAllowedAdminRoles(DEFAULT_ALLOWED_ADMIN_ROLES));
+      },
+      () => setAllowedAdminRoles(DEFAULT_ALLOWED_ADMIN_ROLES)
+    );
+    return () => unsub();
   }, [user]);
 
-  const canAccessAdmin = userData?.role && allowedAdminRoles.includes(userData.role);
+  const canAccessAdmin =
+    userData?.role &&
+    (userData.role === 'President' || allowedAdminRoles.includes(userData.role));
 
   // Fetch admin notification counts (only when user can access admin)
   useEffect(() => {

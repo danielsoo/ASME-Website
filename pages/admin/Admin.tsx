@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../../src/firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import Login from './Login';
 import Dashboard from './Dashboard';
 import UserApproval from './UserApproval';
@@ -66,18 +66,7 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
         setUserRole(role);
         if (status !== 'approved') {
           setAccessChecked(true);
-          return;
         }
-        return getDoc(doc(db, 'config', 'adminAccess'));
-      })
-      .then((configSnap) => {
-        if (cancelled) return;
-        if (!configSnap) return;
-        const roles = configSnap.exists()
-          ? (configSnap.data()?.allowedRoles || DEFAULT_ALLOWED_ROLES)
-          : DEFAULT_ALLOWED_ROLES;
-        setAllowedRoles(Array.isArray(roles) ? roles : DEFAULT_ALLOWED_ROLES);
-        setAccessChecked(true);
       })
       .catch(() => {
         if (!cancelled) {
@@ -85,8 +74,29 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
           setAccessChecked(true);
         }
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user?.uid]);
+
+  useEffect(() => {
+    if (!user || userStatus !== 'approved') return;
+    const unsub = onSnapshot(
+      doc(db, 'config', 'adminAccess'),
+      (snap) => {
+        const roles = snap.exists()
+          ? (snap.data()?.allowedRoles || DEFAULT_ALLOWED_ROLES)
+          : DEFAULT_ALLOWED_ROLES;
+        setAllowedRoles(Array.isArray(roles) ? roles : DEFAULT_ALLOWED_ROLES);
+        setAccessChecked(true);
+      },
+      () => {
+        setAllowedRoles(DEFAULT_ALLOWED_ROLES);
+        setAccessChecked(true);
+      }
+    );
+    return () => unsub();
+  }, [user?.uid, userStatus]);
 
   // Setup Admin page (accessible without login) - must be checked first
   if (currentPath === '/admin/setup' || currentPath.startsWith('/admin/setup')) {
@@ -133,8 +143,8 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
     );
   }
 
-  // Only Executive Board with allowed roles can access; block otherwise
-  if (!allowedRoles.includes(userRole)) {
+  // President always has access; others need config/adminAccess.allowedRoles
+  if (userRole !== 'President' && !allowedRoles.includes(userRole)) {
     if (onNavigate) onNavigate('/');
     return (
       <div className="min-h-screen bg-[#0f131a] flex items-center justify-center">

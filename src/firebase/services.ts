@@ -17,6 +17,7 @@ import {
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from './config';
 import { TeamMember, Project, Event, Sponsor, HomePageWhatWeDo } from '../types';
+import { getTeamSettings } from './teamSettings';
 
 // ============ Team Members (Exec Board & Design Team) ============
 // Executive Board / Design Team on the About page are driven by the same `users` documents as
@@ -68,8 +69,10 @@ function sortTeamMembers(members: TeamMember[]): TeamMember[] {
 
 /** Single-field query (no composite index). Filter by status + role in client. */
 export const getExecBoard = async (): Promise<TeamMember[]> => {
+  const { execBoardTeamName } = await getTeamSettings();
+  if (!execBoardTeamName) return [];
   const snapshot = await getDocs(
-    query(collection(db, 'users'), where('team', '==', 'General Body'))
+    query(collection(db, 'users'), where('team', '==', execBoardTeamName))
   );
   const members = snapshot.docs
     .map((d) => mapUserDocToTeamMember(d, 'execOrder'))
@@ -78,8 +81,10 @@ export const getExecBoard = async (): Promise<TeamMember[]> => {
 };
 
 export const getDesignTeam = async (): Promise<TeamMember[]> => {
+  const { designTeamTeamName } = await getTeamSettings();
+  if (!designTeamTeamName) return [];
   const snapshot = await getDocs(
-    query(collection(db, 'users'), where('team', '==', 'Design Team'))
+    query(collection(db, 'users'), where('team', '==', designTeamTeamName))
   );
   const members = snapshot.docs
     .map((d) => mapUserDocToTeamMember(d, 'designOrder'))
@@ -88,10 +93,15 @@ export const getDesignTeam = async (): Promise<TeamMember[]> => {
 };
 
 export const subscribeExecBoard = (
+  teamName: string,
   onNext: (members: TeamMember[]) => void,
   onError?: (error: unknown) => void
 ): (() => void) => {
-  const q = query(collection(db, 'users'), where('team', '==', 'General Body'));
+  if (!teamName.trim()) {
+    onNext([]);
+    return () => {};
+  }
+  const q = query(collection(db, 'users'), where('team', '==', teamName.trim()));
   return onSnapshot(
     q,
     (snapshot) => {
@@ -105,10 +115,15 @@ export const subscribeExecBoard = (
 };
 
 export const subscribeDesignTeam = (
+  teamName: string,
   onNext: (members: TeamMember[]) => void,
   onError?: (error: unknown) => void
 ): (() => void) => {
-  const q = query(collection(db, 'users'), where('team', '==', 'Design Team'));
+  if (!teamName.trim()) {
+    onNext([]);
+    return () => {};
+  }
+  const q = query(collection(db, 'users'), where('team', '==', teamName.trim()));
   return onSnapshot(
     q,
     (snapshot) => {

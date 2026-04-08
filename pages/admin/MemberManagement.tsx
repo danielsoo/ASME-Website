@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, updateDoc, doc, getDoc, addDoc, deleteDoc, query, where } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+  getDoc,
+  addDoc,
+  deleteDoc,
+  query,
+  where,
+  onSnapshot,
+} from 'firebase/firestore';
 import { db, auth } from '../../src/firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Plus, Edit, Trash2, Save, X } from 'lucide-react';
@@ -7,6 +18,18 @@ import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
 import { TeamMember } from '../../src/types';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
+import {
+  migrateUsersRoleAfterRename,
+  syncAdminAccessRoleRename,
+  removeRoleFromAdminAccess,
+  pruneAdminAccessToExecPositions,
+} from '../../src/firebase/execPositionSync';
+import {
+  subscribeTeamSettings,
+  saveTeamSettings,
+  DEFAULT_TEAM_SETTINGS,
+  type TeamSettings,
+} from '../../src/firebase/teamSettings';
 
 interface MemberManagementProps {
   onNavigate: (path: string) => void;
@@ -15,7 +38,8 @@ interface MemberManagementProps {
 interface ExecPosition {
   id: string;
   name: string;
-  team?: 'Design Team' | 'General Body';
+  /** Optional hint: which assignable team this position is associated with */
+  team?: string;
 }
 
 const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
@@ -29,7 +53,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   const [showPositionModal, setShowPositionModal] = useState(false);
   const [editingPosition, setEditingPosition] = useState<ExecPosition | null>(null);
   const [positionName, setPositionName] = useState('');
-  const [positionTeam, setPositionTeam] = useState<'Design Team' | 'General Body' | ''>('');
+  const [positionTeam, setPositionTeam] = useState<string>('');
   
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -46,7 +70,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   
   // Confirm delete modal state
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [positionToDelete, setPositionToDelete] = useState<string | null>(null);
+  const [positionToDelete, setPositionToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Alert modal states
   const [alertModal, setAlertModal] = useState<{
@@ -68,7 +92,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   // Member role assignment states
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>('');
-  const [selectedTeam, setSelectedTeam] = useState<'Design Team' | 'General Body' | ''>('');
+  const [selectedTeam, setSelectedTeam] = useState<string>('');
 
   // Add member modal (President/Vice President only)
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
@@ -77,12 +101,39 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   const [newMemberMajor, setNewMemberMajor] = useState('');
   const [newMemberYear, setNewMemberYear] = useState('');
   const [newMemberRole, setNewMemberRole] = useState('member');
-  const [newMemberTeam, setNewMemberTeam] = useState<'Design Team' | 'General Body' | ''>('');
+  const [newMemberTeam, setNewMemberTeam] = useState<string>('');
   const [addingMember, setAddingMember] = useState(false);
+
+  const [teamSettings, setTeamSettings] = useState<TeamSettings>(DEFAULT_TEAM_SETTINGS);
+  const [newTeamName, setNewTeamName] = useState('');
+  const [teamRoutingSaving, setTeamRoutingSaving] = useState(false);
+
+  useEffect(() => {
+    const unsubTeams = subscribeTeamSettings(
+      setTeamSettings,
+      (e) => console.error('teamSettings subscription:', e)
+    );
+    return () => unsubTeams();
+  }, []);
 
   useEffect(() => {
     loadMembers();
-    loadExecPositions();
+
+    const unsubPositions = onSnapshot(
+      collection(db, 'execPositions'),
+      (snapshot) => {
+        const positionsList: ExecPosition[] = [];
+        snapshot.forEach((docSnap) => {
+          positionsList.push({
+            id: docSnap.id,
+            ...docSnap.data(),
+          } as ExecPosition);
+        });
+        positionsList.sort((a, b) => a.name.localeCompare(b.name));
+        setExecPositions(positionsList);
+      },
+      (err) => console.error('execPositions subscription error:', err)
+    );
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -99,7 +150,10 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubPositions();
+      unsubscribe();
+    };
   }, []);
 
   const loadMembers = async () => {
@@ -144,30 +198,82 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     }
   };
 
-  const loadExecPositions = async () => {
-    try {
-      const positionsRef = collection(db, 'execPositions');
-      const snapshot = await getDocs(positionsRef);
-      const positionsList: ExecPosition[] = [];
-
-      snapshot.forEach((docSnap) => {
-        positionsList.push({
-          id: docSnap.id,
-          ...docSnap.data(),
-        } as ExecPosition);
-      });
-
-      // Sort by name
-      positionsList.sort((a, b) => a.name.localeCompare(b.name));
-      setExecPositions(positionsList);
-    } catch (error) {
-      console.error('Error loading exec positions:', error);
-    }
-  };
-
   // Check if user can manage positions/members
   const canManage = (): boolean => {
     return currentUserRole === 'President' || currentUserRole === 'Vice President';
+  };
+
+  const handleAddTeam = async () => {
+    const name = newTeamName.trim();
+    if (!name) {
+      showAlert('warning', 'Validation Error', 'Please enter a team name.');
+      return;
+    }
+    if (teamSettings.teamNames.includes(name)) {
+      showAlert('warning', 'Validation Error', 'That team already exists.');
+      return;
+    }
+    try {
+      await saveTeamSettings({ teamNames: [...teamSettings.teamNames, name] });
+      setNewTeamName('');
+      showAlert('success', 'Success', 'Team added.');
+    } catch (e) {
+      console.error(e);
+      showAlert('error', 'Error', 'Failed to add team.');
+    }
+  };
+
+  const handleDeleteTeam = async (teamLabel: string) => {
+    if (teamLabel === teamSettings.execBoardTeamName || teamLabel === teamSettings.designTeamTeamName) {
+      showAlert(
+        'warning',
+        'Cannot delete',
+        'This team is used for the About page. Change the routing below to another team first, then delete.'
+      );
+      return;
+    }
+    try {
+      const userTeamQuery = query(collection(db, 'users'), where('team', '==', teamLabel));
+      const snap = await getDocs(userTeamQuery);
+      if (!snap.empty) {
+        showAlert(
+          'warning',
+          'Cannot delete',
+          'At least one member is assigned to this team. Reassign them in the table first.'
+        );
+        return;
+      }
+      await saveTeamSettings({
+        teamNames: teamSettings.teamNames.filter((t) => t !== teamLabel),
+      });
+      showAlert('success', 'Success', 'Team removed.');
+    } catch (e) {
+      console.error(e);
+      showAlert('error', 'Error', 'Failed to delete team.');
+    }
+  };
+
+  const applyTeamRouting = async (execName: string, designName: string) => {
+    if (execName === designName) {
+      showAlert(
+        'warning',
+        'Invalid routing',
+        'Pick two different teams: one for the Executive Board section and one for the Design Team section on About.'
+      );
+      return;
+    }
+    setTeamRoutingSaving(true);
+    try {
+      await saveTeamSettings({
+        execBoardTeamName: execName,
+        designTeamTeamName: designName,
+      });
+    } catch (e) {
+      console.error(e);
+      showAlert('error', 'Error', 'Failed to save routing.');
+    } finally {
+      setTeamRoutingSaving(false);
+    }
   };
 
   const handleAddPosition = async () => {
@@ -185,7 +291,6 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
       setShowPositionModal(false);
       setPositionName('');
       setPositionTeam('');
-      await loadExecPositions();
       showAlert('success', 'Success', 'Position added successfully!');
     } catch (error) {
       console.error('Error adding position:', error);
@@ -199,16 +304,27 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
       throw new Error('Validation failed');
     }
 
+    const trimmed = positionName.trim();
+    const oldName = editingPosition.name;
+
     try {
       await updateDoc(doc(db, 'execPositions', editingPosition.id), {
-        name: positionName.trim(),
+        name: trimmed,
         team: positionTeam || null,
       });
+
+      if (trimmed !== oldName) {
+        await migrateUsersRoleAfterRename(oldName, trimmed);
+        await syncAdminAccessRoleRename(oldName, trimmed);
+        const namesAfter = execPositions.map((p) =>
+          p.id === editingPosition.id ? trimmed : p.name
+        );
+        await pruneAdminAccessToExecPositions(namesAfter);
+      }
 
       setEditingPosition(null);
       setPositionName('');
       setPositionTeam('');
-      await loadExecPositions();
       showAlert('success', 'Success', 'Position updated successfully!');
     } catch (error) {
       console.error('Error updating position:', error);
@@ -236,7 +352,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     }
 
     // Show confirm modal
-    setPositionToDelete(positionId);
+    setPositionToDelete({ id: positionId, name: position.name });
     setShowConfirmDelete(true);
   };
 
@@ -244,9 +360,14 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     if (!positionToDelete) return;
 
     try {
-      await deleteDoc(doc(db, 'execPositions', positionToDelete));
-      await loadExecPositions();
+      const remainingNames = execPositions
+        .filter((p) => p.id !== positionToDelete.id)
+        .map((p) => p.name);
+      await deleteDoc(doc(db, 'execPositions', positionToDelete.id));
+      await removeRoleFromAdminAccess(positionToDelete.name);
+      await pruneAdminAccessToExecPositions(remainingNames);
       setPositionToDelete(null);
+      setShowConfirmDelete(false);
       showAlert('success', 'Success', 'Position deleted successfully!');
     } catch (error) {
       console.error('Error deleting position:', error);
@@ -287,7 +408,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
 
     // If role is Executive Board position, team is required
     if (!selectedTeam) {
-      showAlert('warning', 'Validation Error', 'Please select a team (Design Team or General Body) for Executive Board positions.');
+      showAlert('warning', 'Validation Error', 'Please select a team for Executive Board positions.');
       throw new Error('Validation failed');
     }
 
@@ -347,7 +468,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
       throw new Error('Validation failed');
     }
     if (newMemberRole !== 'member' && !newMemberTeam) {
-      showAlert('warning', 'Validation Error', 'Please select a team (Design Team or General Body) for executive positions.');
+      showAlert('warning', 'Validation Error', 'Please select a team for executive positions.');
       throw new Error('Validation failed');
     }
     setAddingMember(true);
@@ -517,14 +638,106 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
           </div>
         </div>
 
+        {/* Teams: labels for member assignment + which team feeds each About section */}
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Teams</h2>
+          <p className="text-sm text-gray-600 mb-4 max-w-3xl">
+            Add or remove team labels used when assigning executive roles. Then choose which label maps to the{' '}
+            <strong>Executive Board</strong> block vs the <strong>Design Team</strong> block on the public About page
+            (members are filtered by their <code className="text-xs bg-gray-100 px-1 rounded">team</code> field).
+          </p>
+
+          <div className="flex flex-wrap gap-2 mb-4">
+            <input
+              type="text"
+              value={newTeamName}
+              onChange={(e) => setNewTeamName(e.target.value)}
+              placeholder="New team name"
+              className="flex-1 min-w-[160px] px-3 py-2 border border-gray-300 rounded text-gray-900"
+            />
+            <button
+              type="button"
+              onClick={handleAddTeam}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm shrink-0"
+            >
+              Add team
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-6">
+            {teamSettings.teamNames.map((t) => {
+              const isRouted =
+                t === teamSettings.execBoardTeamName || t === teamSettings.designTeamTeamName;
+              return (
+                <div
+                  key={t}
+                  className="flex flex-wrap items-center justify-between gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-gray-50"
+                >
+                  <div className="min-w-0">
+                    <span className="font-medium text-gray-800">{t}</span>
+                    {isRouted && (
+                      <span className="ml-2 text-xs text-gray-500">
+                        {t === teamSettings.execBoardTeamName && '(Executive Board)'}
+                        {t === teamSettings.designTeamTeamName && '(Design Team page)'}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteTeam(t)}
+                    className="text-red-600 hover:text-red-800 text-sm shrink-0"
+                    title="Delete team"
+                  >
+                    <Trash2 className="w-4 h-4 inline" /> Remove
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="border-t border-gray-200 pt-4 space-y-3 max-w-xl">
+            <p className="text-sm font-semibold text-gray-800">About page routing</p>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <label className="text-sm text-gray-700 sm:w-48">Executive Board section uses</label>
+              <select
+                value={teamSettings.execBoardTeamName}
+                disabled={teamRoutingSaving}
+                onChange={(e) => applyTeamRouting(e.target.value, teamSettings.designTeamTeamName)}
+                className="px-3 py-2 border border-gray-300 rounded text-sm bg-white text-gray-900 flex-1"
+              >
+                {teamSettings.teamNames.map((t) => (
+                  <option key={`exec-${t}`} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <label className="text-sm text-gray-700 sm:w-48">Design Team section uses</label>
+              <select
+                value={teamSettings.designTeamTeamName}
+                disabled={teamRoutingSaving}
+                onChange={(e) => applyTeamRouting(teamSettings.execBoardTeamName, e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded text-sm bg-white text-gray-900 flex-1"
+              >
+                {teamSettings.teamNames.map((t) => (
+                  <option key={`design-${t}`} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
         {/* Members List */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="p-4 sm:p-6 border-b border-gray-200 flex flex-wrap justify-between items-center gap-2">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Members</h2>
               <p className="text-sm text-gray-500 mt-1 max-w-3xl">
-                Assign roles and teams here. The About page Executive Board and Design Team read from the same user
-                profiles: photo, email, year, major, and fun fact are edited by each member under Profile settings.
+                Assign roles and teams here. The About page Executive Board and Design Team sections use the team routing
+                above; profile fields (photo, email, year, major, fun fact) come from each member&apos;s Profile settings.
               </p>
             </div>
             <button
@@ -589,12 +802,15 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                           selectedRole !== 'member' ? (
                             <select
                               value={selectedTeam}
-                              onChange={(e) => setSelectedTeam(e.target.value as 'Design Team' | 'General Body')}
+                              onChange={(e) => setSelectedTeam(e.target.value)}
                               className="px-2 py-1 border border-gray-300 rounded text-sm bg-white text-gray-900"
                             >
                               <option value="">Select team...</option>
-                              <option value="Design Team">Design Team</option>
-                              <option value="General Body">General Body</option>
+                              {teamSettings.teamNames.map((t) => (
+                                <option key={t} value={t}>
+                                  {t}
+                                </option>
+                              ))}
                             </select>
                           ) : (
                             <span className="text-gray-400">—</span>
@@ -672,7 +888,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                   </label>
                   <select
                     value={positionTeam}
-                    onChange={(e) => setPositionTeam(e.target.value as 'Design Team' | 'General Body' | '')}
+                    onChange={(e) => setPositionTeam(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
                     style={{ 
                       color: '#111827', 
@@ -682,8 +898,11 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                     }}
                   >
                     <option value="" style={{ color: '#111827', backgroundColor: '#ffffff' }}>No specific team</option>
-                    <option value="Design Team" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Design Team</option>
-                    <option value="General Body" style={{ color: '#111827', backgroundColor: '#ffffff' }}>General Body</option>
+                    {teamSettings.teamNames.map((t) => (
+                      <option key={t} value={t} style={{ color: '#111827', backgroundColor: '#ffffff' }}>
+                        {t}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -780,12 +999,15 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Team *</label>
                     <select
                       value={newMemberTeam}
-                      onChange={(e) => setNewMemberTeam(e.target.value as 'Design Team' | 'General Body')}
+                      onChange={(e) => setNewMemberTeam(e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
                     >
                       <option value="">Select team...</option>
-                      <option value="Design Team">Design Team</option>
-                      <option value="General Body">General Body</option>
+                      {teamSettings.teamNames.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 )}
