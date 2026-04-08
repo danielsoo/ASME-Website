@@ -77,6 +77,38 @@ interface AboutProps {
   onNavigate?: (path: string) => void;
 }
 
+const TEAM_PATH_PREFIX = '/about/team/';
+
+function normalizeAboutPath(path: string): string {
+  return path.split('#')[0] ?? path;
+}
+
+/** e.g. `/about/team/Design%20Team` → `Design Team` */
+export function parseTeamFromAboutPath(path: string): string | null {
+  const p = normalizeAboutPath(path);
+  if (!p.startsWith(TEAM_PATH_PREFIX)) return null;
+  const rest = p.slice(TEAM_PATH_PREFIX.length);
+  if (!rest) return null;
+  try {
+    return decodeURIComponent(rest);
+  } catch {
+    return null;
+  }
+}
+
+export function teamAboutPath(teamName: string): string {
+  return `${TEAM_PATH_PREFIX}${encodeURIComponent(teamName.trim())}`;
+}
+
+function getReorderTeamKey(path: string, ts: TeamSettings): string | null {
+  const p = normalizeAboutPath(path);
+  if (p === '/about/designteam') return ts.designTeamTeamName;
+  if (p === '/about/generalbody') return ts.execBoardTeamName;
+  const t = parseTeamFromAboutPath(p);
+  if (t && ts.teamNames.includes(t)) return t;
+  return null;
+}
+
 /** Render paragraph content: HTML (from rich editor) or plain text with optional "visit this link" link. */
 function renderParagraph(content: string | undefined, linkUrl?: string): React.ReactNode {
   const c = content ?? '';
@@ -237,6 +269,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
   const mergedTeamGeneralBody = (teamName: string): GeneralBodyContent =>
     mergeGeneralBodyForDisplay(aboutTeamBlocks[teamName], DEFAULT_GENERAL_BODY);
 
+  const path = normalizeAboutPath(currentPath);
+
   const canEdit = userRole === 'President' || userRole === 'Vice President';
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
@@ -248,40 +282,38 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     e.preventDefault();
     if (draggedIndex === null || draggedIndex === index) return;
 
-    // Determine which team to reorder based on current path
-    const currentTeam = (currentPath === '/about/designteam') ? designTeam : execBoard;
+    const teamKey = getReorderTeamKey(path, teamSettings);
+    if (!teamKey) return;
+
+    const currentTeam = membersByTeam[teamKey] ?? [];
     const newOrder = [...currentTeam];
     const draggedItem = newOrder[draggedIndex];
     newOrder.splice(draggedIndex, 1);
     newOrder.splice(index, 0, draggedItem);
 
-    if (currentPath === '/about/designteam') {
-      setDesignTeam(newOrder);
-    } else {
-      setExecBoard(newOrder);
-    }
+    setMembersByTeam((prev) => ({ ...prev, [teamKey]: newOrder }));
     setDraggedIndex(index);
   };
 
   const handleDragEnd = async () => {
     if (draggedIndex === null) return;
-    
     setDraggedIndex(null);
-    
-    // Auto-save the new order to Firebase
+
+    const teamKey = getReorderTeamKey(path, teamSettings);
+    if (!teamKey) return;
+
+    const list = membersByTeam[teamKey] ?? [];
+    const orderKind =
+      teamKey === teamSettings.designTeamTeamName ? 'designTeam' : 'execBoard';
+
     try {
-      if (currentPath === '/about/designteam') {
-        await updateTeamMemberOrder(designTeam, 'designTeam');
-      } else {
-        await updateTeamMemberOrder(execBoard, 'execBoard');
-      }
+      await updateTeamMemberOrder(list, orderKind);
     } catch (error) {
       console.error('Error saving order:', error);
-      // Reload data on error
       try {
         const [execData, designData] = await Promise.all([
           getExecBoard(),
-          getDesignTeam()
+          getDesignTeam(),
         ]);
         setMembersByTeam((prev) => ({
           ...prev,
@@ -311,8 +343,225 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     }
   };
 
+  const routeTeam = parseTeamFromAboutPath(path);
+
+  if (routeTeam != null) {
+    if (!teamSettings.teamNames.includes(routeTeam)) {
+      return (
+        <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center px-8">
+          <p className="text-lg font-jost text-gray-700 mb-8">팀을 찾을 수 없습니다.</p>
+          <button
+            type="button"
+            onClick={navigateToAbout}
+            className="px-6 py-2 rounded-lg font-jost text-sm font-medium bg-[#3b4c6b] text-white hover:opacity-90"
+          >
+            About으로 돌아가기
+          </button>
+        </div>
+      );
+    }
+
+    const isExec = routeTeam === teamSettings.execBoardTeamName;
+    const isDesign = routeTeam === teamSettings.designTeamTeamName;
+    const gb = mergedTeamGeneralBody(routeTeam);
+    const members = membersByTeam[routeTeam] ?? [];
+    const boardHeading = isExec ? 'Executive Board' : isDesign ? 'Design Board' : `${routeTeam} Board`;
+
+    return (
+      <div className="min-h-screen bg-white pb-20">
+        <div className="container mx-auto px-16 pt-8 pb-4">
+          <button
+            type="button"
+            onClick={navigateToAbout}
+            className="px-6 py-2 rounded-lg font-jost text-sm font-medium bg-[#DEE7ED] text-[#48597F] hover:bg-gray-300"
+          >
+            ← About으로 돌아가기
+          </button>
+          <div className="flex flex-wrap gap-2 mt-6">
+            {teamSettings.teamNames.map((name) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => onNavigate?.(teamAboutPath(name))}
+                className={`px-4 py-2 rounded-lg text-sm font-jost transition-colors ${
+                  name === routeTeam
+                    ? 'bg-[#3b4c6b] text-white shadow'
+                    : 'bg-[#DEE7ED] text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {isExec ? (
+          <>
+            <div className="bg-gray-100 pb-16 px-16">
+              <div className="container mx-auto px-4 pt-4">
+                <div className="flex flex-col md:flex-row gap-12 items-start">
+                  <div className="w-full md:w-1/2">
+                    <div className="mb-6">
+                      <img
+                        src={generalBodyContent.leftImageUrl || 'https://picsum.photos/seed/about/800/600'}
+                        className="w-full h-auto rounded-lg border-2 border-blue-300"
+                        alt="Our General Body"
+                      />
+                    </div>
+                  </div>
+                  <div className="w-full md:w-1/2">
+                    <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">
+                      {renderTitle(generalBodyContent.activitiesTitle, 'Our Activities')}
+                    </h2>
+                    <ul className="space-y-4 font-jost">
+                      {(generalBodyContent.activitiesList ?? []).map((item, idx) => (
+                        <li key={idx} className="text-gray-800 text-lg">
+                          • {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <div className="mt-8">
+                  <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">
+                    {renderTitle(generalBodyContent.bodySectionTitle ?? aboutContent.aboutTitle, 'Our General Body')}
+                  </h2>
+                  <div className="space-y-4 text-gray-800 leading-relaxed font-jost">
+                    <div>{renderParagraph(aboutContent.aboutParagraph1)}</div>
+                    <div>{renderParagraph(aboutContent.aboutParagraph2, aboutContent.aboutLinkUrl)}</div>
+                  </div>
+                  <div className="mt-8">
+                    <h3 className="text-xl font-jost font-bold text-black mb-4">
+                      {renderTitle(generalBodyContent.pastEventsTitle, 'Past Events')}
+                    </h3>
+                    <div className="bg-white border border-gray-300 rounded-lg p-4">
+                      <ul className="space-y-2 font-jost text-gray-800">
+                        {(generalBodyContent.pastEventsList ?? []).map((item, idx) => (
+                          <li key={idx}>• {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-[#e5e7eb] py-16">
+              <div className="container mx-auto px-16">
+                <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-4">{boardHeading}</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                  {loading ? (
+                    <div className="col-span-2 text-center py-8">Loading...</div>
+                  ) : members.length === 0 ? (
+                    <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
+                  ) : (
+                    members.map((member, index) => (
+                      <div
+                        key={member.id}
+                        draggable={canEdit}
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                        style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
+                      >
+                        <TeamCard
+                          member={member}
+                          showDragHandle={canEdit}
+                          onDragHandleMouseDown={(e) => {
+                            e.stopPropagation();
+                          }}
+                        />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="bg-gray-100 pb-16 px-16">
+              <div className="container mx-auto px-4 pt-4">
+                <div className="flex flex-col md:flex-row gap-12 items-start">
+                  <div className="w-full md:w-1/2">
+                    <div className="mb-6">
+                      <img
+                        src={gb.leftImageUrl || 'https://picsum.photos/seed/about/800/600'}
+                        className="w-full h-auto rounded-lg border-2 border-blue-300"
+                        alt={routeTeam}
+                      />
+                    </div>
+                  </div>
+                  <div className="w-full md:w-1/2">
+                    <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">{renderTitle(gb.activitiesTitle, 'Our Activities')}</h2>
+                    <ul className="space-y-4 font-jost">
+                      {(gb.activitiesList ?? []).map((item, idx) => (
+                        <li key={idx} className="text-gray-800 text-lg">
+                          • {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <div className="mt-8">
+                  <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">
+                    {renderTitle(gb.bodySectionTitle ?? aboutContent.aboutTitle, routeTeam)}
+                  </h2>
+                  <div className="space-y-4 text-gray-800 leading-relaxed font-jost">
+                    <div>{renderParagraph(aboutContent.aboutParagraph1)}</div>
+                    <div>{renderParagraph(aboutContent.aboutParagraph2, aboutContent.aboutLinkUrl)}</div>
+                  </div>
+                  <div className="mt-8">
+                    <h3 className="text-xl font-jost font-bold text-black mb-4">{renderTitle(gb.pastEventsTitle, 'Past Events')}</h3>
+                    <div className="bg-white border border-gray-300 rounded-lg p-4">
+                      <ul className="space-y-2 font-jost text-gray-800">
+                        {(gb.pastEventsList ?? []).map((item, idx) => (
+                          <li key={idx}>• {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-[#e5e7eb] py-16">
+              <div className="container mx-auto px-16">
+                <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-2">{boardHeading}</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                  {loading ? (
+                    <div className="col-span-2 text-center py-8">Loading...</div>
+                  ) : members.length === 0 ? (
+                    <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
+                  ) : (
+                    members.map((member, index) => (
+                      <div
+                        key={member.id}
+                        draggable={canEdit}
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                        style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
+                      >
+                        <TeamCard
+                          member={member}
+                          showDragHandle={canEdit}
+                          onDragHandleMouseDown={(e) => {
+                            e.stopPropagation();
+                          }}
+                        />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
   // If on /about/generalbody route, show only About Us section with Executive Board
-  if (currentPath === '/about/generalbody') {
+  if (path === '/about/generalbody') {
     return (
       <div className="min-h-screen bg-gray-100 py-12">
         {/* About Us Section - Full page view */}
@@ -428,7 +677,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
   }
 
   // If on /about/designteam route, show Design Team specific content
-  if (currentPath === '/about/designteam') {
+  if (path === '/about/designteam') {
     // Get current projects (Fall 2025)
     const currentProjects = PROJECTS.filter(p => p.status === 'current');
     const pastProjects = PROJECTS.filter(p => p.status === 'past');
@@ -665,7 +914,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
           </h2>
 
           <div className="space-y-8">
-            {teamSettings.teamNames.map((teamName, i) => {
+            {teamSettings.teamNames.map((teamName) => {
               const tileImg =
                 teamName === teamSettings.execBoardTeamName
                   ? generalBodyContent.leftImageUrl || 'https://picsum.photos/seed/about/800/600'
@@ -674,13 +923,13 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                 <div
                   key={teamName}
                   className="relative group cursor-pointer overflow-hidden rounded-xl h-48 w-full shadow-md"
-                  onClick={() => document.getElementById(`about-team-${i}`)?.scrollIntoView({ behavior: 'smooth' })}
+                  onClick={() => onNavigate?.(teamAboutPath(teamName))}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      document.getElementById(`about-team-${i}`)?.scrollIntoView({ behavior: 'smooth' });
+                      onNavigate?.(teamAboutPath(teamName));
                     }
                   }}
                 >
@@ -698,146 +947,6 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
           </div>
         </div>
       </div>
-
-      {teamSettings.teamNames.map((teamName, i) => {
-        const isExec = teamName === teamSettings.execBoardTeamName;
-        const isDesign = teamName === teamSettings.designTeamTeamName;
-        const gb = mergedTeamGeneralBody(teamName);
-        const members = membersByTeam[teamName] ?? [];
-        const boardHeading = isExec ? 'Executive Board' : isDesign ? 'Design Board' : `${teamName} Board`;
-
-        if (isExec) {
-          return (
-            <div key={teamName} id={`about-team-${i}`} className="border-t border-gray-200">
-              <div className="bg-gray-100 pb-16 px-16">
-                <div className="container mx-auto px-4 pt-12">
-                  <div className="flex flex-col md:flex-row gap-12 items-start">
-                    <div className="w-full md:w-1/2">
-                      <div className="mb-6">
-                        <img
-                          src={generalBodyContent.leftImageUrl || 'https://picsum.photos/seed/about/800/600'}
-                          className="w-full h-auto rounded-lg border-2 border-blue-300"
-                          alt="Our General Body"
-                        />
-                      </div>
-                    </div>
-                    <div className="w-full md:w-1/2">
-                      <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">
-                        {renderTitle(generalBodyContent.activitiesTitle, 'Our Activities')}
-                      </h2>
-                      <ul className="space-y-4 font-jost">
-                        {(generalBodyContent.activitiesList ?? []).map((item, idx) => (
-                          <li key={idx} className="text-gray-800 text-lg">
-                            • {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                  <div className="mt-8">
-                    <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">
-                      {renderTitle(generalBodyContent.bodySectionTitle ?? aboutContent.aboutTitle, 'Our General Body')}
-                    </h2>
-                    <div className="space-y-4 text-gray-800 leading-relaxed font-jost">
-                      <div>{renderParagraph(aboutContent.aboutParagraph1)}</div>
-                      <div>{renderParagraph(aboutContent.aboutParagraph2, aboutContent.aboutLinkUrl)}</div>
-                    </div>
-                    <div className="mt-8">
-                      <h3 className="text-xl font-jost font-bold text-black mb-4">
-                        {renderTitle(generalBodyContent.pastEventsTitle, 'Past Events')}
-                      </h3>
-                      <div className="bg-white border border-gray-300 rounded-lg p-4">
-                        <ul className="space-y-2 font-jost text-gray-800">
-                          {(generalBodyContent.pastEventsList ?? []).map((item, idx) => (
-                            <li key={idx}>• {item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-[#e5e7eb] py-16">
-                <div className="container mx-auto px-16">
-                  <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-4">{boardHeading}</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                    {loading ? (
-                      <div className="col-span-2 text-center py-8">Loading...</div>
-                    ) : members.length === 0 ? (
-                      <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
-                    ) : (
-                      members.map((member) => <TeamCard key={member.id} member={member} />)
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        }
-
-        return (
-          <div key={teamName} id={`about-team-${i}`} className="border-t border-gray-200">
-            <div className="bg-gray-100 pb-16 px-16">
-              <div className="container mx-auto px-4 pt-12">
-                <div className="flex flex-col md:flex-row gap-12 items-start">
-                  <div className="w-full md:w-1/2">
-                    <div className="mb-6">
-                      <img
-                        src={gb.leftImageUrl || 'https://picsum.photos/seed/about/800/600'}
-                        className="w-full h-auto rounded-lg border-2 border-blue-300"
-                        alt={teamName}
-                      />
-                    </div>
-                  </div>
-                  <div className="w-full md:w-1/2">
-                    <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">{renderTitle(gb.activitiesTitle, 'Our Activities')}</h2>
-                    <ul className="space-y-4 font-jost">
-                      {(gb.activitiesList ?? []).map((item, idx) => (
-                        <li key={idx} className="text-gray-800 text-lg">
-                          • {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-                <div className="mt-8">
-                  <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">
-                    {renderTitle(gb.bodySectionTitle ?? aboutContent.aboutTitle, teamName)}
-                  </h2>
-                  <div className="space-y-4 text-gray-800 leading-relaxed font-jost">
-                    <div>{renderParagraph(aboutContent.aboutParagraph1)}</div>
-                    <div>{renderParagraph(aboutContent.aboutParagraph2, aboutContent.aboutLinkUrl)}</div>
-                  </div>
-                  <div className="mt-8">
-                    <h3 className="text-xl font-jost font-bold text-black mb-4">{renderTitle(gb.pastEventsTitle, 'Past Events')}</h3>
-                    <div className="bg-white border border-gray-300 rounded-lg p-4">
-                      <ul className="space-y-2 font-jost text-gray-800">
-                        {(gb.pastEventsList ?? []).map((item, idx) => (
-                          <li key={idx}>• {item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="bg-[#e5e7eb] py-16">
-              <div className="container mx-auto px-16">
-                <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-2">{boardHeading}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                  {loading ? (
-                    <div className="col-span-2 text-center py-8">Loading...</div>
-                  ) : members.length === 0 ? (
-                    <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
-                  ) : (
-                    members.map((member) => <TeamCard key={member.id} member={member} />)
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 };
