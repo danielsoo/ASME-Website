@@ -280,6 +280,15 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
   const mergedTeamGeneralBody = (teamName: string): GeneralBodyContent =>
     mergeGeneralBodyForDisplay(aboutTeamBlocks[teamName], DEFAULT_GENERAL_BODY);
 
+  /** Team board tabs: Executive (exec team) always first, then others in config order. */
+  const boardTabTeamOrder = useMemo(() => {
+    const names = teamSettings.teamNames ?? [];
+    const exec = teamSettings.execBoardTeamName;
+    if (names.length === 0) return [];
+    if (!names.includes(exec)) return names;
+    return [exec, ...names.filter((t) => t !== exec)];
+  }, [JSON.stringify(teamSettings.teamNames), teamSettings.execBoardTeamName]);
+
   const path = normalizeAboutPath(currentPath);
 
   const canEdit = userRole === 'President' || userRole === 'Vice President';
@@ -955,7 +964,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
       </div>
 
       {/* Team boards: segmented tabs (same classes as General Body / Design Team route toggles) */}
-      {teamSettings.teamNames.length > 0 && (
+      {boardTabTeamOrder.length > 0 && (
         <div className="border-t border-gray-200 bg-[#e5e7eb] py-10 px-4 sm:px-8">
           <div className="container mx-auto max-w-5xl">
             <h2 className="text-2xl sm:text-3xl font-jost font-bold text-[#1E2B48] text-center mb-6">
@@ -966,7 +975,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
               role="tablist"
               aria-label="Team boards"
             >
-              {teamSettings.teamNames.map((teamName, i) => {
+              {boardTabTeamOrder.map((teamName, i) => {
                 const isExecTeam = teamName === teamSettings.execBoardTeamName;
                 const isDesignTeam = teamName === teamSettings.designTeamTeamName;
                 const tabLabel = isExecTeam
@@ -996,7 +1005,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
             </div>
 
             {(() => {
-              const teamName = teamSettings.teamNames[activeBoardTabIndex];
+              const teamName = boardTabTeamOrder[activeBoardTabIndex];
               if (!teamName) return null;
               const isExecTeam = teamName === teamSettings.execBoardTeamName;
               const isDesignTeam = teamName === teamSettings.designTeamTeamName;
