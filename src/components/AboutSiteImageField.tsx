@@ -157,9 +157,18 @@ export const AboutSiteLayoutPreview: React.FC<AboutSiteLayoutPreviewProps> = ({
     const g = gb ?? { ...EMPTY_GB };
     const actTitle = g.activitiesTitle?.trim() ? g.activitiesTitle : DEFAULT_GENERAL_BODY.activitiesTitle;
     const activities = (g.activitiesList ?? []).filter((x) => String(x).trim() !== '');
-    const bodyTitle = mergedBodyTitle(g, about as AboutContent | undefined, 'Our General Body');
+    /** When Design Team doc is passed (admin), body heading + copy follow Design Team intro; else Main About merge. */
+    const bodyTitle =
+      dt?.sectionTitle?.trim()
+        ? dt.sectionTitle
+        : mergedBodyTitle(g, about as AboutContent | undefined, 'Our General Body');
     const pastTitle = g.pastEventsTitle?.trim() ? g.pastEventsTitle : DEFAULT_GENERAL_BODY.pastEventsTitle;
     const pastList = (g.pastEventsList ?? []).filter((x) => String(x).trim() !== '');
+    const fallbackAbout = {
+      aboutParagraph1: ab.aboutParagraph1,
+      aboutParagraph2: ab.aboutParagraph2,
+      aboutLinkUrl: ab.aboutLinkUrl,
+    };
 
     return (
       <div className={`rounded-lg border border-gray-200 bg-gray-100 ${pad}`}>
@@ -184,8 +193,21 @@ export const AboutSiteLayoutPreview: React.FC<AboutSiteLayoutPreviewProps> = ({
           <div>
             <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">{renderAboutTitle(bodyTitle, 'Our General Body')}</h2>
             <div className="space-y-4 text-gray-800 leading-relaxed font-jost">
-              <div>{renderAboutParagraph(ab.aboutParagraph1 ?? DEFAULT_ABOUT.aboutParagraph1)}</div>
-              <div>{renderAboutParagraph(ab.aboutParagraph2 ?? DEFAULT_ABOUT.aboutParagraph2, ab.aboutLinkUrl)}</div>
+              {dt ? (
+                <div
+                  style={{
+                    fontFamily: dt.introFontFamily || undefined,
+                    fontWeight: dt.introFontWeight ? Number(dt.introFontWeight) : undefined,
+                  }}
+                >
+                  {renderDesignTeamIntroBlock(dt, fallbackAbout)}
+                </div>
+              ) : (
+                <>
+                  <div>{renderAboutParagraph(ab.aboutParagraph1 ?? DEFAULT_ABOUT.aboutParagraph1)}</div>
+                  <div>{renderAboutParagraph(ab.aboutParagraph2 ?? DEFAULT_ABOUT.aboutParagraph2, ab.aboutLinkUrl)}</div>
+                </>
+              )}
             </div>
             <div className="mt-8">
               <h3 className="text-xl font-jost font-bold text-black mb-4">{renderAboutTitle(pastTitle, 'Past Events')}</h3>
@@ -244,6 +266,11 @@ export const AboutSiteLayoutPreview: React.FC<AboutSiteLayoutPreviewProps> = ({
   return (
     <div className="space-y-3">
       <p className="text-xs font-medium text-gray-600">Preview — same image on the site in two places</p>
+      {dt ? (
+        <p className="text-xs text-gray-500">
+          Middle section uses your Design Team intro (section title + intro paragraphs), with this team-board layout.
+        </p>
+      ) : null}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="space-y-2">
           <p className="text-xs text-gray-500">Team / General Body page</p>

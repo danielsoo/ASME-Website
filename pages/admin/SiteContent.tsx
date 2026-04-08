@@ -946,35 +946,21 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
                   <div>
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
                     {activeTeamTab === teamSettings.designTeamTeamName ? (
-                      <div className="space-y-8">
-                        <AboutSiteLayoutPreview
-                          preview="two-col-left"
-                          previewSrc={aboutDesignTeam.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
-                          context={{
-                            designTeam: aboutDesignTeam,
-                            mainAbout: {
-                              aboutTitle: about.aboutTitle,
-                              aboutParagraph1: about.aboutParagraph1,
-                              aboutParagraph2: about.aboutParagraph2,
-                              aboutLinkUrl: about.aboutLinkUrl,
-                            },
-                          }}
-                        />
-                        <AboutSiteLayoutPreview
-                          preview="dual-column-and-tile"
-                          previewSrc={editingTeamGeneralBody.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
-                          context={{
-                            generalBody: editingTeamGeneralBody,
-                            mainAbout: {
-                              aboutTitle: about.aboutTitle,
-                              aboutParagraph1: about.aboutParagraph1,
-                              aboutParagraph2: about.aboutParagraph2,
-                              aboutLinkUrl: about.aboutLinkUrl,
-                            },
-                            teamNameLabel: activeTeamTab,
-                          }}
-                        />
-                      </div>
+                      <AboutSiteLayoutPreview
+                        preview="dual-column-and-tile"
+                        previewSrc={editingTeamGeneralBody.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
+                        context={{
+                          generalBody: editingTeamGeneralBody,
+                          mainAbout: {
+                            aboutTitle: about.aboutTitle,
+                            aboutParagraph1: about.aboutParagraph1,
+                            aboutParagraph2: about.aboutParagraph2,
+                            aboutLinkUrl: about.aboutLinkUrl,
+                          },
+                          designTeam: aboutDesignTeam,
+                          teamNameLabel: activeTeamTab,
+                        }}
+                      />
                     ) : (
                       <AboutSiteLayoutPreview
                         preview="dual-column-and-tile"
