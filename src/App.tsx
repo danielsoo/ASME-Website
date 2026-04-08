@@ -17,8 +17,14 @@ import Admin from '../pages/admin/Admin';
 import { IKContext } from 'imagekitio-react';
 
 const App: React.FC = () => {
-  const ikPublicKey = import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY;
-  const ikUrlEndpoint = import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT;
+  const ikPublicKey = (
+    import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY ||
+    (typeof process !== 'undefined' ? process.env.IMAGEKIT_PUBLIC_KEY : undefined)
+  )?.trim();
+  const ikUrlEndpoint = (
+    import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT ||
+    (typeof process !== 'undefined' ? process.env.IMAGEKIT_URL_ENDPOINT : undefined)
+  )?.trim();
   const hasImageKit = Boolean(ikPublicKey && ikUrlEndpoint);
   // Simple custom router state using hash
   const [currentPath, setCurrentPath] = useState(() => {

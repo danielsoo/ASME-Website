@@ -21,7 +21,19 @@ type Props = {
   onError?: (message: string) => void;
 };
 
-const authEndpoint = import.meta.env.VITE_IMAGEKIT_AUTH_ENDPOINT as string | undefined;
+const imagekitPublicKey = (
+  import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY ||
+  (typeof process !== "undefined" ? process.env.IMAGEKIT_PUBLIC_KEY : undefined)
+)?.trim();
+const imagekitUrlEndpoint = (
+  import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT ||
+  (typeof process !== "undefined" ? process.env.IMAGEKIT_URL_ENDPOINT : undefined)
+)?.trim();
+/** Same-origin auth API (Vercel: api/imagekit-auth.js). Override with VITE_IMAGEKIT_AUTH_ENDPOINT if needed. */
+const authEndpoint =
+  (import.meta.env.VITE_IMAGEKIT_AUTH_ENDPOINT as string | undefined)?.trim() ||
+  "/api/imagekit-auth";
+const isImageKitConfigured = Boolean(imagekitPublicKey && imagekitUrlEndpoint);
 
 const Uploader: React.FC<Props> = ({
   folder,
@@ -37,19 +49,59 @@ const Uploader: React.FC<Props> = ({
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
 
-  const authenticator = authEndpoint
-    ? async () => {
-        const resp = await fetch(authEndpoint);
-        if (!resp.ok) throw new Error("ImageKit auth failed");
-        return (await resp.json()) as { signature: string; expire: number; token: string };
+  const authenticator = async () => {
+    const resp = await fetch(authEndpoint, { credentials: "same-origin" });
+    if (!resp.ok) {
+      let detail = "";
+      try {
+        const j = (await resp.json()) as { error?: string };
+        detail = j.error || "";
+      } catch {
+        detail = await resp.text();
       }
-    : undefined;
+      throw new Error(
+        detail || `ImageKit auth failed (HTTP ${resp.status}). Check IMAGEKIT_PRIVATE_KEY on the server.`
+      );
+    }
+    return resp.json() as Promise<{
+      signature: string;
+      expire: number;
+      token: string;
+    }>;
+  };
 
   const handleClick = () => {
+    if (!isImageKitConfigured) {
+      onError?.(
+        "Image upload is not configured. Please set VITE_IMAGEKIT_PUBLIC_KEY and VITE_IMAGEKIT_URL_ENDPOINT, then redeploy."
+      );
+      return;
+    }
     setDone(false);
     setProgress(0);
     fileInputRef.current?.click();
   };
+
+  if (!isImageKitConfigured) {
+    return (
+      <div className="flex flex-col gap-2 text-sm text-amber-800">
+        <p>
+          Image upload is unavailable: set{" "}
+          <code className="rounded bg-amber-100 px-1">VITE_IMAGEKIT_PUBLIC_KEY</code> and{" "}
+          <code className="rounded bg-amber-100 px-1">VITE_IMAGEKIT_URL_ENDPOINT</code>{" "}
+          in Vercel, then redeploy.
+        </p>
+        <button
+          type="button"
+          disabled
+          className="inline-flex w-fit cursor-not-allowed items-center gap-2 rounded bg-gray-300 px-4 py-2 text-gray-600"
+        >
+          <Upload className="w-4 h-4" />
+          {buttonLabel}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
@@ -98,10 +150,13 @@ const Uploader: React.FC<Props> = ({
         }}
         onError={(err: any) => {
           setUploading(false);
-          const msg =
+          const rawMsg =
             (err as any)?.message ||
             (err as any)?.response?.data?.message ||
             "Upload failed";
+          const msg = rawMsg.includes("Missing publicKey")
+            ? "ImageKit public key is missing in this deployment. Check VITE_IMAGEKIT_PUBLIC_KEY and redeploy."
+            : rawMsg;
           onError?.(msg);
         }}
       />
