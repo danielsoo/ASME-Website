@@ -23,13 +23,15 @@ export const ProjectAdminImagePreview: React.FC<{
         <img
           src={src}
           alt=""
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover object-center"
+          decoding="async"
           onError={(e) => {
             (e.target as HTMLImageElement).style.display = 'none';
           }}
         />
-        <div className="absolute inset-0 bg-black/25 pointer-events-none flex flex-col justify-end p-4">
-          <span className="text-lg font-bold font-jost text-white uppercase tracking-wide drop-shadow">
+        {/* Bottom gradient only — full-surface overlay made the preview look blurry/milky */}
+        <div className="absolute bottom-0 left-0 right-0 pointer-events-none bg-gradient-to-t from-black/75 via-black/25 to-transparent pt-16 pb-4 px-4 flex flex-col justify-end">
+          <span className="text-lg font-bold font-jost text-white uppercase tracking-wide drop-shadow-md">
             {titleHint?.trim() || 'Project title'}
           </span>
         </div>

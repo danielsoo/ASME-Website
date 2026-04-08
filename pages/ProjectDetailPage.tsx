@@ -54,13 +54,15 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNaviga
             </div>
           </div>
 
-          {/* Main Image */}
-          <div className="mb-6 rounded-lg overflow-hidden">
-            <img
-              src={project.imageUrl}
-              alt={(project.title || '').replace(/<[^>]*>/g, '').trim() || 'Project'}
-              className="w-full h-auto object-cover"
-            />
+          {/* Main Image — capped size (full w-full h-auto was huge on tall uploads) */}
+          <div className="mb-6 max-w-4xl mx-auto rounded-lg overflow-hidden bg-[#DEE7ED] shadow-md">
+            <div className="relative w-full h-52 sm:h-60 md:h-72">
+              <img
+                src={project.imageUrl}
+                alt={(project.title || '').replace(/<[^>]*>/g, '').trim() || 'Project'}
+                className="absolute inset-0 h-full w-full object-cover object-center"
+              />
+            </div>
           </div>
 
           {/* Project Title */}

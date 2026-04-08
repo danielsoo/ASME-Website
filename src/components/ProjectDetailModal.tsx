@@ -36,12 +36,14 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({ project, onClos
         {/* Content */}
         <div className="p-6">
           {/* Main Image */}
-          <div className="mb-6 border-2 border-blue-500 rounded-lg overflow-hidden">
-            <img
-              src={project.imageUrl}
-              alt={project.title}
-              className="w-full h-auto object-cover"
-            />
+          <div className="mb-6 max-w-4xl mx-auto rounded-lg overflow-hidden bg-[#DEE7ED] border-2 border-blue-500">
+            <div className="relative w-full h-52 sm:h-60 md:h-72">
+              <img
+                src={project.imageUrl}
+                alt={project.title}
+                className="absolute inset-0 h-full w-full object-cover object-center"
+              />
+            </div>
           </div>
 
           {/* Project Title */}
