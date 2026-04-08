@@ -7,6 +7,9 @@ import AboutCropEditor from './AboutCropEditor';
 
 export const ABOUT_SITE_IMAGE_PLACEHOLDER = 'https://picsum.photos/seed/about/800/600';
 
+/** Main /about hero image display size in admin live preview (matches public visual weight). */
+export const MAIN_ABOUT_HERO_DISPLAY_W = 344;
+
 export type AboutSiteImagePreview =
   | 'main-hero'
   /** Left column on team / general-body pages: half width, bordered photo */
@@ -76,13 +79,13 @@ export const AboutSiteLayoutPreview: React.FC<AboutSiteLayoutPreviewProps> = ({
   const teamLabel = context?.teamNameLabel?.trim() || 'Team name';
 
   const MainHeroBlock = () => (
-    <div className={`rounded-lg border border-gray-200 bg-white ${pad} max-w-5xl`}>
-      <div className="flex flex-col md:flex-row gap-12 items-start">
-        <div className="w-full md:w-1/3 h-64 bg-slate-700 rounded-lg overflow-hidden shrink-0">
+    <div className={`rounded-lg border border-gray-200 bg-white ${pad} w-full max-w-5xl`}>
+      <div className="flex flex-col sm:flex-row sm:items-start gap-6 sm:gap-8">
+        <div className="mx-auto sm:mx-0 shrink-0 bg-slate-700 rounded-lg overflow-hidden w-full max-w-[344px] aspect-[344/259] sm:w-[344px]">
           <img src={previewSrc} alt="" className="w-full h-full object-cover rounded-lg" />
         </div>
-        <div className="w-full md:w-2/3 text-white font-jost min-w-0">
-          <h2 className="text-[#1E2B48] text-3xl font-bold mb-6">{renderAboutTitle(ab.aboutTitle, 'About Us')}</h2>
+        <div className="min-w-0 flex-1 text-white font-jost break-words">
+          <h2 className="text-[#1E2B48] text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">{renderAboutTitle(ab.aboutTitle, 'About Us')}</h2>
           <div
             className="text-gray-800 leading-relaxed mb-4"
             style={{
@@ -280,7 +283,8 @@ function cropConfig(preview: AboutSiteImagePreview): {
         aspectW: 4,
         aspectH: 3,
         outputLongEdge: 1600,
-        containerClassName: 'h-72 w-full max-w-lg',
+        /** Match live preview / public hero frame (344×259). */
+        containerClassName: 'w-full max-w-[344px] aspect-[344/259] mx-auto',
       };
     case 'two-col-left':
       return {

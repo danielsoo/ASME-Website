@@ -24,7 +24,6 @@ import {
   renderAboutTitle as renderTitle,
   renderDesignTeamIntroBlock,
 } from '../src/utils/aboutRichRender';
-
 /** Public page: empty stored fields fall back to defaults so new/blank team blocks still look reasonable. */
 function mergeTeamBlockForDisplay(
   stored: DesignTeamContent | undefined,
@@ -845,7 +844,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
       {/* Hero / About Us Text */}
       <div className="container mx-auto px-16 py-16">
          <div className="flex flex-col md:flex-row gap-12 items-start">
-             <div className="w-full md:w-1/3 h-64 bg-slate-700 rounded-lg overflow-hidden">
+             <div className="w-full max-w-[344px] aspect-[344/259] shrink-0 bg-slate-700 rounded-lg overflow-hidden mx-auto md:mx-0 md:w-[344px]">
                  <img
                    src={aboutContent.heroImageUrl?.trim() || 'https://picsum.photos/seed/about/800/600'}
                    className="w-full h-full object-cover rounded-lg"
@@ -853,7 +852,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                  />
              </div>
              
-             <div className="w-full md:w-2/3 text-white font-jost">
+             <div className="w-full min-w-0 flex-1 text-white font-jost">
                  <h2 className="text-[#1E2B48] text-3xl font-bold mb-6">{renderTitle(aboutContent.aboutTitle, 'About Us')}</h2>
                  <div
                      className="text-gray-800 leading-relaxed mb-4"

@@ -785,11 +785,11 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
               {loading ? (
                 <div className="text-gray-500">Loading...</div>
               ) : (
-                <div className="lg:grid lg:grid-cols-2 gap-8 items-start max-w-[100rem]">
+                <div className="grid grid-cols-1 gap-8 items-start max-w-[100rem] xl:grid-cols-[minmax(0,1fr)_560px]">
                   <div className="space-y-4 min-w-0 max-w-4xl">
                   <AboutSiteImageField
                     label="Hero image (main About)"
-                    description="Shown in the left column on /about — preview matches live size (1/3 width on desktop, height 16rem)."
+                    description="Shown on /about — live preview uses a 344×259px hero frame (same weight as the public page)."
                     value={about.heroImageUrl ?? ''}
                     onChange={(v) => handleAboutChange('heroImageUrl', v)}
                     preview="main-hero"
@@ -846,7 +846,7 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
                     {savedMessage === 'Main About saved.' && <span className="text-green-600 font-medium">Saved.</span>}
                   </div>
                   </div>
-                  <div className="lg:sticky lg:top-4 lg:self-start min-w-0">
+                  <div className="sticky top-4 self-start min-w-0 xl:min-w-[560px]">
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
                     <AboutSiteLayoutPreview
                       compact
@@ -876,7 +876,7 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
               {loading ? (
                 <div className="text-gray-500">Loading...</div>
               ) : (
-                <div className="lg:grid lg:grid-cols-2 gap-8 items-start max-w-[100rem]">
+                <div className="grid grid-cols-1 gap-8 items-start max-w-[100rem] xl:grid-cols-[minmax(0,1fr)_560px]">
                   <div className="space-y-4 min-w-0 max-w-5xl">
                   <AboutSiteImageField
                     label="Team image (General Body / Executive Board)"
@@ -914,7 +914,7 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
                     {savedMessage === 'General Body saved.' && <span className="text-green-600 font-medium">Saved.</span>}
                   </div>
                   </div>
-                  <div className="lg:sticky lg:top-4 lg:self-start min-w-0">
+                  <div className="sticky top-4 self-start min-w-0 xl:min-w-[560px]">
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
                     <AboutSiteLayoutPreview
                       compact
@@ -943,7 +943,7 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
               {loading ? (
                 <div className="text-gray-500">Loading...</div>
               ) : (
-                <div className="lg:grid lg:grid-cols-2 gap-8 items-start max-w-[100rem]">
+                <div className="grid grid-cols-1 gap-8 items-start max-w-[100rem] xl:grid-cols-[minmax(0,1fr)_560px]">
                   <div className="space-y-4 min-w-0 max-w-5xl">
                   {activeTeamTab === teamSettings.designTeamTeamName && (
                     <>
@@ -1159,7 +1159,7 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
                     {savedMessage === 'Team sections saved.' && <span className="text-green-600 font-medium">Saved.</span>}
                   </div>
                   </div>
-                  <div className="lg:sticky lg:top-4 lg:self-start min-w-0">
+                  <div className="sticky top-4 self-start min-w-0 xl:min-w-[560px]">
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
                     {activeTeamTab === teamSettings.designTeamTeamName ? (
                       <div className="space-y-8">
