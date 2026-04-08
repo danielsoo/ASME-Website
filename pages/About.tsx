@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { PROJECTS } from '../src/constants';
 import {
   subscribeMembersForTeam,
+  subscribeExecutiveBoardMembers,
   getExecBoard,
   getDesignTeam,
   updateTeamMemberOrder,
@@ -78,6 +79,8 @@ interface AboutProps {
 }
 
 const TEAM_PATH_PREFIX = '/about/team/';
+/** Reorder key for Executive Board drag on /about and /about/generalbody (not a real team name). */
+const EXEC_REORDER_KEY = '__executive_board__';
 
 function normalizeAboutPath(path: string): string {
   return path.split('#')[0] ?? path;
@@ -103,9 +106,12 @@ export function teamAboutPath(teamName: string): string {
 function getReorderTeamKey(path: string, ts: TeamSettings): string | null {
   const p = normalizeAboutPath(path);
   if (p === '/about/designteam') return ts.designTeamTeamName;
-  if (p === '/about/generalbody') return ts.execBoardTeamName;
+  if (p === '/about' || p === '/about/generalbody') return EXEC_REORDER_KEY;
   const t = parseTeamFromAboutPath(p);
-  if (t && ts.teamNames.includes(t)) return t;
+  if (t && ts.teamNames.includes(t)) {
+    if (t === ts.execBoardTeamName) return null;
+    return t;
+  }
   return null;
 }
 
@@ -143,6 +149,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
   const [generalBodyContent, setGeneralBodyContent] = useState<GeneralBodyContent>({ ...DEFAULT_GENERAL_BODY });
   const [designTeamContent, setDesignTeamContent] = useState<DesignTeamContent>({ ...DEFAULT_DESIGN_TEAM });
   const [teamSettings, setTeamSettings] = useState<TeamSettings>(DEFAULT_TEAM_SETTINGS);
+  const [executiveBoardMembers, setExecutiveBoardMembers] = useState<TeamMember[]>([]);
 
   // Check user permissions
   useEffect(() => {
@@ -225,6 +232,13 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     );
   }, []);
 
+  useEffect(() => {
+    return subscribeExecutiveBoardMembers(
+      setExecutiveBoardMembers,
+      (e) => console.error('subscribeExecutiveBoardMembers error:', e)
+    );
+  }, []);
+
   // Live sync: each team label gets its own member list (order: designOrder for design team, execOrder otherwise)
   useEffect(() => {
     const names = teamSettings.teamNames ?? [];
@@ -259,7 +273,6 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     };
   }, [JSON.stringify(teamSettings.teamNames), teamSettings.designTeamTeamName]);
 
-  const execBoard = membersByTeam[teamSettings.execBoardTeamName] ?? [];
   const designTeam = membersByTeam[teamSettings.designTeamTeamName] ?? [];
   const mergedDesignBlock = useMemo(
     () => mergeTeamBlockForDisplay(designTeamContent, DEFAULT_DESIGN_TEAM),
@@ -285,6 +298,17 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     const teamKey = getReorderTeamKey(path, teamSettings);
     if (!teamKey) return;
 
+    if (teamKey === EXEC_REORDER_KEY) {
+      const currentTeam = executiveBoardMembers;
+      const newOrder = [...currentTeam];
+      const draggedItem = newOrder[draggedIndex];
+      newOrder.splice(draggedIndex, 1);
+      newOrder.splice(index, 0, draggedItem);
+      setExecutiveBoardMembers(newOrder);
+      setDraggedIndex(index);
+      return;
+    }
+
     const currentTeam = membersByTeam[teamKey] ?? [];
     const newOrder = [...currentTeam];
     const draggedItem = newOrder[draggedIndex];
@@ -302,6 +326,20 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     const teamKey = getReorderTeamKey(path, teamSettings);
     if (!teamKey) return;
 
+    if (teamKey === EXEC_REORDER_KEY) {
+      try {
+        await updateTeamMemberOrder(executiveBoardMembers, 'execBoard');
+      } catch (error) {
+        console.error('Error saving order:', error);
+        try {
+          setExecutiveBoardMembers(await getExecBoard());
+        } catch (reloadError) {
+          console.error('Error reloading data:', reloadError);
+        }
+      }
+      return;
+    }
+
     const list = membersByTeam[teamKey] ?? [];
     const orderKind =
       teamKey === teamSettings.designTeamTeamName ? 'designTeam' : 'execBoard';
@@ -315,9 +353,9 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
           getExecBoard(),
           getDesignTeam(),
         ]);
+        setExecutiveBoardMembers(execData);
         setMembersByTeam((prev) => ({
           ...prev,
-          [teamSettings.execBoardTeamName]: execData,
           [teamSettings.designTeamTeamName]: designData,
         }));
       } catch (reloadError) {
@@ -442,37 +480,6 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                       </ul>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-            <div className="bg-[#e5e7eb] py-16">
-              <div className="container mx-auto px-16">
-                <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-4">{boardHeading}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                  {loading ? (
-                    <div className="col-span-2 text-center py-8">Loading...</div>
-                  ) : members.length === 0 ? (
-                    <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
-                  ) : (
-                    members.map((member, index) => (
-                      <div
-                        key={member.id}
-                        draggable={canEdit}
-                        onDragStart={(e) => handleDragStart(e, index)}
-                        onDragOver={(e) => handleDragOver(e, index)}
-                        onDragEnd={handleDragEnd}
-                        style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
-                      >
-                        <TeamCard
-                          member={member}
-                          showDragHandle={canEdit}
-                          onDragHandleMouseDown={(e) => {
-                            e.stopPropagation();
-                          }}
-                        />
-                      </div>
-                    ))
-                  )}
                 </div>
               </div>
             </div>
@@ -647,10 +654,10 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {loading ? (
               <div className="col-span-2 text-center py-8">Loading...</div>
-            ) : execBoard.length === 0 ? (
+            ) : executiveBoardMembers.length === 0 ? (
               <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
             ) : (
-              execBoard.map((member, index) => (
+              executiveBoardMembers.map((member, index) => (
                 <div
                   key={member.id}
                   draggable={canEdit}
@@ -944,6 +951,38 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                 </div>
               );
             })}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-[#e5e7eb] py-16 px-16 border-t border-gray-200">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-jost font-bold text-[#1E2B48] text-center mb-10">Executive Board</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {loading ? (
+              <div className="col-span-2 text-center py-8">Loading...</div>
+            ) : executiveBoardMembers.length === 0 ? (
+              <div className="col-span-2 text-center py-8 text-gray-600">No members found.</div>
+            ) : (
+              executiveBoardMembers.map((member, index) => (
+                <div
+                  key={member.id}
+                  draggable={canEdit}
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                  style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
+                >
+                  <TeamCard
+                    member={member}
+                    showDragHandle={canEdit}
+                    onDragHandleMouseDown={(e) => {
+                      e.stopPropagation();
+                    }}
+                  />
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

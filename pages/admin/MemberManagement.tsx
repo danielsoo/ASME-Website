@@ -94,6 +94,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [selectedTeam, setSelectedTeam] = useState<string>('');
+  const [selectedOnExecutiveBoard, setSelectedOnExecutiveBoard] = useState(false);
 
   // Add member modal (President/Vice President only)
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
@@ -179,6 +180,8 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
             position: data.role || 'member',
             team: data.team || undefined,
             status: data.status,
+            onExecutiveBoard: data.onExecutiveBoard === true,
+            order: typeof data.execOrder === 'number' ? data.execOrder : undefined,
           });
         }
       });
@@ -230,7 +233,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
       showAlert(
         'warning',
         'Cannot delete',
-        'This team is used for the About page. Change the routing below to another team first, then delete.'
+        'This team is used for the About page (Design Team routing or General Body content). Change routing or reassign members first, then delete.'
       );
       return;
     }
@@ -256,24 +259,13 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     }
   };
 
-  const applyTeamRouting = async (execName: string, designName: string) => {
-    if (execName === designName) {
-      showAlert(
-        'warning',
-        'Invalid routing',
-        'Pick two different teams: one for the Executive Board section and one for the Design Team section on About.'
-      );
-      return;
-    }
+  const applyDesignTeamRouting = async (designName: string) => {
     setTeamRoutingSaving(true);
     try {
-      await saveTeamSettings({
-        execBoardTeamName: execName,
-        designTeamTeamName: designName,
-      });
+      await saveTeamSettings({ designTeamTeamName: designName });
     } catch (e) {
       console.error(e);
-      showAlert('error', 'Error', 'Failed to save routing.');
+      showAlert('error', 'Error', 'Failed to save Design Team routing.');
     } finally {
       setTeamRoutingSaving(false);
     }
@@ -390,41 +382,32 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
       throw new Error('No member selected');
     }
 
-    // If role is 'member', no team assignment needed
-    if (selectedRole === 'member') {
-      try {
-        await updateDoc(doc(db, 'users', editingMember.id), {
-          role: 'member',
-          team: null,
-        });
-        setEditingMember(null);
-        setSelectedRole('');
-        setSelectedTeam('');
-        await loadMembers();
-        showAlert('success', 'Success', 'Member role updated successfully!');
-      } catch (error) {
-        console.error('Error updating member:', error);
-        showAlert('error', 'Error', 'Failed to update member. Please try again.');
-      }
-      return;
-    }
-
-    // If role is Executive Board position, team is required
-    if (!selectedTeam) {
+    if (selectedRole !== 'member' && !selectedTeam) {
       showAlert('warning', 'Validation Error', 'Please select a team for Executive Board positions.');
       throw new Error('Validation failed');
     }
 
     try {
-      await updateDoc(doc(db, 'users', editingMember.id), {
+      const payload: Record<string, unknown> = {
         role: selectedRole,
-        team: selectedTeam,
-      });
+        team: selectedRole === 'member' ? null : selectedTeam,
+        onExecutiveBoard: selectedOnExecutiveBoard,
+      };
+
+      if (selectedOnExecutiveBoard && !editingMember.onExecutiveBoard) {
+        const maxOrder = members
+          .filter((m) => m.onExecutiveBoard && m.id !== editingMember.id)
+          .reduce((acc, m) => Math.max(acc, m.order ?? -1), -1);
+        payload.execOrder = maxOrder + 1;
+      }
+
+      await updateDoc(doc(db, 'users', editingMember.id), payload);
       setEditingMember(null);
       setSelectedRole('');
       setSelectedTeam('');
+      setSelectedOnExecutiveBoard(false);
       await loadMembers();
-      showAlert('success', 'Success', 'Member role and team updated successfully!');
+      showAlert('success', 'Success', 'Member updated successfully!');
     } catch (error) {
       console.error('Error updating member:', error);
       showAlert('error', 'Error', 'Failed to update member. Please try again.');
@@ -435,6 +418,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     setEditingMember(member);
     setSelectedRole(member.position || 'member');
     setSelectedTeam(member.team || '');
+    setSelectedOnExecutiveBoard(member.onExecutiveBoard === true);
   };
 
   const positionModalDirty = showPositionModal && (
@@ -443,7 +427,9 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
       : positionName.trim() !== '' || positionTeam !== ''
   );
   const memberEditDirty = editingMember !== null && (
-    selectedRole !== (editingMember.position || 'member') || selectedTeam !== (editingMember.team || '')
+    selectedRole !== (editingMember.position || 'member') ||
+    selectedTeam !== (editingMember.team || '') ||
+    selectedOnExecutiveBoard !== (editingMember.onExecutiveBoard === true)
   );
   const addMemberDirty = showAddMemberModal && (
     newMemberName.trim() !== '' || newMemberEmail.trim() !== '' || newMemberMajor.trim() !== '' || newMemberYear.trim() !== ''
@@ -645,9 +631,11 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Teams</h2>
           <p className="text-sm text-gray-600 mb-4 max-w-3xl">
-            Add or remove team labels used when assigning executive roles. Then choose which label maps to the{' '}
-            <strong>Executive Board</strong> block vs the <strong>Design Team</strong> block on the public About page
-            (members are filtered by their <code className="text-xs bg-gray-100 px-1 rounded">team</code> field).
+            Add or remove team labels used when assigning roles. The <strong>Design Team</strong> block on the public About
+            page uses the team you pick below (members are filtered by their{' '}
+            <code className="text-xs bg-gray-100 px-1 rounded">team</code> field). The{' '}
+            <strong>Executive Board</strong> on the main About page is controlled per member with the &quot;Executive
+            Board (About)&quot; checkbox in the members table.
           </p>
 
           <div className="flex flex-wrap gap-2 mb-4">
@@ -669,8 +657,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-6">
             {teamSettings.teamNames.map((t) => {
-              const isRouted =
-                t === teamSettings.execBoardTeamName || t === teamSettings.designTeamTeamName;
+              const isDesignRouted = t === teamSettings.designTeamTeamName;
               return (
                 <div
                   key={t}
@@ -678,11 +665,8 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                 >
                   <div className="min-w-0">
                     <span className="font-medium text-gray-800">{t}</span>
-                    {isRouted && (
-                      <span className="ml-2 text-xs text-gray-500">
-                        {t === teamSettings.execBoardTeamName && '(Executive Board)'}
-                        {t === teamSettings.designTeamTeamName && '(Design Team page)'}
-                      </span>
+                    {isDesignRouted && (
+                      <span className="ml-2 text-xs text-gray-500">(Design Team page)</span>
                     )}
                   </div>
                   <button
@@ -700,27 +684,17 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
 
           <div className="border-t border-gray-200 pt-4 space-y-3 max-w-xl">
             <p className="text-sm font-semibold text-gray-800">About page routing</p>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <label className="text-sm text-gray-700 sm:w-48">Executive Board section uses</label>
-              <select
-                value={teamSettings.execBoardTeamName}
-                disabled={teamRoutingSaving}
-                onChange={(e) => applyTeamRouting(e.target.value, teamSettings.designTeamTeamName)}
-                className="px-3 py-2 border border-gray-300 rounded text-sm bg-white text-gray-900 flex-1"
-              >
-                {teamSettings.teamNames.map((t) => (
-                  <option key={`exec-${t}`} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <p className="text-sm text-gray-600">
+              Choose which team label supplies members for the Design Team / Design Board section on About (and{' '}
+              <code className="text-xs bg-gray-100 px-1 rounded">/about/designteam</code>). Executive Board uses the
+              checkbox on each member, not this setting.
+            </p>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <label className="text-sm text-gray-700 sm:w-48">Design Team section uses</label>
               <select
                 value={teamSettings.designTeamTeamName}
                 disabled={teamRoutingSaving}
-                onChange={(e) => applyTeamRouting(teamSettings.execBoardTeamName, e.target.value)}
+                onChange={(e) => applyDesignTeamRouting(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded text-sm bg-white text-gray-900 flex-1"
               >
                 {teamSettings.teamNames.map((t) => (
@@ -739,8 +713,9 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Members</h2>
               <p className="text-sm text-gray-500 mt-1 max-w-3xl">
-                Assign roles and teams here. The About page Executive Board and Design Team sections use the team routing
-                above; profile fields (photo, email, year, major, fun fact) come from each member&apos;s Profile settings.
+                Assign roles and teams here. Use &quot;Executive Board (About)&quot; to show someone on the main About
+                page regardless of team. Design Team on About uses the team selected under About page routing. Profile
+                fields (photo, email, year, major, fun fact) come from each member&apos;s Profile settings.
               </p>
             </div>
             <button
@@ -768,6 +743,9 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Year</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Team</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Executive Board (About)
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
@@ -822,6 +800,21 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                           <span className="text-gray-700">{member.team || '—'}</span>
                         )}
                       </td>
+                      <td className="px-6 py-4 text-sm align-top">
+                        {editingMember?.id === member.id ? (
+                          <label className="flex items-start gap-2 cursor-pointer max-w-[12rem]">
+                            <input
+                              type="checkbox"
+                              className="mt-1 rounded border-gray-300"
+                              checked={selectedOnExecutiveBoard}
+                              onChange={(e) => setSelectedOnExecutiveBoard(e.target.checked)}
+                            />
+                            <span className="text-xs text-gray-600">Show on main About Executive Board</span>
+                          </label>
+                        ) : (
+                          <span className="text-gray-700">{member.onExecutiveBoard ? 'Yes' : '—'}</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {editingMember?.id === member.id ? (
                           <div className="flex gap-2">
@@ -837,6 +830,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                                 setEditingMember(null);
                                 setSelectedRole('');
                                 setSelectedTeam('');
+                                setSelectedOnExecutiveBoard(false);
                               }}
                               className="text-red-600 hover:text-red-800"
                               title="Cancel"

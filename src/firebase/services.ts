@@ -43,6 +43,7 @@ function mapUserDocToTeamMember(
     email: String(data.email ?? ''),
     funFact: String(data.funFact ?? ''),
     isExec: role.toLowerCase() !== 'member' && role.toLowerCase() !== 'admin',
+    onExecutiveBoard: data.onExecutiveBoard === true,
     order: typeof data[orderField] === 'number' ? (data[orderField] as number) : undefined,
     status: data.status as TeamMember['status'],
     team: data.team as TeamMember['team'],
@@ -67,17 +68,33 @@ function sortTeamMembers(members: TeamMember[]): TeamMember[] {
   });
 }
 
-/** Single-field query (no composite index). Filter by status + role in client. */
+/** Approved users flagged for the main About Executive Board (not tied to a single team label). */
 export const getExecBoard = async (): Promise<TeamMember[]> => {
-  const { execBoardTeamName } = await getTeamSettings();
-  if (!execBoardTeamName) return [];
   const snapshot = await getDocs(
-    query(collection(db, 'users'), where('team', '==', execBoardTeamName))
+    query(collection(db, 'users'), where('onExecutiveBoard', '==', true))
   );
   const members = snapshot.docs
     .map((d) => mapUserDocToTeamMember(d, 'execOrder'))
-    .filter(isBoardMember);
+    .filter((m) => m.status === 'approved');
   return sortTeamMembers(members);
+};
+
+/** Live list for the Executive Board on /about and /about/generalbody. */
+export const subscribeExecutiveBoardMembers = (
+  onNext: (members: TeamMember[]) => void,
+  onError?: (error: unknown) => void
+): (() => void) => {
+  const q = query(collection(db, 'users'), where('onExecutiveBoard', '==', true));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const members = snapshot.docs
+        .map((d) => mapUserDocToTeamMember(d, 'execOrder'))
+        .filter((m) => m.status === 'approved');
+      onNext(sortTeamMembers(members));
+    },
+    (err) => onError?.(err)
+  );
 };
 
 export const getDesignTeam = async (): Promise<TeamMember[]> => {

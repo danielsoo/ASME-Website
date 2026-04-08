@@ -14,6 +14,8 @@ export interface TeamMember {
   email?: string;
   /** Team assignment for exec roles; labels come from config/teamSettings.teamNames */
   team?: string;
+  /** When true, member appears in the Executive Board block on the main About page (independent of team). */
+  onExecutiveBoard?: boolean;
   order?: number; // Display order for sorting
   status?: 'approved' | 'pending' | 'rejected'; // From users collection
 }

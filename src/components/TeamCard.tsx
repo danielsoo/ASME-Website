@@ -55,7 +55,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ member, showDragHandle, onDragHandl
               </a>
             </p>
           )}
-          {member.isExec && member.hometown && (
+          {(member.isExec || member.onExecutiveBoard) && member.hometown && (
              <p><span className="underline decoration-white/50 underline-offset-2">Hometown</span>: {member.hometown}</p>
           )}
           {member.funFact && (
