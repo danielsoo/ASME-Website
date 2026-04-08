@@ -43,6 +43,25 @@ interface ExecPosition {
   team?: string;
 }
 
+/** After removing one team label, recompute teamNames and About role labels so Firestore stays consistent. */
+function computeSettingsAfterRemoveTeam(teamLabel: string, ts: TeamSettings): TeamSettings | null {
+  const newNames = ts.teamNames.filter((t) => t !== teamLabel);
+  if (newNames.length === 0) return null;
+  let exec = ts.execBoardTeamName;
+  let design = ts.designTeamTeamName;
+  if (teamLabel === exec) {
+    exec = newNames[0] ?? DEFAULT_TEAM_SETTINGS.execBoardTeamName;
+  }
+  if (teamLabel === design) {
+    design = newNames.find((t) => t !== exec) ?? newNames[0] ?? DEFAULT_TEAM_SETTINGS.designTeamTeamName;
+  }
+  if (exec === design && newNames.length >= 2) {
+    const other = newNames.find((t) => t !== exec);
+    if (other) design = other;
+  }
+  return { teamNames: newNames, execBoardTeamName: exec, designTeamTeamName: design };
+}
+
 const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [execPositions, setExecPositions] = useState<ExecPosition[]>([]);
@@ -108,6 +127,8 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
 
   const [teamSettings, setTeamSettings] = useState<TeamSettings>(DEFAULT_TEAM_SETTINGS);
   const [newTeamName, setNewTeamName] = useState('');
+  const [showConfirmDeleteAboutTeam, setShowConfirmDeleteAboutTeam] = useState(false);
+  const [teamLabelPendingDelete, setTeamLabelPendingDelete] = useState<string | null>(null);
   useEffect(() => {
     const unsubTeams = subscribeTeamSettings(
       setTeamSettings,
@@ -226,15 +247,23 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     }
   };
 
-  const handleDeleteTeam = async (teamLabel: string) => {
-    if (teamLabel === teamSettings.execBoardTeamName || teamLabel === teamSettings.designTeamTeamName) {
-      showAlert(
-        'warning',
-        'Cannot delete',
-        'This team name is reserved for the About page (General Body or Design Team). It cannot be removed while it is used in that role.'
-      );
+  const performTeamDelete = async (teamLabel: string) => {
+    const next = computeSettingsAfterRemoveTeam(teamLabel, teamSettings);
+    if (!next) {
+      showAlert('warning', 'Cannot delete', 'You must keep at least one team.');
       return;
     }
+    try {
+      await saveTeamSettings(next);
+      await removeTeamBlock(teamLabel);
+      showAlert('success', 'Success', 'Team removed.');
+    } catch (e) {
+      console.error(e);
+      showAlert('error', 'Error', 'Failed to delete team.');
+    }
+  };
+
+  const handleDeleteTeam = async (teamLabel: string) => {
     try {
       const userTeamQuery = query(collection(db, 'users'), where('team', '==', teamLabel));
       const snap = await getDocs(userTeamQuery);
@@ -259,11 +288,18 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
         );
         return;
       }
-      await saveTeamSettings({
-        teamNames: teamSettings.teamNames.filter((t) => t !== teamLabel),
-      });
-      await removeTeamBlock(teamLabel);
-      showAlert('success', 'Success', 'Team removed.');
+
+      const isReserved =
+        teamLabel === teamSettings.execBoardTeamName ||
+        teamLabel === teamSettings.designTeamTeamName;
+
+      if (isReserved) {
+        setTeamLabelPendingDelete(teamLabel);
+        setShowConfirmDeleteAboutTeam(true);
+        return;
+      }
+
+      await performTeamDelete(teamLabel);
     } catch (e) {
       console.error(e);
       showAlert('error', 'Error', 'Failed to delete team.');
@@ -1068,6 +1104,28 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
           confirmText="Delete"
           cancelText="Cancel"
           type="danger"
+        />
+
+        <ConfirmModal
+          isOpen={showConfirmDeleteAboutTeam}
+          onClose={() => {
+            setShowConfirmDeleteAboutTeam(false);
+            setTeamLabelPendingDelete(null);
+          }}
+          onConfirm={async () => {
+            if (teamLabelPendingDelete) {
+              await performTeamDelete(teamLabelPendingDelete);
+            }
+          }}
+          title="Delete team"
+          message={
+            teamLabelPendingDelete
+              ? `"${teamLabelPendingDelete}" is linked to the About page (General Body or Design Team). Removing it will remove that team from About and related site content. Delete this team anyway?`
+              : ''
+          }
+          confirmText="Delete team"
+          cancelText="Cancel"
+          type="warning"
         />
 
         {/* Duplicate Email Modal */}

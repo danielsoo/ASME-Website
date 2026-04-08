@@ -4,7 +4,7 @@ import { AlertTriangle } from 'lucide-react';
 interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   title?: string;
   message: string;
   confirmText?: string;
@@ -24,8 +24,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const handleConfirm = () => {
-    onConfirm();
+  const handleConfirm = async () => {
+    await Promise.resolve(onConfirm());
     onClose();
   };
 
