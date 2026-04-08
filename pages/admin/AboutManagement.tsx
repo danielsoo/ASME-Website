@@ -244,7 +244,7 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
           <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
             <h2 className="text-lg font-bold text-gray-800 mb-4">Main About</h2>
             <p className="text-gray-600 text-sm mb-4">
-              Title and paragraphs shown on the main About page and at the top of General Body / Design Team pages.
+              Content for the main About page (/about): about title, paragraphs, link URL, and paragraph font options.
             </p>
             {loading ? (
               <div className="text-gray-500">Loading...</div>
@@ -422,7 +422,7 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
           <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
             <h2 className="text-lg font-bold text-gray-800 mb-4">Design Team</h2>
             <p className="text-gray-600 text-sm mb-4">
-              Titles, image, and intro paragraphs for the Design Team page (/about/designteam). Use &quot;visit this link&quot; in paragraph 3 for the link.
+              Content for the Design Team page (/about/designteam): image, section title, intro paragraphs and fonts, link URL, and project section titles.
             </p>
             {loading ? (
               <div className="text-gray-500">Loading...</div>

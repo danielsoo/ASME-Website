@@ -10,6 +10,7 @@ import {
   DEFAULT_TEAM_SETTINGS,
   type TeamSettings,
 } from '../../src/firebase/teamSettings';
+import { teamAboutPath } from '../About';
 
 const CONFIG_PATH = 'config';
 const FOOTER_DOC = 'footer';
@@ -698,7 +699,7 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
             <>
               <h2 className="text-lg font-bold text-gray-800 mb-4">Main About</h2>
               <p className="text-gray-600 text-sm mb-4">
-                Title and paragraphs shown on the main About page and at the top of General Body / Design Team pages.
+                Content for the main About page (/about): about title, paragraphs, link URL, and paragraph font options.
               </p>
               {loading ? (
                 <div className="text-gray-500">Loading...</div>
@@ -805,7 +806,7 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
             <>
               <h2 className="text-lg font-bold text-gray-800 mb-4">{activeTeamTab}</h2>
               <p className="text-gray-600 text-sm mb-4">
-                Same fields as &quot;General Body&quot; above. The Executive Board team uses the General Body tab; this tab is for other teams. Main About paragraphs below the sections still come from the Main About tab. New teams start with blank fields; the public page uses default sample text until you fill these in.
+                Content for the {activeTeamTab} page ({teamAboutPath(activeTeamTab)}): activities list, image, and past events.
               </p>
               {loading ? (
                 <div className="text-gray-500">Loading...</div>
