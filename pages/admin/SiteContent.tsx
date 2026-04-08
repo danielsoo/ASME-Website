@@ -888,6 +888,7 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
                           aboutLinkUrl: about.aboutLinkUrl,
                         },
                         teamNameLabel: teamSettings.execBoardTeamName,
+                        teamBoardBodyTitleFallback: 'Our General Body',
                       }}
                     />
                   </div>
@@ -945,38 +946,21 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
                 <div className="space-y-6 max-w-5xl">
                   <div>
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
-                    {activeTeamTab === teamSettings.designTeamTeamName ? (
-                      <AboutSiteLayoutPreview
-                        preview="dual-column-and-tile"
-                        previewSrc={editingTeamGeneralBody.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
-                        context={{
-                          generalBody: editingTeamGeneralBody,
-                          mainAbout: {
-                            aboutTitle: about.aboutTitle,
-                            aboutParagraph1: about.aboutParagraph1,
-                            aboutParagraph2: about.aboutParagraph2,
-                            aboutLinkUrl: about.aboutLinkUrl,
-                          },
-                          designTeam: aboutDesignTeam,
-                          teamNameLabel: activeTeamTab,
-                        }}
-                      />
-                    ) : (
-                      <AboutSiteLayoutPreview
-                        preview="dual-column-and-tile"
-                        previewSrc={editingTeamGeneralBody.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
-                        context={{
-                          generalBody: editingTeamGeneralBody,
-                          mainAbout: {
-                            aboutTitle: about.aboutTitle,
-                            aboutParagraph1: about.aboutParagraph1,
-                            aboutParagraph2: about.aboutParagraph2,
-                            aboutLinkUrl: about.aboutLinkUrl,
-                          },
-                          teamNameLabel: activeTeamTab,
-                        }}
-                      />
-                    )}
+                    <AboutSiteLayoutPreview
+                      preview="dual-column-and-tile"
+                      previewSrc={editingTeamGeneralBody.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
+                      context={{
+                        generalBody: editingTeamGeneralBody,
+                        mainAbout: {
+                          aboutTitle: about.aboutTitle,
+                          aboutParagraph1: about.aboutParagraph1,
+                          aboutParagraph2: about.aboutParagraph2,
+                          aboutLinkUrl: about.aboutLinkUrl,
+                        },
+                        teamNameLabel: activeTeamTab,
+                        teamBoardBodyTitleFallback: activeTeamTab,
+                      }}
+                    />
                   </div>
                   <h2 className="text-lg font-bold text-gray-800">{activeTeamTab}</h2>
                   <div className="space-y-4 min-w-0">

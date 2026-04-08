@@ -397,6 +397,7 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
                         aboutLinkUrl: about.aboutLinkUrl,
                       },
                       teamNameLabel: DEFAULT_TEAM_SETTINGS.execBoardTeamName,
+                      teamBoardBodyTitleFallback: 'Our General Body',
                     }}
                   />
                 </div>

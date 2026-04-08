@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import type { AboutContent, DesignTeamContent, GeneralBodyContent } from '../types';
-import { DEFAULT_ABOUT, DEFAULT_GENERAL_BODY } from '../types';
+import { DEFAULT_ABOUT, DEFAULT_DESIGN_TEAM, DEFAULT_GENERAL_BODY } from '../types';
+import { PROJECTS } from '../constants';
 import { renderAboutParagraph, renderAboutTitle, renderDesignTeamIntroBlock } from '../utils/aboutRichRender';
 import Uploader from './Uploader';
 import AboutCropEditor from './AboutCropEditor';
@@ -45,6 +46,8 @@ export interface AboutSitePreviewContext {
   generalBody?: GeneralBodyContent;
   /** Our Teams tile overlay */
   teamNameLabel?: string;
+  /** Public /about/team/:name body H2 fallback when titles empty (team name, or "Our General Body" on /about/generalbody). */
+  teamBoardBodyTitleFallback?: string;
 }
 
 export interface AboutSiteLayoutPreviewProps {
@@ -55,13 +58,110 @@ export interface AboutSiteLayoutPreviewProps {
   compact?: boolean;
 }
 
-function mergedBodyTitle(gb: GeneralBodyContent | undefined, about: AboutContent | undefined, fallback: string) {
-  const t = gb?.bodySectionTitle?.trim();
-  if (t) return gb!.bodySectionTitle;
-  return about?.aboutTitle?.trim() ? about!.aboutTitle : fallback;
-}
-
 const EMPTY_GB: GeneralBodyContent = { activitiesList: [], pastEventsList: [] };
+
+/** Public /about/designteam — two columns; stable component so past-projects toggle state persists. */
+function AboutDesignTeamLayoutPreview({
+  pad,
+  previewSrc,
+  designTeam,
+  mainAbout,
+}: {
+  pad: string;
+  previewSrc: string;
+  designTeam?: AboutSitePreviewContext['designTeam'];
+  mainAbout?: AboutSitePreviewContext['mainAbout'];
+}) {
+  const [showPastProjects, setShowPastProjects] = useState(false);
+  const merged = { ...DEFAULT_DESIGN_TEAM, ...designTeam };
+  const ab = mainAbout ?? {};
+  const currentProjects = PROJECTS.filter((p) => p.status === 'current');
+  const pastProjects = PROJECTS.filter((p) => p.status === 'past');
+  const fallbackAbout = {
+    aboutParagraph1: ab.aboutParagraph1,
+    aboutParagraph2: ab.aboutParagraph2,
+    aboutLinkUrl: ab.aboutLinkUrl,
+  };
+  return (
+    <div className={`rounded-lg border border-gray-200 bg-gray-100 ${pad}`}>
+      <div className="max-w-5xl mx-auto min-w-0">
+        <div className="container mx-auto px-4 pt-4">
+          <div className="flex flex-col md:flex-row gap-12 items-start">
+            <div className="w-full md:w-1/2 min-w-0">
+              <div className="mb-6">
+                <img src={previewSrc} alt="" className="w-full h-auto rounded-lg border-2 border-blue-300" />
+              </div>
+              <h2
+                className="text-3xl font-bold text-black mb-6 underline"
+                style={{
+                  fontFamily: merged.sectionTitleFontFamily || undefined,
+                  fontWeight: merged.sectionTitleFontWeight ? Number(merged.sectionTitleFontWeight) : undefined,
+                }}
+              >
+                {renderAboutTitle(merged.sectionTitle ?? ab.aboutTitle, 'Our Design Team')}
+              </h2>
+              <div
+                className="space-y-4 text-gray-800 leading-relaxed"
+                style={{
+                  fontFamily: merged.introFontFamily || undefined,
+                  fontWeight: merged.introFontWeight ? Number(merged.introFontWeight) : undefined,
+                }}
+              >
+                {renderDesignTeamIntroBlock(merged, fallbackAbout)}
+              </div>
+              <div className="mt-8">
+                <button
+                  type="button"
+                  onClick={() => setShowPastProjects(!showPastProjects)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-gray-200 border border-gray-300 rounded-lg hover:bg-gray-300 transition-colors font-jost"
+                >
+                  <span className="text-gray-800 font-medium">
+                    {renderAboutTitle(merged.pastProjectsTitle, 'Past Projects')}
+                  </span>
+                  <svg
+                    className={`w-5 h-5 text-gray-600 transition-transform ${showPastProjects ? 'transform rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showPastProjects ? (
+                  <div className="mt-2 bg-white border border-gray-300 rounded-lg p-4">
+                    <ul className="space-y-2 font-jost text-gray-800">
+                      {pastProjects.map((project) => (
+                        <li key={project.id}>• {project.title}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <div className="w-full md:w-1/2 min-w-0">
+              <h2 className="text-3xl font-jost font-bold text-[#1E2B48] mb-6 underline">
+                {renderAboutTitle(merged.currentProjectsTitle, 'Fall 2025 Projects')}
+              </h2>
+              <div className="space-y-3">
+                {currentProjects.map((project) => (
+                  <div
+                    key={project.id}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-600 text-white rounded-lg font-jost"
+                  >
+                    <span className="font-medium">{project.title}</span>
+                    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Read-only layout preview (image + title/paragraphs) matching public About.
@@ -76,8 +176,8 @@ export const AboutSiteLayoutPreview: React.FC<AboutSiteLayoutPreviewProps> = ({
   const about = context?.mainAbout;
   const ab = about ?? {};
   const gb = context?.generalBody;
-  const dt = context?.designTeam;
   const teamLabel = context?.teamNameLabel?.trim() || 'Team name';
+  const teamBodyFallback = context?.teamBoardBodyTitleFallback?.trim() || 'Our General Body';
 
   const MainHeroBlock = () => (
     <div className={`rounded-lg border border-gray-200 bg-white ${pad} w-full max-w-5xl`}>
@@ -110,117 +210,58 @@ export const AboutSiteLayoutPreview: React.FC<AboutSiteLayoutPreviewProps> = ({
     </div>
   );
 
-  /** Design Team: left column stacked (image + title + intro) — matches /about/designteam */
-  const DesignTeamColBlock = () => {
-    const fallbackAbout = {
-      aboutParagraph1: ab.aboutParagraph1,
-      aboutParagraph2: ab.aboutParagraph2,
-      aboutLinkUrl: ab.aboutLinkUrl,
-    };
-    return (
-      <div className={`rounded-lg border border-gray-200 bg-gray-100 ${pad}`}>
-        <div className="max-w-3xl mx-auto">
-          <div className="mb-6">
-            <img src={previewSrc} alt="" className="w-full h-auto rounded-lg border-2 border-blue-300" />
-          </div>
-          <h2
-            className="text-3xl font-bold text-black mb-6 underline"
-            style={{
-              fontFamily: dt?.sectionTitleFontFamily || undefined,
-              fontWeight: dt?.sectionTitleFontWeight ? Number(dt.sectionTitleFontWeight) : undefined,
-            }}
-          >
-            {renderAboutTitle(dt?.sectionTitle ?? ab.aboutTitle, 'Our Design Team')}
-          </h2>
-          <div
-            className="space-y-4 text-gray-800 leading-relaxed"
-            style={{
-              fontFamily: dt?.introFontFamily || undefined,
-              fontWeight: dt?.introFontWeight ? Number(dt.introFontWeight) : undefined,
-            }}
-          >
-            {dt
-              ? renderDesignTeamIntroBlock(dt, fallbackAbout)
-              : (
-                <>
-                  <div className="font-jost">{renderAboutParagraph(ab.aboutParagraph1)}</div>
-                  <div className="font-jost">{renderAboutParagraph(ab.aboutParagraph2, ab.aboutLinkUrl)}</div>
-                </>
-              )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  /** General Body team page: row1 image | activities; then body + paragraphs; past events */
+  /** General Body: same block as public /about/team/:name (non–exec board) and /about/generalbody top section */
   const GeneralBodyDualBlock = () => {
     const g = gb ?? { ...EMPTY_GB };
     const actTitle = g.activitiesTitle?.trim() ? g.activitiesTitle : DEFAULT_GENERAL_BODY.activitiesTitle;
     const activities = (g.activitiesList ?? []).filter((x) => String(x).trim() !== '');
-    /** When Design Team doc is passed (admin), body heading + copy follow Design Team intro; else Main About merge. */
-    const bodyTitle =
-      dt?.sectionTitle?.trim()
-        ? dt.sectionTitle
-        : mergedBodyTitle(g, about as AboutContent | undefined, 'Our General Body');
     const pastTitle = g.pastEventsTitle?.trim() ? g.pastEventsTitle : DEFAULT_GENERAL_BODY.pastEventsTitle;
     const pastList = (g.pastEventsList ?? []).filter((x) => String(x).trim() !== '');
-    const fallbackAbout = {
-      aboutParagraph1: ab.aboutParagraph1,
-      aboutParagraph2: ab.aboutParagraph2,
-      aboutLinkUrl: ab.aboutLinkUrl,
-    };
-    /** Design Team tab: left photo is /about/designteam hero; tile still uses team-board URL (previewSrc). */
-    const teamPageLeftSrc =
-      dt?.leftImageUrl?.trim() ? dt.leftImageUrl.trim() : previewSrc;
 
     return (
       <div className={`rounded-lg border border-gray-200 bg-gray-100 ${pad}`}>
-        <div className="max-w-5xl mx-auto space-y-8 min-w-0">
-          <div className="flex flex-col gap-8 items-stretch">
-            <div className="w-full min-w-0">
-              <div className="mb-2">
-                <img src={teamPageLeftSrc} alt="" className="w-full max-w-2xl mx-auto h-auto rounded-lg border-2 border-blue-300" />
-              </div>
-            </div>
-            <div className="w-full min-w-0">
-              <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">{renderAboutTitle(actTitle, 'Our Activities')}</h2>
-              <ul className="space-y-4 font-jost">
-                {(activities.length ? activities : DEFAULT_GENERAL_BODY.activitiesList ?? []).map((item, idx) => (
-                  <li key={idx} className="text-gray-800 text-lg">
-                    • {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <div>
-            <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">{renderAboutTitle(bodyTitle, 'Our General Body')}</h2>
-            <div className="space-y-4 text-gray-800 leading-relaxed font-jost">
-              {dt ? (
-                <div
-                  style={{
-                    fontFamily: dt.introFontFamily || undefined,
-                    fontWeight: dt.introFontWeight ? Number(dt.introFontWeight) : undefined,
-                  }}
-                >
-                  {renderDesignTeamIntroBlock(dt, fallbackAbout)}
+        <div className="max-w-5xl mx-auto min-w-0">
+          <div className="container mx-auto px-4 pt-4">
+            <div className="flex flex-col md:flex-row gap-12 items-start">
+              <div className="w-full md:w-1/2 min-w-0">
+                <div className="mb-6">
+                  <img
+                    src={previewSrc}
+                    alt=""
+                    className="w-full h-auto rounded-lg border-2 border-blue-300"
+                  />
                 </div>
-              ) : (
-                <>
-                  <div>{renderAboutParagraph(ab.aboutParagraph1 ?? DEFAULT_ABOUT.aboutParagraph1)}</div>
-                  <div>{renderAboutParagraph(ab.aboutParagraph2 ?? DEFAULT_ABOUT.aboutParagraph2, ab.aboutLinkUrl)}</div>
-                </>
-              )}
-            </div>
-            <div className="mt-8">
-              <h3 className="text-xl font-jost font-bold text-black mb-4">{renderAboutTitle(pastTitle, 'Past Events')}</h3>
-              <div className="bg-white border border-gray-300 rounded-lg p-4">
-                <ul className="space-y-2 font-jost text-gray-800">
-                  {(pastList.length ? pastList : DEFAULT_GENERAL_BODY.pastEventsList ?? []).map((item, idx) => (
-                    <li key={idx}>• {item}</li>
+              </div>
+              <div className="w-full md:w-1/2 min-w-0">
+                <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">
+                  {renderAboutTitle(actTitle, 'Our Activities')}
+                </h2>
+                <ul className="space-y-4 font-jost">
+                  {(activities.length ? activities : DEFAULT_GENERAL_BODY.activitiesList ?? []).map((item, idx) => (
+                    <li key={idx} className="text-gray-800 text-lg">
+                      • {item}
+                    </li>
                   ))}
                 </ul>
+              </div>
+            </div>
+            <div className="mt-8">
+              <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">
+                {renderAboutTitle(g.bodySectionTitle ?? ab.aboutTitle, teamBodyFallback)}
+              </h2>
+              <div className="space-y-4 text-gray-800 leading-relaxed font-jost">
+                <div>{renderAboutParagraph(ab.aboutParagraph1 ?? DEFAULT_ABOUT.aboutParagraph1)}</div>
+                <div>{renderAboutParagraph(ab.aboutParagraph2 ?? DEFAULT_ABOUT.aboutParagraph2, ab.aboutLinkUrl)}</div>
+              </div>
+              <div className="mt-8">
+                <h3 className="text-xl font-jost font-bold text-black mb-4">{renderAboutTitle(pastTitle, 'Past Events')}</h3>
+                <div className="bg-white border border-gray-300 rounded-lg p-4">
+                  <ul className="space-y-2 font-jost text-gray-800">
+                    {(pastList.length ? pastList : DEFAULT_GENERAL_BODY.pastEventsList ?? []).map((item, idx) => (
+                      <li key={idx}>• {item}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
@@ -231,7 +272,7 @@ export const AboutSiteLayoutPreview: React.FC<AboutSiteLayoutPreviewProps> = ({
 
   const TileBlock = () => (
     <div className={`rounded-lg border border-gray-200 bg-[#e5e7eb] ${pad} min-w-0`}>
-      <div className="relative overflow-hidden rounded-xl h-48 w-full max-w-2xl mx-auto shadow-md">
+      <div className="relative overflow-hidden rounded-xl h-48 w-full shadow-md">
         <img src={previewSrc} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black/35 flex items-center justify-center pointer-events-none">
           <span className="text-white text-sm font-jost font-semibold drop-shadow">{teamLabel}</span>
@@ -252,8 +293,13 @@ export const AboutSiteLayoutPreview: React.FC<AboutSiteLayoutPreviewProps> = ({
   if (preview === 'two-col-left') {
     return (
       <div className="space-y-2">
-        <p className="text-xs font-medium text-gray-600">Preview — Design Team page intro column (same as site)</p>
-        <DesignTeamColBlock />
+        <p className="text-xs font-medium text-gray-600">Preview — Design Team page (/about/designteam), same layout as site</p>
+        <AboutDesignTeamLayoutPreview
+          pad={pad}
+          previewSrc={previewSrc}
+          designTeam={context?.designTeam}
+          mainAbout={about}
+        />
       </div>
     );
   }
@@ -270,14 +316,9 @@ export const AboutSiteLayoutPreview: React.FC<AboutSiteLayoutPreviewProps> = ({
   return (
     <div className="space-y-3">
       <p className="text-xs font-medium text-gray-600">Preview — same image on the site in two places</p>
-      {dt ? (
-        <p className="text-xs text-gray-500">
-          Middle section uses your Design Team intro (section title + intro paragraphs), with this team-board layout.
-        </p>
-      ) : null}
       <div className="space-y-6 min-w-0">
         <div className="space-y-2 min-w-0">
-          <p className="text-xs text-gray-500">Team / General Body page</p>
+          <p className="text-xs text-gray-500">Team board page (/about/team/…)</p>
           <GeneralBodyDualBlock />
         </div>
         <div className="space-y-2 min-w-0">
