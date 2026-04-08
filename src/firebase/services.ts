@@ -10,42 +10,53 @@ import {
   query,
   where,
   limit,
-  orderBy 
+  orderBy,
+  onSnapshot,
+  type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from './config';
 import { TeamMember, Project, Event, Sponsor, HomePageWhatWeDo } from '../types';
 
 // ============ Team Members (Exec Board & Design Team) ============
+// Executive Board / Design Team on the About page are driven by the same `users` documents as
+// Profile + Member Management: admins assign role + team; members edit photo, bio, email, year, major, etc. on Profile.
 
-export const getExecBoard = async (): Promise<TeamMember[]> => {
-  const usersRef = collection(db, 'users');
-  const snapshot = await getDocs(query(usersRef, where('status', '==', 'approved'), where('team', '==', 'General Body')));
-  const members = snapshot.docs
-    .map((docSnap) => {
-      const data = docSnap.data() as any;
-      return {
-        id: docSnap.id,
-        name: data.name || '',
-        position: data.role || 'member',
-        year: data.year || '',
-        major: data.major || '',
-        hometown: data.hometown || '',
-        imageUrl: data.imageUrl || '',
-        imageFocusX: typeof data.imageFocusX === 'number' ? data.imageFocusX : 50,
-        imageFocusY: typeof data.imageFocusY === 'number' ? data.imageFocusY : 50,
-        imageZoom: typeof data.imageZoom === 'number' ? data.imageZoom : 1,
-        email: data.email || '',
-        funFact: data.funFact || '',
-        isExec: data.role !== 'member' && data.role !== 'admin',
-        order: data.execOrder,
-        status: data.status,
-        team: data.team,
-      } as TeamMember;
-    })
-    .filter((member) => member.position !== 'member' && member.position !== 'admin');
+function mapUserDocToTeamMember(
+  docSnap: QueryDocumentSnapshot,
+  orderField: 'execOrder' | 'designOrder'
+): TeamMember {
+  const data = docSnap.data() as Record<string, unknown>;
+  const role = String(data.role ?? 'member');
+  return {
+    id: docSnap.id,
+    name: String(data.name ?? ''),
+    position: role,
+    year: String(data.year ?? ''),
+    major: String(data.major ?? ''),
+    hometown: String(data.hometown ?? ''),
+    imageUrl: String(data.imageUrl ?? ''),
+    imageFocusX: typeof data.imageFocusX === 'number' ? data.imageFocusX : 50,
+    imageFocusY: typeof data.imageFocusY === 'number' ? data.imageFocusY : 50,
+    imageZoom: typeof data.imageZoom === 'number' ? data.imageZoom : 1,
+    email: String(data.email ?? ''),
+    funFact: String(data.funFact ?? ''),
+    isExec: role.toLowerCase() !== 'member' && role.toLowerCase() !== 'admin',
+    order: typeof data[orderField] === 'number' ? (data[orderField] as number) : undefined,
+    status: data.status as TeamMember['status'],
+    team: data.team as TeamMember['team'],
+  };
+}
 
-  return members.sort((a, b) => {
+/** Approved users with an exec/design role (not plain member or admin). */
+function isBoardMember(m: TeamMember): boolean {
+  if (m.status !== 'approved') return false;
+  const r = (m.position || '').trim().toLowerCase();
+  return r !== 'member' && r !== 'admin';
+}
+
+function sortTeamMembers(members: TeamMember[]): TeamMember[] {
+  return [...members].sort((a, b) => {
     if (a.order !== undefined && b.order !== undefined) {
       return a.order - b.order;
     }
@@ -53,43 +64,61 @@ export const getExecBoard = async (): Promise<TeamMember[]> => {
     if (b.order !== undefined) return 1;
     return a.id.localeCompare(b.id);
   });
+}
+
+/** Single-field query (no composite index). Filter by status + role in client. */
+export const getExecBoard = async (): Promise<TeamMember[]> => {
+  const snapshot = await getDocs(
+    query(collection(db, 'users'), where('team', '==', 'General Body'))
+  );
+  const members = snapshot.docs
+    .map((d) => mapUserDocToTeamMember(d, 'execOrder'))
+    .filter(isBoardMember);
+  return sortTeamMembers(members);
 };
 
 export const getDesignTeam = async (): Promise<TeamMember[]> => {
-  const usersRef = collection(db, 'users');
-  const snapshot = await getDocs(query(usersRef, where('status', '==', 'approved'), where('team', '==', 'Design Team')));
+  const snapshot = await getDocs(
+    query(collection(db, 'users'), where('team', '==', 'Design Team'))
+  );
   const members = snapshot.docs
-    .map((docSnap) => {
-      const data = docSnap.data() as any;
-      return {
-        id: docSnap.id,
-        name: data.name || '',
-        position: data.role || 'member',
-        year: data.year || '',
-        major: data.major || '',
-        hometown: data.hometown || '',
-        imageUrl: data.imageUrl || '',
-        imageFocusX: typeof data.imageFocusX === 'number' ? data.imageFocusX : 50,
-        imageFocusY: typeof data.imageFocusY === 'number' ? data.imageFocusY : 50,
-        imageZoom: typeof data.imageZoom === 'number' ? data.imageZoom : 1,
-        email: data.email || '',
-        funFact: data.funFact || '',
-        isExec: data.role !== 'member' && data.role !== 'admin',
-        order: data.designOrder,
-        status: data.status,
-        team: data.team,
-      } as TeamMember;
-    })
-    .filter((member) => member.position !== 'member' && member.position !== 'admin');
+    .map((d) => mapUserDocToTeamMember(d, 'designOrder'))
+    .filter(isBoardMember);
+  return sortTeamMembers(members);
+};
 
-  return members.sort((a, b) => {
-    if (a.order !== undefined && b.order !== undefined) {
-      return a.order - b.order;
-    }
-    if (a.order !== undefined) return -1;
-    if (b.order !== undefined) return 1;
-    return a.id.localeCompare(b.id);
-  });
+export const subscribeExecBoard = (
+  onNext: (members: TeamMember[]) => void,
+  onError?: (error: unknown) => void
+): (() => void) => {
+  const q = query(collection(db, 'users'), where('team', '==', 'General Body'));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const members = snapshot.docs
+        .map((d) => mapUserDocToTeamMember(d, 'execOrder'))
+        .filter(isBoardMember);
+      onNext(sortTeamMembers(members));
+    },
+    (err) => onError?.(err)
+  );
+};
+
+export const subscribeDesignTeam = (
+  onNext: (members: TeamMember[]) => void,
+  onError?: (error: unknown) => void
+): (() => void) => {
+  const q = query(collection(db, 'users'), where('team', '==', 'Design Team'));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const members = snapshot.docs
+        .map((d) => mapUserDocToTeamMember(d, 'designOrder'))
+        .filter(isBoardMember);
+      onNext(sortTeamMembers(members));
+    },
+    (err) => onError?.(err)
+  );
 };
 
 export const updateTeamMemberOrder = async (

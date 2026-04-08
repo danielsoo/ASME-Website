@@ -520,7 +520,13 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
         {/* Members List */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="p-4 sm:p-6 border-b border-gray-200 flex flex-wrap justify-between items-center gap-2">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Members</h2>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Members</h2>
+              <p className="text-sm text-gray-500 mt-1 max-w-3xl">
+                Assign roles and teams here. The About page Executive Board and Design Team read from the same user
+                profiles: photo, email, year, major, and fun fact are edited by each member under Profile settings.
+              </p>
+            </div>
             <button
               onClick={openAddMemberModal}
               className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base shrink-0"
@@ -551,7 +557,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {members.map((member) => (
-                    <tr key={member.uid}>
+                    <tr key={member.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{member.name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{member.email}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{member.major}</td>

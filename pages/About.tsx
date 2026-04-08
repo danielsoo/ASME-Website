@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { PROJECTS } from '../src/constants';
-import { getExecBoard, getDesignTeam, updateTeamMemberOrder } from '../src/firebase/services';
+import {
+  subscribeExecBoard,
+  subscribeDesignTeam,
+  getExecBoard,
+  getDesignTeam,
+  updateTeamMemberOrder,
+} from '../src/firebase/services';
 import { TeamMember } from '../src/types';
 import TeamCard from '../src/components/TeamCard';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -105,28 +111,47 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     };
   }, []);
 
-  // Load data from Firebase
+  // Live sync: Executive Board / Design Team lists come from `users` (same docs as Profile + Member Management)
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [execData, designData] = await Promise.all([
-          getExecBoard(),
-          getDesignTeam()
-        ]);
-        setExecBoard(execData);
-        setDesignTeam(designData);
-      } catch (error) {
-        console.error('Error loading data:', error);
-        // Fallback to constants if Firebase fails
-        const { EXEC_BOARD, DESIGN_TEAM } = await import('../src/constants');
-        setExecBoard(EXEC_BOARD);
-        setDesignTeam(DESIGN_TEAM);
-      } finally {
-        setLoading(false);
-      }
+    setLoading(true);
+    let execReady = false;
+    let designReady = false;
+    const finishLoading = () => {
+      if (execReady && designReady) setLoading(false);
     };
-    loadData();
+
+    const unsubExec = subscribeExecBoard(
+      (list) => {
+        setExecBoard(list);
+        execReady = true;
+        finishLoading();
+      },
+      (err) => {
+        console.error('subscribeExecBoard error:', err);
+        setExecBoard([]);
+        execReady = true;
+        finishLoading();
+      }
+    );
+
+    const unsubDesign = subscribeDesignTeam(
+      (list) => {
+        setDesignTeam(list);
+        designReady = true;
+        finishLoading();
+      },
+      (err) => {
+        console.error('subscribeDesignTeam error:', err);
+        setDesignTeam([]);
+        designReady = true;
+        finishLoading();
+      }
+    );
+
+    return () => {
+      unsubExec();
+      unsubDesign();
+    };
   }, []);
 
   const canEdit = userRole === 'President' || userRole === 'Vice President';

@@ -31,12 +31,18 @@ const TeamCard: React.FC<TeamCardProps> = ({ member, showDragHandle, onDragHandl
       </div>
       <div className="flex flex-row gap-6 items-center">
         <div className="w-28 sm:w-32 aspect-square flex-shrink-0 bg-white rounded-lg overflow-hidden ring-1 ring-white/40">
-            <img
-              src={member.imageUrl}
-              alt={member.name}
-              className="w-full h-full object-cover"
-              style={{ objectPosition: `${focusX}% ${focusY}%`, transform: `scale(${zoom})`, transformOrigin: 'center' }}
-            />
+            {member.imageUrl ? (
+              <img
+                src={member.imageUrl}
+                alt={member.name}
+                className="w-full h-full object-cover"
+                style={{ objectPosition: `${focusX}% ${focusY}%`, transform: `scale(${zoom})`, transformOrigin: 'center' }}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500 text-[10px] text-center px-1 font-jost">
+                No photo
+              </div>
+            )}
         </div>
         <div className="flex flex-col text-xs text-white space-y-2 font-jost">
           <p><span className="underline decoration-white/50 underline-offset-2">Year</span>: {member.year}</p>
