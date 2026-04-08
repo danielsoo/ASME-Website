@@ -4,7 +4,11 @@ import { db } from '../../src/firebase/config';
 import type { AboutContent, GeneralBodyContent, DesignTeamContent } from '../../src/types';
 import { DEFAULT_ABOUT, DEFAULT_GENERAL_BODY, DEFAULT_DESIGN_TEAM } from '../../src/types';
 import RichTextEditor from '../../src/components/RichTextEditor';
-import AboutSiteImageField from '../../src/components/AboutSiteImageField';
+import AboutSiteImageField, {
+  AboutSiteLayoutPreview,
+  ABOUT_SITE_IMAGE_PLACEHOLDER,
+} from '../../src/components/AboutSiteImageField';
+import { DEFAULT_TEAM_SETTINGS } from '../../src/firebase/teamSettings';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 
 const CONFIG_PATH = 'config';
@@ -258,7 +262,8 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
             {loading ? (
               <div className="text-gray-500">Loading...</div>
             ) : (
-              <div className="space-y-4 max-w-4xl">
+              <div className="lg:grid lg:grid-cols-2 gap-8 items-start max-w-[100rem]">
+                <div className="space-y-4 min-w-0 max-w-4xl">
                 <AboutSiteImageField
                   label="Hero image (main About)"
                   description="Left column on /about — preview matches public layout."
@@ -266,6 +271,7 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
                   onChange={(v) => handleAboutChange('heroImageUrl', v)}
                   preview="main-hero"
                   folder="/site/about/main"
+                  showLayoutPreview={false}
                 />
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">About title</label>
@@ -348,6 +354,25 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
                   </button>
                   {savedMessage === 'Main About saved.' && <span className="text-green-600 font-medium">Saved.</span>}
                 </div>
+                </div>
+                <div className="lg:sticky lg:top-4 lg:self-start min-w-0">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
+                  <AboutSiteLayoutPreview
+                    compact
+                    preview="main-hero"
+                    previewSrc={about.heroImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
+                    context={{
+                      mainAbout: {
+                        aboutTitle: about.aboutTitle,
+                        aboutParagraph1: about.aboutParagraph1,
+                        aboutParagraph2: about.aboutParagraph2,
+                        aboutLinkUrl: about.aboutLinkUrl,
+                        paragraphFontFamily: about.paragraphFontFamily,
+                        paragraphFontWeight: about.paragraphFontWeight,
+                      },
+                    }}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -362,7 +387,8 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
             {loading ? (
               <div className="text-gray-500">Loading...</div>
             ) : (
-              <div className="space-y-4 max-w-5xl">
+              <div className="lg:grid lg:grid-cols-2 gap-8 items-start max-w-[100rem]">
+                <div className="space-y-4 min-w-0 max-w-5xl">
                 <AboutSiteImageField
                   label="Team image (General Body / Executive Board)"
                   description="General Body team page and main About “Our Teams” tile for the Executive Board team."
@@ -370,6 +396,7 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
                   onChange={(v) => setGeneralBody((p) => ({ ...p, leftImageUrl: v }))}
                   preview="dual-column-and-tile"
                   folder="/site/about/general-body"
+                  showLayoutPreview={false}
                 />
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Activities section title</label>
@@ -429,6 +456,25 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
                   </button>
                   {savedMessage === 'General Body saved.' && <span className="text-green-600 font-medium">Saved.</span>}
                 </div>
+                </div>
+                <div className="lg:sticky lg:top-4 lg:self-start min-w-0">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
+                  <AboutSiteLayoutPreview
+                    compact
+                    preview="dual-column-and-tile"
+                    previewSrc={generalBody.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
+                    context={{
+                      generalBody,
+                      mainAbout: {
+                        aboutTitle: about.aboutTitle,
+                        aboutParagraph1: about.aboutParagraph1,
+                        aboutParagraph2: about.aboutParagraph2,
+                        aboutLinkUrl: about.aboutLinkUrl,
+                      },
+                      teamNameLabel: DEFAULT_TEAM_SETTINGS.execBoardTeamName,
+                    }}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -443,7 +489,8 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
             {loading ? (
               <div className="text-gray-500">Loading...</div>
             ) : (
-              <div className="space-y-4 max-w-5xl">
+              <div className="lg:grid lg:grid-cols-2 gap-8 items-start max-w-[100rem]">
+                <div className="space-y-4 min-w-0 max-w-5xl">
                 <AboutSiteImageField
                   label="Design Team page image (/about/designteam)"
                   description="Left column on the Design Team page."
@@ -451,6 +498,7 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
                   onChange={(v) => setDesignTeam((p) => ({ ...p, leftImageUrl: v }))}
                   preview="two-col-left"
                   folder="/site/about/design-team"
+                  showLayoutPreview={false}
                 />
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Section title (intro block)</label>
@@ -601,6 +649,24 @@ const AboutManagement: React.FC<AboutManagementProps> = ({ onNavigate, currentUs
                     {saving ? 'Saving...' : 'Save Design Team'}
                   </button>
                   {savedMessage === 'Design Team saved.' && <span className="text-green-600 font-medium">Saved.</span>}
+                </div>
+                </div>
+                <div className="lg:sticky lg:top-4 lg:self-start min-w-0">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Live layout (updates as you type)</p>
+                  <AboutSiteLayoutPreview
+                    compact
+                    preview="two-col-left"
+                    previewSrc={designTeam.leftImageUrl?.trim() || ABOUT_SITE_IMAGE_PLACEHOLDER}
+                    context={{
+                      designTeam,
+                      mainAbout: {
+                        aboutTitle: about.aboutTitle,
+                        aboutParagraph1: about.aboutParagraph1,
+                        aboutParagraph2: about.aboutParagraph2,
+                        aboutLinkUrl: about.aboutLinkUrl,
+                      },
+                    }}
+                  />
                 </div>
               </div>
             )}

@@ -19,7 +19,11 @@ import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../src/firebase/config';
 import type { AboutContent, AboutTeamBlocksDoc, GeneralBodyContent, DesignTeamContent } from '../src/types';
 import { DEFAULT_ABOUT, DEFAULT_GENERAL_BODY, DEFAULT_DESIGN_TEAM, EMPTY_GENERAL_BODY_FORM } from '../src/types';
-import { sanitizeHtml, isHtmlString } from '../src/utils/sanitizeHtml';
+import {
+  renderAboutParagraph as renderParagraph,
+  renderAboutTitle as renderTitle,
+  renderDesignTeamIntroBlock,
+} from '../src/utils/aboutRichRender';
 
 /** Public page: empty stored fields fall back to defaults so new/blank team blocks still look reasonable. */
 function mergeTeamBlockForDisplay(
@@ -101,29 +105,6 @@ export function parseTeamFromAboutPath(path: string): string | null {
 
 export function teamAboutPath(teamName: string): string {
   return `${TEAM_PATH_PREFIX}${encodeURIComponent(teamName.trim())}`;
-}
-
-/** Render paragraph content: HTML (from rich editor) or plain text with optional "visit this link" link. */
-function renderParagraph(content: string | undefined, linkUrl?: string): React.ReactNode {
-  const c = content ?? '';
-  if (isHtmlString(c)) {
-    return <div className="about-rich-content prose prose-p:my-2 max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(c) }} />;
-  }
-  if (linkUrl && c.includes('visit this link')) {
-    const parts = c.split('visit this link');
-    return <>{parts[0]}<a href={linkUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">visit this link</a>{parts.slice(1).join('visit this link')}</>;
-  }
-  return c;
-}
-
-/** Render title that may be HTML from rich editor. */
-function renderTitle(content: string | undefined, fallback: string): React.ReactNode {
-  const c = content ?? fallback;
-  if (!c) return fallback;
-  if (isHtmlString(c)) {
-    return <span className="about-rich-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(c) }} />;
-  }
-  return c;
 }
 
 const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => {
@@ -753,35 +734,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                   fontWeight: mergedDesignBlock.introFontWeight ? Number(mergedDesignBlock.introFontWeight) : undefined,
                 }}
               >
-                {mergedDesignBlock.introParagraph1 != null && mergedDesignBlock.introParagraph1 !== '' ? (
-                  <>
-                    <div className="font-jost">
-                      {isHtmlString(mergedDesignBlock.introParagraph1)
-                        ? <div className="about-rich-content prose prose-p:my-2 max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(mergedDesignBlock.introParagraph1) }} />
-                        : mergedDesignBlock.introParagraph1.includes('85,000 members')
-                          ? mergedDesignBlock.introParagraph1.split('85,000 members').reduce<React.ReactNode[]>((acc, part, i, arr) => {
-                              acc.push(part);
-                              if (i < arr.length - 1) acc.push(<span key={i} className="text-asme-red font-bold">85,000 members</span>);
-                              return acc;
-                            }, [])
-                          : mergedDesignBlock.introParagraph1}
-                    </div>
-                    {mergedDesignBlock.introParagraph2 != null && mergedDesignBlock.introParagraph2 !== '' && (
-                      <div className="font-jost">{renderParagraph(mergedDesignBlock.introParagraph2)}</div>
-                    )}
-                    {mergedDesignBlock.introParagraph3 != null && mergedDesignBlock.introParagraph3 !== '' && (
-                      <div className="font-jost">{renderParagraph(mergedDesignBlock.introParagraph3, mergedDesignBlock.introLinkUrl)}</div>
-                    )}
-                    {mergedDesignBlock.introParagraph4 != null && mergedDesignBlock.introParagraph4 !== '' && (
-                      <div className="font-jost">{renderParagraph(mergedDesignBlock.introParagraph4)}</div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <div className="font-jost">{renderParagraph(aboutContent.aboutParagraph1)}</div>
-                    <div className="font-jost">{renderParagraph(aboutContent.aboutParagraph2, aboutContent.aboutLinkUrl)}</div>
-                  </>
-                )}
+                {renderDesignTeamIntroBlock(mergedDesignBlock, aboutContent)}
               </div>
               
               {/* Past Projects Dropdown */}
