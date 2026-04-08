@@ -136,6 +136,30 @@ export const subscribeDesignTeam = (
   );
 };
 
+/** Members for any team label; order field matches Member Management routing (design team uses designOrder). */
+export const subscribeMembersForTeam = (
+  teamName: string,
+  orderField: 'execOrder' | 'designOrder',
+  onNext: (members: TeamMember[]) => void,
+  onError?: (error: unknown) => void
+): (() => void) => {
+  if (!teamName.trim()) {
+    onNext([]);
+    return () => {};
+  }
+  const q = query(collection(db, 'users'), where('team', '==', teamName.trim()));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const members = snapshot.docs
+        .map((d) => mapUserDocToTeamMember(d, orderField))
+        .filter(isBoardMember);
+      onNext(sortTeamMembers(members));
+    },
+    (err) => onError?.(err)
+  );
+};
+
 export const updateTeamMemberOrder = async (
   members: TeamMember[],
   collectionName: 'execBoard' | 'designTeam'

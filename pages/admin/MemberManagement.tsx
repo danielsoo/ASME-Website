@@ -30,6 +30,7 @@ import {
   DEFAULT_TEAM_SETTINGS,
   type TeamSettings,
 } from '../../src/firebase/teamSettings';
+import { ensureTeamBlockForTeam, removeTeamBlock } from '../../src/firebase/aboutTeamBlocks';
 
 interface MemberManagementProps {
   onNavigate: (path: string) => void;
@@ -215,6 +216,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     }
     try {
       await saveTeamSettings({ teamNames: [...teamSettings.teamNames, name] });
+      await ensureTeamBlockForTeam(name);
       setNewTeamName('');
       showAlert('success', 'Success', 'Team added.');
     } catch (e) {
@@ -246,6 +248,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
       await saveTeamSettings({
         teamNames: teamSettings.teamNames.filter((t) => t !== teamLabel),
       });
+      await removeTeamBlock(teamLabel);
       showAlert('success', 'Success', 'Team removed.');
     } catch (e) {
       console.error(e);

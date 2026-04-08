@@ -300,6 +300,11 @@ export const DEFAULT_DESIGN_TEAM: DesignTeamContent = {
   introParagraph4: "WE ARE! the Penn State's chapter of ASME and are looking forward to providing unique opportunities for Mechanical Engineers at PSU. Our Design Team focuses on hands-on engineering projects, CAD design, prototyping, and bringing innovative ideas to life.",
 };
 
+/** Per-team About blocks (config/aboutTeamBlocks). Keys match Member Management team labels; exec-board team uses General Body tab instead. */
+export interface AboutTeamBlocksDoc {
+  blocks: Record<string, DesignTeamContent>;
+}
+
 /** Site content: sponsors page (stored in config/sponsors). */
 export interface SponsorsContent {
   contactEmail?: string;
