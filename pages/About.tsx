@@ -17,8 +17,60 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../src/firebase/config';
 import type { AboutContent, AboutTeamBlocksDoc, GeneralBodyContent, DesignTeamContent } from '../src/types';
-import { DEFAULT_ABOUT, DEFAULT_GENERAL_BODY, DEFAULT_DESIGN_TEAM } from '../src/types';
+import { DEFAULT_ABOUT, DEFAULT_GENERAL_BODY, DEFAULT_DESIGN_TEAM, EMPTY_GENERAL_BODY_FORM } from '../src/types';
 import { sanitizeHtml, isHtmlString } from '../src/utils/sanitizeHtml';
+
+/** Public page: empty stored fields fall back to defaults so new/blank team blocks still look reasonable. */
+function mergeTeamBlockForDisplay(
+  stored: DesignTeamContent | undefined,
+  base: DesignTeamContent = DEFAULT_DESIGN_TEAM
+): DesignTeamContent {
+  const out = { ...base };
+  if (!stored) return out;
+  (Object.keys(stored) as (keyof DesignTeamContent)[]).forEach((k) => {
+    const v = stored[k];
+    if (v !== undefined && String(v).trim() !== '') {
+      (out as Record<string, unknown>)[k] = v;
+    }
+  });
+  return out;
+}
+
+function normalizeTeamBlockFromFirestore(raw: unknown): GeneralBodyContent {
+  if (!raw || typeof raw !== 'object') return { ...EMPTY_GENERAL_BODY_FORM };
+  const o = raw as Record<string, unknown>;
+  if ('introParagraph1' in o || 'introParagraph2' in o) {
+    return {
+      ...EMPTY_GENERAL_BODY_FORM,
+      leftImageUrl: typeof o.leftImageUrl === 'string' ? o.leftImageUrl : '',
+    };
+  }
+  return { ...EMPTY_GENERAL_BODY_FORM, ...(raw as GeneralBodyContent) };
+}
+
+/** Public About: unfilled team fields use DEFAULT_GENERAL_BODY sample content. */
+function mergeGeneralBodyForDisplay(
+  stored: GeneralBodyContent | undefined,
+  base: GeneralBodyContent = DEFAULT_GENERAL_BODY
+): GeneralBodyContent {
+  const out = { ...base };
+  if (!stored) return out;
+  (['activitiesTitle', 'leftImageUrl', 'pastEventsTitle', 'bodySectionTitle'] as const).forEach((k) => {
+    const v = stored[k];
+    if (v !== undefined && String(v).trim() !== '') {
+      out[k] = v;
+    }
+  });
+  const al = stored.activitiesList;
+  if (Array.isArray(al) && al.length > 0 && al.some((x) => String(x).trim() !== '')) {
+    out.activitiesList = al.map((x) => String(x)).filter((x) => x.trim() !== '');
+  }
+  const pl = stored.pastEventsList;
+  if (Array.isArray(pl) && pl.length > 0 && pl.some((x) => String(x).trim() !== '')) {
+    out.pastEventsList = pl.map((x) => String(x)).filter((x) => x.trim() !== '');
+  }
+  return out;
+}
 
 interface AboutProps {
   currentPath?: string;
@@ -50,9 +102,8 @@ function renderTitle(content: string | undefined, fallback: string): React.React
 
 const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => {
   const [showPastProjects, setShowPastProjects] = useState(false);
-  const [pastOpenTeam, setPastOpenTeam] = useState<string | null>(null);
   const [membersByTeam, setMembersByTeam] = useState<Record<string, TeamMember[]>>({});
-  const [aboutTeamBlocks, setAboutTeamBlocks] = useState<Record<string, DesignTeamContent>>({});
+  const [aboutTeamBlocks, setAboutTeamBlocks] = useState<Record<string, GeneralBodyContent>>({});
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string>('');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -119,7 +170,15 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'config', 'aboutTeamBlocks'), (snap) => {
       const raw = snap.exists() ? (snap.data() as AboutTeamBlocksDoc).blocks : undefined;
-      setAboutTeamBlocks(raw ?? {});
+      if (!raw) {
+        setAboutTeamBlocks({});
+        return;
+      }
+      const next: Record<string, GeneralBodyContent> = {};
+      Object.keys(raw).forEach((k) => {
+        next[k] = normalizeTeamBlockFromFirestore(raw[k]);
+      });
+      setAboutTeamBlocks(next);
     }, (e) => {
       console.error('aboutTeamBlocks subscription error:', e);
       setAboutTeamBlocks({});
@@ -170,22 +229,13 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
 
   const execBoard = membersByTeam[teamSettings.execBoardTeamName] ?? [];
   const designTeam = membersByTeam[teamSettings.designTeamTeamName] ?? [];
-  const designTeamName = teamSettings.designTeamTeamName;
   const mergedDesignBlock = useMemo(
-    () => ({
-      ...DEFAULT_DESIGN_TEAM,
-      ...designTeamContent,
-      ...(designTeamName ? aboutTeamBlocks[designTeamName] : {}),
-    }),
-    [designTeamContent, aboutTeamBlocks, designTeamName]
+    () => mergeTeamBlockForDisplay(designTeamContent, DEFAULT_DESIGN_TEAM),
+    [designTeamContent]
   );
 
-  const mergedBlockForTeam = (teamName: string): DesignTeamContent => {
-    if (teamName === designTeamName) {
-      return mergedDesignBlock;
-    }
-    return { ...DEFAULT_DESIGN_TEAM, ...aboutTeamBlocks[teamName] };
-  };
+  const mergedTeamGeneralBody = (teamName: string): GeneralBodyContent =>
+    mergeGeneralBodyForDisplay(aboutTeamBlocks[teamName], DEFAULT_GENERAL_BODY);
 
   const canEdit = userRole === 'President' || userRole === 'Vice President';
 
@@ -619,7 +669,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
               const tileImg =
                 teamName === teamSettings.execBoardTeamName
                   ? generalBodyContent.leftImageUrl || 'https://picsum.photos/seed/about/800/600'
-                  : mergedBlockForTeam(teamName).leftImageUrl || DEFAULT_DESIGN_TEAM.leftImageUrl;
+                  : mergedTeamGeneralBody(teamName).leftImageUrl || DEFAULT_GENERAL_BODY.leftImageUrl;
               return (
                 <div
                   key={teamName}
@@ -652,11 +702,9 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
       {teamSettings.teamNames.map((teamName, i) => {
         const isExec = teamName === teamSettings.execBoardTeamName;
         const isDesign = teamName === teamSettings.designTeamTeamName;
-        const block = mergedBlockForTeam(teamName);
+        const gb = mergedTeamGeneralBody(teamName);
         const members = membersByTeam[teamName] ?? [];
         const boardHeading = isExec ? 'Executive Board' : isDesign ? 'Design Board' : `${teamName} Board`;
-        const currentProjects = PROJECTS.filter((p) => p.status === 'current');
-        const pastProjectsList = PROJECTS.filter((p) => p.status === 'past');
 
         if (isExec) {
           return (
@@ -732,119 +780,44 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
             <div className="bg-gray-100 pb-16 px-16">
               <div className="container mx-auto px-4 pt-12">
                 <div className="flex flex-col md:flex-row gap-12 items-start">
-                  <div className={isDesign ? 'w-full md:w-1/2' : 'w-full'}>
+                  <div className="w-full md:w-1/2">
                     <div className="mb-6">
                       <img
-                        src={block.leftImageUrl || 'https://picsum.photos/seed/designteam/800/600'}
+                        src={gb.leftImageUrl || 'https://picsum.photos/seed/about/800/600'}
                         className="w-full h-auto rounded-lg border-2 border-blue-300"
                         alt={teamName}
                       />
                     </div>
-                    <h2
-                      className="text-3xl font-bold text-black mb-6 underline"
-                      style={{
-                        fontFamily: block.sectionTitleFontFamily || undefined,
-                        fontWeight: block.sectionTitleFontWeight ? Number(block.sectionTitleFontWeight) : undefined,
-                      }}
-                    >
-                      {renderTitle(block.sectionTitle ?? aboutContent.aboutTitle, teamName)}
-                    </h2>
-                    <div
-                      className="space-y-4 text-gray-800 leading-relaxed"
-                      style={{
-                        fontFamily: block.introFontFamily || undefined,
-                        fontWeight: block.introFontWeight ? Number(block.introFontWeight) : undefined,
-                      }}
-                    >
-                      {block.introParagraph1 != null && block.introParagraph1 !== '' ? (
-                        <>
-                          <div className="font-jost">
-                            {isHtmlString(block.introParagraph1) ? (
-                              <div
-                                className="about-rich-content prose prose-p:my-2 max-w-none"
-                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.introParagraph1) }}
-                              />
-                            ) : block.introParagraph1.includes('85,000 members') ? (
-                              block.introParagraph1.split('85,000 members').reduce<React.ReactNode[]>((acc, part, idx, arr) => {
-                                acc.push(part);
-                                if (idx < arr.length - 1) acc.push(<span key={idx} className="text-asme-red font-bold">85,000 members</span>);
-                                return acc;
-                              }, [])
-                            ) : (
-                              block.introParagraph1
-                            )}
-                          </div>
-                          {block.introParagraph2 != null && block.introParagraph2 !== '' && (
-                            <div className="font-jost">{renderParagraph(block.introParagraph2)}</div>
-                          )}
-                          {block.introParagraph3 != null && block.introParagraph3 !== '' && (
-                            <div className="font-jost">{renderParagraph(block.introParagraph3, block.introLinkUrl)}</div>
-                          )}
-                          {block.introParagraph4 != null && block.introParagraph4 !== '' && (
-                            <div className="font-jost">{renderParagraph(block.introParagraph4)}</div>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <div className="font-jost">{renderParagraph(aboutContent.aboutParagraph1)}</div>
-                          <div className="font-jost">{renderParagraph(aboutContent.aboutParagraph2, aboutContent.aboutLinkUrl)}</div>
-                        </>
-                      )}
-                    </div>
-                    <div className="mt-8">
-                      <button
-                        type="button"
-                        onClick={() => setPastOpenTeam((prev) => (prev === teamName ? null : teamName))}
-                        className="w-full flex items-center justify-between px-4 py-3 bg-gray-200 border border-gray-300 rounded-lg hover:bg-gray-300 transition-colors font-jost"
-                      >
-                        <span className="text-gray-800 font-medium">{renderTitle(block.pastProjectsTitle, 'Past Projects')}</span>
-                        <svg
-                          className={`w-5 h-5 text-gray-600 transition-transform ${pastOpenTeam === teamName ? 'transform rotate-180' : ''}`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                      {pastOpenTeam === teamName && (
-                        <div className="mt-2 bg-white border border-gray-300 rounded-lg p-4">
-                          <ul className="space-y-2 font-jost text-gray-800">
-                            {pastProjectsList.map((project) => (
-                              <li key={project.id}>• {project.title}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                  </div>
+                  <div className="w-full md:w-1/2">
+                    <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">{renderTitle(gb.activitiesTitle, 'Our Activities')}</h2>
+                    <ul className="space-y-4 font-jost">
+                      {(gb.activitiesList ?? []).map((item, idx) => (
+                        <li key={idx} className="text-gray-800 text-lg">
+                          • {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <div className="mt-8">
+                  <h2 className="text-3xl font-jost font-bold text-black mb-6 underline">
+                    {renderTitle(gb.bodySectionTitle ?? aboutContent.aboutTitle, teamName)}
+                  </h2>
+                  <div className="space-y-4 text-gray-800 leading-relaxed font-jost">
+                    <div>{renderParagraph(aboutContent.aboutParagraph1)}</div>
+                    <div>{renderParagraph(aboutContent.aboutParagraph2, aboutContent.aboutLinkUrl)}</div>
+                  </div>
+                  <div className="mt-8">
+                    <h3 className="text-xl font-jost font-bold text-black mb-4">{renderTitle(gb.pastEventsTitle, 'Past Events')}</h3>
+                    <div className="bg-white border border-gray-300 rounded-lg p-4">
+                      <ul className="space-y-2 font-jost text-gray-800">
+                        {(gb.pastEventsList ?? []).map((item, idx) => (
+                          <li key={idx}>• {item}</li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
-                  {isDesign && (
-                    <div className="w-full md:w-1/2">
-                      <h2 className="text-3xl font-jost font-bold text-[#1E2B48] mb-6 underline">
-                        {renderTitle(block.currentProjectsTitle, 'Fall 2025 Projects')}
-                      </h2>
-                      <div className="space-y-3">
-                        {currentProjects.map((project) => (
-                          <button
-                            key={project.id}
-                            type="button"
-                            className="w-full flex items-center justify-between px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors font-jost"
-                            onClick={() => {
-                              if (onNavigate) {
-                                onNavigate('/projects');
-                                sessionStorage.setItem('scrollToProject', project.id);
-                              }
-                            }}
-                          >
-                            <span className="font-medium">{project.title}</span>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>

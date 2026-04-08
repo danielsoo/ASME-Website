@@ -1,20 +1,15 @@
 import { deleteField, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from './config';
-import type { DesignTeamContent } from '../types';
-import { DEFAULT_DESIGN_TEAM } from '../types';
+import type { GeneralBodyContent } from '../types';
+import { EMPTY_GENERAL_BODY_FORM } from '../types';
 
 const CONFIG_PATH = 'config';
 export const ABOUT_TEAM_BLOCKS_DOC_ID = 'aboutTeamBlocks';
 
 const ref = () => doc(db, CONFIG_PATH, ABOUT_TEAM_BLOCKS_DOC_ID);
 
-export function defaultTeamBlock(teamName: string): DesignTeamContent {
-  const t = teamName.trim();
-  return {
-    ...DEFAULT_DESIGN_TEAM,
-    sectionTitle: t ? `Our ${t}` : DEFAULT_DESIGN_TEAM.sectionTitle,
-    leftImageUrl: `https://picsum.photos/seed/${encodeURIComponent(t || 'team')}/800/600`,
-  };
+export function defaultTeamBlock(_teamName: string): GeneralBodyContent {
+  return { ...EMPTY_GENERAL_BODY_FORM };
 }
 
 /** Ensures config/aboutTeamBlocks.blocks[teamName] exists (merge). Call when a team label is added. */

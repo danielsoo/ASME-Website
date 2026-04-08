@@ -262,6 +262,16 @@ export const DEFAULT_GENERAL_BODY: GeneralBodyContent = {
   bodySectionTitle: 'Our General Body',
 };
 
+/** Blank General Body form (admin per-team tabs). Public page uses DEFAULT_GENERAL_BODY for unfilled fields. */
+export const EMPTY_GENERAL_BODY_FORM: GeneralBodyContent = {
+  activitiesTitle: '',
+  activitiesList: [],
+  leftImageUrl: '',
+  pastEventsTitle: '',
+  pastEventsList: [],
+  bodySectionTitle: '',
+};
+
 /** About page: Design Team section (stored in config/aboutDesignTeam). */
 export interface DesignTeamContent {
   sectionTitle?: string;
@@ -300,9 +310,9 @@ export const DEFAULT_DESIGN_TEAM: DesignTeamContent = {
   introParagraph4: "WE ARE! the Penn State's chapter of ASME and are looking forward to providing unique opportunities for Mechanical Engineers at PSU. Our Design Team focuses on hands-on engineering projects, CAD design, prototyping, and bringing innovative ideas to life.",
 };
 
-/** Per-team About blocks (config/aboutTeamBlocks). Keys match Member Management team labels; exec-board team uses General Body tab instead. */
+/** Per-team About blocks (config/aboutTeamBlocks): same shape as General Body; exec-board team uses the General Body tab instead. */
 export interface AboutTeamBlocksDoc {
-  blocks: Record<string, DesignTeamContent>;
+  blocks: Record<string, GeneralBodyContent>;
 }
 
 /** Site content: sponsors page (stored in config/sponsors). */

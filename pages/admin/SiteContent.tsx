@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../src/firebase/config';
-import type { FooterContent, HomeContent, AboutContent, AboutTeamBlocksDoc, SponsorsContent, GeneralBodyContent, DesignTeamContent } from '../../src/types';
-import { DEFAULT_FOOTER, DEFAULT_HOME, DEFAULT_ABOUT, DEFAULT_SPONSORS, DEFAULT_GENERAL_BODY, DEFAULT_DESIGN_TEAM } from '../../src/types';
+import type { FooterContent, HomeContent, AboutContent, AboutTeamBlocksDoc, SponsorsContent, GeneralBodyContent } from '../../src/types';
+import { DEFAULT_FOOTER, DEFAULT_HOME, DEFAULT_ABOUT, DEFAULT_SPONSORS, DEFAULT_GENERAL_BODY, EMPTY_GENERAL_BODY_FORM } from '../../src/types';
 import RichTextEditor from '../../src/components/RichTextEditor';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 import {
   subscribeTeamSettings,
   DEFAULT_TEAM_SETTINGS,
-  getTeamSettings,
   type TeamSettings,
 } from '../../src/firebase/teamSettings';
 
@@ -17,12 +16,10 @@ const FOOTER_DOC = 'footer';
 const HOME_DOC = 'home';
 const ABOUT_DOC = 'about';
 const GENERAL_BODY_DOC = 'aboutGeneralBody';
-const DESIGN_TEAM_DOC = 'aboutDesignTeam';
 const ABOUT_TEAM_BLOCKS_DOC = 'aboutTeamBlocks';
 const SPONSORS_DOC = 'sponsors';
 
 type SiteContentTab = 'footer' | 'home' | 'about' | 'sponsors';
-type AboutSubTab = 'main' | 'generalBody' | 'teamSections';
 
 interface SiteContentProps {
   onNavigate: (path: string) => void;
@@ -60,16 +57,24 @@ function generalBodyEquals(a: GeneralBodyContent, b: GeneralBodyContent): boolea
   return !ae.some((v, i) => v !== be[i]);
 }
 
-function designTeamEquals(a: DesignTeamContent, b: DesignTeamContent): boolean {
-  const keys: (keyof DesignTeamContent)[] = ['sectionTitle', 'leftImageUrl', 'pastProjectsTitle', 'currentProjectsTitle', 'introParagraph1', 'introParagraph2', 'introParagraph3', 'introLinkUrl', 'introParagraph4', 'introFontFamily', 'introFontWeight', 'sectionTitleFontFamily', 'sectionTitleFontWeight'];
-  return keys.every((k) => (a[k] ?? '') === (b[k] ?? ''));
+/** Old Firestore data used DesignTeamContent per team; migrate to GeneralBodyContent (keep image). */
+function normalizeTeamBlockFromFirestore(raw: unknown): GeneralBodyContent {
+  if (!raw || typeof raw !== 'object') return { ...EMPTY_GENERAL_BODY_FORM };
+  const o = raw as Record<string, unknown>;
+  if ('introParagraph1' in o || 'introParagraph2' in o) {
+    return {
+      ...EMPTY_GENERAL_BODY_FORM,
+      leftImageUrl: typeof o.leftImageUrl === 'string' ? o.leftImageUrl : '',
+    };
+  }
+  return { ...EMPTY_GENERAL_BODY_FORM, ...(raw as GeneralBodyContent) };
 }
 
-function teamBlocksEquals(a: Record<string, DesignTeamContent>, b: Record<string, DesignTeamContent>): boolean {
+function teamGeneralBodiesEquals(a: Record<string, GeneralBodyContent>, b: Record<string, GeneralBodyContent>): boolean {
   const keysA = Object.keys(a).sort();
   const keysB = Object.keys(b).sort();
   if (keysA.length !== keysB.length || keysA.some((k, i) => k !== keysB[i])) return false;
-  return keysA.every((k) => designTeamEquals(a[k]!, b[k]!));
+  return keysA.every((k) => generalBodyEquals(a[k]!, b[k]!));
 }
 
 const SPONSORS_KEYS: (keyof SponsorsContent)[] = ['contactEmail', 'bannerTitle', 'bannerText', 'getInTouchTitle', 'getInTouchParagraph', 'donateLabel', 'donateUrl', 'thonLabel', 'thonUrl', 'guestSpeakerText', 'specialThanksTitle', 'specialThanksParagraph'];
@@ -88,22 +93,22 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
   const [initialSponsors, setInitialSponsors] = useState<SponsorsContent>({ ...DEFAULT_SPONSORS });
   const [generalBody, setGeneralBody] = useState<GeneralBodyContent>({ ...DEFAULT_GENERAL_BODY });
   const [initialGeneralBody, setInitialGeneralBody] = useState<GeneralBodyContent>({ ...DEFAULT_GENERAL_BODY });
-  const [teamAboutBlocks, setTeamAboutBlocks] = useState<Record<string, DesignTeamContent>>({});
-  const [initialTeamAboutBlocks, setInitialTeamAboutBlocks] = useState<Record<string, DesignTeamContent>>({});
+  const [teamAboutBlocks, setTeamAboutBlocks] = useState<Record<string, GeneralBodyContent>>({});
+  const [initialTeamAboutBlocks, setInitialTeamAboutBlocks] = useState<Record<string, GeneralBodyContent>>({});
   const [teamSettings, setTeamSettings] = useState<TeamSettings>(DEFAULT_TEAM_SETTINGS);
-  const [selectedTeamSection, setSelectedTeamSection] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [tab, setTab] = useState<SiteContentTab>('home');
-  const [aboutSubTab, setAboutSubTab] = useState<AboutSubTab>('main');
+  /** 'main' | 'generalBody' | team name (non–exec-board teams only) */
+  const [aboutSubTab, setAboutSubTab] = useState<string>('main');
 
   const isPresident = currentUserRole === 'President';
   const hasFooterChanges = !footerEquals(footer, initialFooter);
   const hasHomeChanges = !homeEquals(home, initialHome);
   const hasAboutChanges = !aboutEquals(about, initialAbout);
   const hasGeneralBodyChanges = !generalBodyEquals(generalBody, initialGeneralBody);
-  const hasTeamBlocksChanges = !teamBlocksEquals(teamAboutBlocks, initialTeamAboutBlocks);
+  const hasTeamBlocksChanges = !teamGeneralBodiesEquals(teamAboutBlocks, initialTeamAboutBlocks);
   const hasSponsorsChanges = !sponsorsEquals(sponsors, initialSponsors);
 
   useEffect(() => {
@@ -112,12 +117,10 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
 
   useEffect(() => {
     const selectable = teamSettings.teamNames.filter((t) => t !== teamSettings.execBoardTeamName);
-    if (selectable.length === 0) {
-      setSelectedTeamSection('');
-      return;
+    if (aboutSubTab !== 'main' && aboutSubTab !== 'generalBody' && !selectable.includes(aboutSubTab)) {
+      setAboutSubTab('main');
     }
-    setSelectedTeamSection((prev) => (selectable.includes(prev) ? prev : selectable[0]!));
-  }, [JSON.stringify(teamSettings.teamNames), teamSettings.execBoardTeamName]);
+  }, [JSON.stringify(teamSettings.teamNames), teamSettings.execBoardTeamName, aboutSubTab]);
 
   useEffect(() => {
     if (!isPresident) {
@@ -132,12 +135,10 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
       getDoc(doc(db, CONFIG_PATH, HOME_DOC)),
       getDoc(doc(db, CONFIG_PATH, ABOUT_DOC)),
       getDoc(doc(db, CONFIG_PATH, GENERAL_BODY_DOC)),
-      getDoc(doc(db, CONFIG_PATH, DESIGN_TEAM_DOC)),
       getDoc(doc(db, CONFIG_PATH, SPONSORS_DOC)),
       getDoc(doc(db, CONFIG_PATH, ABOUT_TEAM_BLOCKS_DOC)),
-      getTeamSettings(),
     ])
-      .then(([footerSnap, homeSnap, aboutSnap, gbSnap, dtSnap, sponsorsSnap, teamBlocksSnap, ts]) => {
+      .then(([footerSnap, homeSnap, aboutSnap, gbSnap, sponsorsSnap, teamBlocksSnap]) => {
         if (cancelled) return;
         const nextFooter = footerSnap.exists()
           ? { ...DEFAULT_FOOTER, ...(footerSnap.data() as FooterContent) }
@@ -159,17 +160,13 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
           : { ...DEFAULT_GENERAL_BODY };
         setGeneralBody(nextGb);
         setInitialGeneralBody(nextGb);
-        const nextDt = dtSnap.exists()
-          ? { ...DEFAULT_DESIGN_TEAM, ...(dtSnap.data() as DesignTeamContent) }
-          : { ...DEFAULT_DESIGN_TEAM };
         const rawBlocks = teamBlocksSnap.exists()
           ? ((teamBlocksSnap.data() as AboutTeamBlocksDoc).blocks ?? {})
           : {};
-        const dn = ts.designTeamTeamName;
-        const mergedBlocks: Record<string, DesignTeamContent> = { ...rawBlocks };
-        if (dn) {
-          mergedBlocks[dn] = { ...nextDt, ...rawBlocks[dn] };
-        }
+        const mergedBlocks: Record<string, GeneralBodyContent> = {};
+        Object.keys(rawBlocks).forEach((k) => {
+          mergedBlocks[k] = normalizeTeamBlockFromFirestore(rawBlocks[k]);
+        });
         setTeamAboutBlocks(mergedBlocks);
         setInitialTeamAboutBlocks(mergedBlocks);
         const nextSponsors = sponsorsSnap.exists()
@@ -204,11 +201,32 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
     setSponsors((prev) => ({ ...prev, [field]: value }));
   };
 
-  const updateTeamBlock = (field: keyof DesignTeamContent, value: string) => {
-    if (!selectedTeamSection) return;
+  const activeTeamTab =
+    aboutSubTab !== 'main' && aboutSubTab !== 'generalBody' ? aboutSubTab : null;
+
+  const updateTeamGeneralBody = (field: keyof GeneralBodyContent, value: string) => {
+    if (!activeTeamTab) return;
     setTeamAboutBlocks((prev) => ({
       ...prev,
-      [selectedTeamSection]: { ...DEFAULT_DESIGN_TEAM, ...prev[selectedTeamSection], [field]: value },
+      [activeTeamTab]: { ...EMPTY_GENERAL_BODY_FORM, ...prev[activeTeamTab], [field]: value },
+    }));
+  };
+
+  const setTeamActivitiesListFromText = (text: string) => {
+    if (!activeTeamTab) return;
+    const list = text.split('\n').map((s) => s.trim()).filter(Boolean);
+    setTeamAboutBlocks((prev) => ({
+      ...prev,
+      [activeTeamTab]: { ...EMPTY_GENERAL_BODY_FORM, ...prev[activeTeamTab], activitiesList: list },
+    }));
+  };
+
+  const setTeamPastEventsListFromText = (text: string) => {
+    if (!activeTeamTab) return;
+    const list = text.split('\n').map((s) => s.trim()).filter(Boolean);
+    setTeamAboutBlocks((prev) => ({
+      ...prev,
+      [activeTeamTab]: { ...EMPTY_GENERAL_BODY_FORM, ...prev[activeTeamTab], pastEventsList: list },
     }));
   };
 
@@ -287,10 +305,6 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
       const merged = { ...existing, ...teamAboutBlocks };
       await setDoc(refBlocks, { blocks: merged }, { merge: true });
       setTeamAboutBlocks(merged);
-      const dn = teamSettings.designTeamTeamName;
-      if (dn && merged[dn]) {
-        await setDoc(doc(db, CONFIG_PATH, DESIGN_TEAM_DOC), merged[dn]);
-      }
       setInitialTeamAboutBlocks(merged);
       setSavedMessage('Team sections saved.');
       setTimeout(() => setSavedMessage(null), 3000);
@@ -338,10 +352,13 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
 
   const dirty = hasFooterChanges || hasHomeChanges || hasAboutChanges || hasGeneralBodyChanges || hasTeamBlocksChanges || hasSponsorsChanges;
 
-  const editingTeamBlock: DesignTeamContent = {
-    ...DEFAULT_DESIGN_TEAM,
-    ...(selectedTeamSection ? teamAboutBlocks[selectedTeamSection] : {}),
-  };
+  const editingTeamGeneralBody: GeneralBodyContent = useMemo(
+    () => ({
+      ...EMPTY_GENERAL_BODY_FORM,
+      ...(activeTeamTab ? teamAboutBlocks[activeTeamTab] : {}),
+    }),
+    [activeTeamTab, teamAboutBlocks]
+  );
 
   const { safeNavigate, leaveConfirmModal } = useUnsavedChangesGuard({
     currentPath,
@@ -641,7 +658,7 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
 
         {tab === 'about' && (
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-          <div className="flex border-b border-gray-200 mb-4">
+          <div className="flex flex-wrap gap-x-1 border-b border-gray-200 mb-4">
             <button
               type="button"
               onClick={() => setAboutSubTab('main')}
@@ -660,15 +677,21 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
             >
               General Body
             </button>
-            <button
-              type="button"
-              onClick={() => setAboutSubTab('teamSections')}
-              className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition ${
-                aboutSubTab === 'teamSections' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Team sections
-            </button>
+            {teamSettings.teamNames
+              .filter((t) => t !== teamSettings.execBoardTeamName)
+              .map((teamName) => (
+                <button
+                  key={teamName}
+                  type="button"
+                  onClick={() => setAboutSubTab(teamName)}
+                  className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition max-w-[12rem] truncate ${
+                    aboutSubTab === teamName ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                  title={teamName}
+                >
+                  {teamName}
+                </button>
+              ))}
           </div>
 
           {aboutSubTab === 'main' && (
@@ -778,119 +801,39 @@ const SiteContent: React.FC<SiteContentProps> = ({ onNavigate, currentUserRole, 
             </>
           )}
 
-          {aboutSubTab === 'teamSections' && (
+          {activeTeamTab && (
             <>
-              <h2 className="text-lg font-bold text-gray-800 mb-4">Team sections</h2>
+              <h2 className="text-lg font-bold text-gray-800 mb-4">{activeTeamTab}</h2>
               <p className="text-gray-600 text-sm mb-4">
-                Edit the intro block for each team (except the Executive Board team, which uses the General Body tab). New teams get a default block when added in Member Management. The Design Team row uses the same fields as the main About page and /about/designteam.
+                Same fields as &quot;General Body&quot; above. The Executive Board team uses the General Body tab; this tab is for other teams. Main About paragraphs below the sections still come from the Main About tab. New teams start with blank fields; the public page uses default sample text until you fill these in.
               </p>
               {loading ? (
                 <div className="text-gray-500">Loading...</div>
-              ) : teamSettings.teamNames.filter((t) => t !== teamSettings.execBoardTeamName).length === 0 ? (
-                <p className="text-gray-600 text-sm">Add teams in Member Management to edit their About sections.</p>
               ) : (
                 <div className="space-y-4 max-w-2xl">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Team</label>
-                    <select
-                      value={selectedTeamSection}
-                      onChange={(e) => setSelectedTeamSection(e.target.value)}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
-                    >
-                      {teamSettings.teamNames
-                        .filter((t) => t !== teamSettings.execBoardTeamName)
-                        .map((name) => (
-                          <option key={name} value={name}>
-                            {name}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Left column image URL</label>
-                    <input type="url" value={editingTeamBlock.leftImageUrl ?? ''} onChange={(e) => updateTeamBlock('leftImageUrl', e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800" />
+                    <input type="url" value={editingTeamGeneralBody.leftImageUrl ?? ''} onChange={(e) => updateTeamGeneralBody('leftImageUrl', e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Section title (intro block)</label>
-                    <RichTextEditor value={editingTeamBlock.sectionTitle ?? ''} onChange={(v) => updateTeamBlock('sectionTitle', v)} minHeight="60px" placeholder="Our Design Team" />
-                  </div>
-                  <div className="border-t border-gray-200 pt-4 mt-4">
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Intro font (family & weight)</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph font family</label>
-                        <select value={editingTeamBlock.introFontFamily ?? ''} onChange={(e) => updateTeamBlock('introFontFamily', e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800">
-                          <option value="">Default (Jost)</option>
-                          <option value="Jost, sans-serif">Jost</option>
-                          <option value="Inter, sans-serif">Inter</option>
-                          <option value="Georgia, serif">Georgia</option>
-                          <option value="Arial, sans-serif">Arial</option>
-                          <option value="system-ui, sans-serif">system-ui</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph font weight</label>
-                        <select value={editingTeamBlock.introFontWeight ?? ''} onChange={(e) => updateTeamBlock('introFontWeight', e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800">
-                          <option value="">Default</option>
-                          <option value="300">Light (300)</option>
-                          <option value="400">Normal (400)</option>
-                          <option value="500">Medium (500)</option>
-                          <option value="600">Semi-bold (600)</option>
-                          <option value="700">Bold (700)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Section title font family</label>
-                        <select value={editingTeamBlock.sectionTitleFontFamily ?? ''} onChange={(e) => updateTeamBlock('sectionTitleFontFamily', e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800">
-                          <option value="">Default (Jost)</option>
-                          <option value="Jost, sans-serif">Jost</option>
-                          <option value="Inter, sans-serif">Inter</option>
-                          <option value="Georgia, serif">Georgia</option>
-                          <option value="Arial, sans-serif">Arial</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Section title font weight</label>
-                        <select value={editingTeamBlock.sectionTitleFontWeight ?? ''} onChange={(e) => updateTeamBlock('sectionTitleFontWeight', e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800">
-                          <option value="">Default</option>
-                          <option value="400">Normal (400)</option>
-                          <option value="500">Medium (500)</option>
-                          <option value="600">Semi-bold (600)</option>
-                          <option value="700">Bold (700)</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="border-t border-gray-200 pt-4 mt-4">
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Intro paragraphs</h3>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph 1</label>
-                      <RichTextEditor value={editingTeamBlock.introParagraph1 ?? ''} onChange={(v) => updateTeamBlock('introParagraph1', v)} placeholder="First paragraph" minHeight="80px" />
-                    </div>
-                    <div className="mt-3">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph 2</label>
-                      <RichTextEditor value={editingTeamBlock.introParagraph2 ?? ''} onChange={(v) => updateTeamBlock('introParagraph2', v)} placeholder="Second paragraph" minHeight="100px" />
-                    </div>
-                    <div className="mt-3">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph 3 (use toolbar link button for links)</label>
-                      <RichTextEditor value={editingTeamBlock.introParagraph3 ?? ''} onChange={(v) => updateTeamBlock('introParagraph3', v)} placeholder="To learn more about the international ASME organization, visit this link." minHeight="60px" />
-                    </div>
-                    <div className="mt-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph 3 link URL (when using plain text only)</label>
-                      <input type="url" value={editingTeamBlock.introLinkUrl ?? ''} onChange={(e) => updateTeamBlock('introLinkUrl', e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800" placeholder="https://www.asme.org" />
-                    </div>
-                    <div className="mt-3">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph 4</label>
-                      <RichTextEditor value={editingTeamBlock.introParagraph4 ?? ''} onChange={(v) => updateTeamBlock('introParagraph4', v)} placeholder="WE ARE! the Penn State's chapter of ASME..." minHeight="100px" />
-                    </div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Activities section title</label>
+                    <RichTextEditor value={editingTeamGeneralBody.activitiesTitle ?? ''} onChange={(v) => updateTeamGeneralBody('activitiesTitle', v)} minHeight="60px" placeholder="Our Activities" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Past Projects dropdown title</label>
-                    <RichTextEditor value={editingTeamBlock.pastProjectsTitle ?? ''} onChange={(v) => updateTeamBlock('pastProjectsTitle', v)} minHeight="60px" placeholder="Past Projects" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Activities list (one per line)</label>
+                    <textarea rows={6} value={(editingTeamGeneralBody.activitiesList ?? []).join('\n')} onChange={(e) => setTeamActivitiesListFromText(e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800" placeholder="THON Fundraisers&#10;Design Team Meetings&#10;..." />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Current projects section title</label>
-                    <RichTextEditor value={editingTeamBlock.currentProjectsTitle ?? ''} onChange={(v) => updateTeamBlock('currentProjectsTitle', v)} minHeight="60px" placeholder="Fall 2025 Projects" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Body section title (below activities)</label>
+                    <RichTextEditor value={editingTeamGeneralBody.bodySectionTitle ?? ''} onChange={(v) => updateTeamGeneralBody('bodySectionTitle', v)} minHeight="60px" placeholder="Our team" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Past Events section title</label>
+                    <RichTextEditor value={editingTeamGeneralBody.pastEventsTitle ?? ''} onChange={(v) => updateTeamGeneralBody('pastEventsTitle', v)} minHeight="60px" placeholder="Past Events" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Past events list (one per line)</label>
+                    <textarea rows={4} value={(editingTeamGeneralBody.pastEventsList ?? []).join('\n')} onChange={(e) => setTeamPastEventsListFromText(e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800" placeholder="Event 1 - Date&#10;Event 2 - Date" />
                   </div>
                   <div className="flex items-center gap-3">
                     <button type="button" disabled={saving || !hasTeamBlocksChanges} onClick={saveTeamBlocks} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium">
