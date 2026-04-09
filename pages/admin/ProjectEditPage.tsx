@@ -9,6 +9,7 @@ import { imageKitFolderForProjectId, imageKitTagsForProject } from '../../src/ut
 import AlertModal from '../../src/components/AlertModal';
 import RichTextEditor from '../../src/components/RichTextEditor';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
+import { richTextToPlainText } from '../../src/utils/sanitizeHtml';
 
 interface ProjectEditPageProps {
   projectId: string;
@@ -32,7 +33,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
   const [leaderId, setLeaderId] = useState('');
   const [slack, setSlack] = useState('');
   const [timeline, setTimeline] = useState('');
-  const [img, setImg] = useState('');
+  const [imgs, setImgs] = useState<string[]>([]);
   const [joinSectionTitle, setJoinSectionTitle] = useState('');
   const [joinSectionDescription, setJoinSectionDescription] = useState('');
   const [joinButtonLabel, setJoinButtonLabel] = useState('');
@@ -131,7 +132,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
         setLeaderId(data.leaderId || '');
         setSlack(data.slack || '');
         setTimeline(data.timeline || '');
-        setImg(data.img || '');
+        setImgs(data.imgs?.length ? data.imgs : (data.img ? [data.img] : []));
         setJoinSectionTitle(data.joinSectionTitle ?? 'Want to Get Involved?');
         setJoinSectionDescription(data.joinSectionDescription ?? "Click the link below to authenticate your email and join the slack.");
         setJoinButtonLabel(data.joinButtonLabel ?? 'Join the Slack');
@@ -151,7 +152,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
   const handleSave = async (opts?: { navigateAfter?: boolean }) => {
     const navigateAfter = opts?.navigateAfter !== false;
     if (!project || !canManageProjects() || saving) return;
-    const plainTitle = (title || '').replace(/<[^>]*>/g, '').trim();
+    const plainTitle = richTextToPlainText(title);
     if (!plainTitle) {
       setAlert({ isOpen: true, type: 'error', title: 'Error', message: 'Project title is required.' });
       return;
@@ -169,7 +170,8 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
         updatedAt: new Date().toISOString(),
         slack: slack.trim() || null,
         timeline: timeline.trim() || null,
-        img: img.trim() || null,
+        img: null,
+        imgs: imgs.map((u) => u.trim()).filter(Boolean),
         joinSectionTitle: joinSectionTitle.trim() || null,
         joinSectionDescription: joinSectionDescription.trim() || null,
         joinButtonLabel: joinButtonLabel.trim() || null,
@@ -200,7 +202,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
     leaderId !== (project.leaderId || '') ||
     (slack || '').trim() !== (project.slack || '').trim() ||
     (timeline || '').trim() !== (project.timeline || '').trim() ||
-    (img || '').trim() !== (project.img || '').trim() ||
+    JSON.stringify(imgs.map((u) => u.trim()).filter(Boolean)) !== JSON.stringify((project.imgs?.length ? project.imgs : (project.img ? [project.img] : [])).map((u) => u.trim()).filter(Boolean)) ||
     (joinSectionTitle || '').trim() !== (project.joinSectionTitle ?? 'Want to Get Involved?').trim() ||
     (joinSectionDescription || '').trim() !== (project.joinSectionDescription ?? '').trim() ||
     (joinButtonLabel || '').trim() !== (project.joinButtonLabel ?? 'Join the Slack').trim()
@@ -325,7 +327,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                 />
                 <ProjectAdminImagePreview
                   imageUrl={ikUrl || imageUrl}
-                  titleHint={(title || '').replace(/<[^>]*>/g, '').trim()}
+                  titleHint={richTextToPlainText(title)}
                 />
               </div>
               <div>
@@ -409,17 +411,48 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Right-side image URL (second image on detail page)</label>
-                <input
-                  type="url"
-                  value={img}
-                  onChange={(e) => setImg(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
-                  placeholder="https://..."
-                />
-                {img && (
-                  <img src={img} alt="Preview" className="mt-2 h-32 object-cover rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                )}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Gallery images (shown on detail page)</label>
+                <div className="space-y-3">
+                  {imgs.map((url, i) => (
+                    <div key={i} className="flex flex-col gap-1">
+                      <div className="flex gap-2 items-center">
+                        <input
+                          type="url"
+                          value={url}
+                          onChange={(e) => {
+                            const next = [...imgs];
+                            next[i] = e.target.value;
+                            setImgs(next);
+                          }}
+                          className="flex-1 border border-gray-300 rounded px-3 py-2 text-gray-900"
+                          placeholder="https://..."
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setImgs(imgs.filter((_, j) => j !== i))}
+                          className="text-red-500 hover:text-red-700 text-sm px-2 py-1 border border-red-300 rounded"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      {url && (
+                        <img
+                          src={url}
+                          alt={`Preview ${i + 1}`}
+                          className="h-24 w-40 object-cover rounded border border-gray-200"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setImgs([...imgs, ''])}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium border border-blue-300 rounded px-3 py-1"
+                  >
+                    + Add Image
+                  </button>
+                </div>
               </div>
             </div>
           </section>

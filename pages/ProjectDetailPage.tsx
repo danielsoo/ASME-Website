@@ -17,6 +17,7 @@ interface ProjectDetailPageProps {
 
 const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNavigate }) => {
   const joinLink = project.slack || getProjectFormLinkByTitle(project.title);
+  const images = project.imgs?.filter(Boolean) ?? (project.img ? [project.img] : []);
   // Mock timeline events - in real app, this would come from project data
   const timelineEvents = [
     { date: '14th of whatever', description: 'Description of event', clickable: true },
@@ -111,9 +112,8 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNaviga
           </div>
         ) : null}
 
-{/* make whole section depend on variables, not just the button and deadline */}
-          {/* Join and Placeholder Image */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          {/* Join Section + optional gallery */}
+          <div className={`mb-8 ${images.length === 1 ? 'grid grid-cols-1 md:grid-cols-2 gap-8' : ''}`}>
             {/* Join Section */}
             <div>
               <h2 className="text-xl font-bold font-jost text-black mb-4 uppercase">
@@ -148,15 +148,70 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNaviga
               )}
             </div>
 
-            {/* Second image */}
-            <div className="w-full h-64 rounded-lg overflow-hidden flex items-center justify-center mb-2 bg-gradient-to-br from-blue-400 to-purple-600">
-              {project.img ? (
-                <img src={project.img} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-white text-sm font-jost">Image</span>
+            {/* Single image: right column */}
+            {images.length === 1 && (
+              <div className="w-full h-64 rounded-xl overflow-hidden shadow-md">
+                <img src={images[0]} alt="" className="w-full h-full object-cover" />
+              </div>
+            )}
+          </div>
+
+          {/* Gallery for 2+ images */}
+          {images.length >= 2 && (
+            <div className="mb-8">
+              {images.length === 2 && (
+                <div className="grid grid-cols-2 gap-3">
+                  {images.map((src, i) => (
+                    <div key={i} className="rounded-xl overflow-hidden shadow-md h-56">
+                      <img src={src} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              )}
+              {images.length === 3 && (
+                <div className="grid grid-cols-3 grid-rows-2 gap-3 h-72">
+                  <div className="col-span-2 row-span-2 rounded-xl overflow-hidden shadow-md">
+                    <img src={images[0]} alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="rounded-xl overflow-hidden shadow-md">
+                    <img src={images[1]} alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="rounded-xl overflow-hidden shadow-md">
+                    <img src={images[2]} alt="" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+              )}
+              {images.length === 4 && (
+                <div className="grid grid-cols-2 gap-3">
+                  {images.map((src, i) => (
+                    <div key={i} className="rounded-xl overflow-hidden shadow-md h-48">
+                      <img src={src} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              )}
+              {images.length >= 5 && (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-2 rounded-xl overflow-hidden shadow-md h-56">
+                    <img src={images[0]} alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex-1 rounded-xl overflow-hidden shadow-md">
+                      <img src={images[1]} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1 rounded-xl overflow-hidden shadow-md">
+                      <img src={images[2]} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  </div>
+                  {images.slice(3).map((src, i) => (
+                    <div key={i + 3} className="rounded-xl overflow-hidden shadow-md h-44">
+                      <img src={src} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
-          </div>
+          )}
 
           {/* Join Slack Section */}
           <div className="mb-8">

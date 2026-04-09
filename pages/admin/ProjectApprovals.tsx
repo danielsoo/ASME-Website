@@ -6,6 +6,7 @@ import { Project } from '../../src/types';
 import { Check, X } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
+import { richTextToPlainText } from '../../src/utils/sanitizeHtml';
 
 interface ProjectApprovalsProps {
   onNavigate: (path: string) => void;
@@ -243,9 +244,13 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
                 <div key={project.id} className="bg-white rounded-lg shadow-md p-4 sm:p-6 min-w-0">
                   <div className="flex flex-wrap justify-between items-start gap-2 mb-3 sm:mb-4">
                     <div className="flex-1 min-w-0">
-                      <h2 className="text-lg sm:text-2xl font-bold text-gray-800 mb-2 break-words">{project.title}</h2>
+                      <h2 className="text-lg sm:text-2xl font-bold text-gray-800 mb-2 break-words">
+                        {richTextToPlainText(project.title) || project.title}
+                      </h2>
                       {project.description && (
-                        <p className="text-gray-600 mb-3">{project.description}</p>
+                        <p className="text-gray-600 mb-3">
+                          {richTextToPlainText(project.description) || project.description}
+                        </p>
                       )}
                       <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                         {createdByUser && (

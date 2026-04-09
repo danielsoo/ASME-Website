@@ -66,7 +66,8 @@ export interface Project {
   // Detail page: "Want to Get Involved?" / Join Slack section
   slack?: string;
   timeline?: string;
-  img?: string;
+  img?: string;   // legacy single image — use imgs[] instead
+  imgs?: string[]; // gallery images shown on detail page
   joinSectionTitle?: string;
   joinSectionDescription?: string;
   joinButtonLabel?: string;

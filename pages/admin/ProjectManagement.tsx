@@ -15,6 +15,7 @@ import {
 } from '@/src/utils/imagekitProjectUpload';
 import RichTextEditor from '../../src/components/RichTextEditor';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
+import { richTextToPlainText } from '../../src/utils/sanitizeHtml';
 
 interface ProjectManagementProps {
   onNavigate: (path: string) => void;
@@ -459,7 +460,9 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
               <div key={project.id} className="bg-white rounded-lg shadow-md p-4 sm:p-6 min-w-0">
                 <div className="flex flex-wrap justify-between items-start gap-2 mb-3 sm:mb-4">
                   <div className="min-w-0 flex-1">
-                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 break-words">{(project.title || '').replace(/<[^>]*>/g, '').trim() || project.title}</h2>
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 break-words">
+                      {richTextToPlainText(project.title) || project.title}
+                    </h2>
                     <div className="flex gap-2 flex-wrap">
                       <span className={`inline-block px-2 py-1 text-xs rounded ${
                         project.status === 'current' 
@@ -498,7 +501,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                 </div>
 
                 <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                  {(project.description || '').replace(/<[^>]*>/g, '').trim() || project.description}
+                  {richTextToPlainText(project.description) || project.description}
                 </p>
 
                 <div className="space-y-2 mb-4">
@@ -631,7 +634,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                     
                     <ProjectAdminImagePreview
                       imageUrl={ikUrl || (projectImageUrl !== '#' ? projectImageUrl : '')}
-                      titleHint={(projectTitle || '').replace(/<[^>]*>/g, '').trim()}
+                      titleHint={richTextToPlainText(projectTitle)}
                     />
                   </div>
                 </div>
@@ -972,7 +975,7 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
       <div className="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">
-            Manage Members - {project.title}
+            Manage Members — {richTextToPlainText(project.title) || project.title}
           </h2>
           <button
             onClick={onClose}

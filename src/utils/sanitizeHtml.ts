@@ -16,3 +16,42 @@ export function sanitizeHtml(html: string): string {
 export function isHtmlString(s: string): boolean {
   return typeof s === 'string' && /<[a-z][\s\S]*>/i.test(s);
 }
+
+function plainTextFromSanitizedHtml(sanitized: string): string {
+  if (!sanitized.trim()) return '';
+  if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
+    return decodeEntitiesAndStripTagsFallback(sanitized);
+  }
+  try {
+    const doc = new DOMParser().parseFromString(sanitized, 'text/html');
+    const text = doc.body.textContent ?? '';
+    return text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+  } catch {
+    return decodeEntitiesAndStripTagsFallback(sanitized);
+  }
+}
+
+function decodeEntitiesAndStripTagsFallback(s: string): string {
+  return s
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&#160;/gi, ' ')
+    .replace(/&#xa0;/gi, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Rich editor output → plain string for admin lists, modals, and labels.
+ * Strips tags and decodes entities (`&nbsp;`, etc.); sanitizes first.
+ */
+export function richTextToPlainText(s: string | undefined | null): string {
+  if (s == null || typeof s !== 'string') return '';
+  return plainTextFromSanitizedHtml(sanitizeHtml(s));
+}

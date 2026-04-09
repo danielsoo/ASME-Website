@@ -6,6 +6,7 @@ import { Project } from '../../src/types';
 import { RotateCcw, Trash2, X, Check } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
+import { richTextToPlainText } from '../../src/utils/sanitizeHtml';
 
 interface ProjectTrashProps {
   onNavigate: (path: string) => void;
@@ -337,7 +338,9 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
           !updatedRequest.rejectedByLeader && !updatedRequest.rejectedByExec) {
         // Unanimous approval - permanently delete
         await deleteDoc(doc(db, 'projects', project.id));
-        
+
+        const projectTitlePlain = richTextToPlainText(project.title) || project.title;
+
         // Create notifications for all involved users
         const requestorUser = allUsers.find(u => u.uid === updatedRequest.requestedBy);
         if (requestorUser) {
@@ -345,9 +348,9 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
             requestorUser.uid,
             'project_deleted',
             'Project Permanently Deleted',
-            `Project "${project.title}" has been permanently deleted with unanimous approval.`,
+            `Project "${projectTitlePlain}" has been permanently deleted with unanimous approval.`,
             project.id,
-            project.title
+            projectTitlePlain
           );
         }
 
@@ -357,9 +360,9 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
             leaderUser.uid,
             'project_deleted',
             'Project Permanently Deleted',
-            `Project "${project.title}" has been permanently deleted with unanimous approval.`,
+            `Project "${projectTitlePlain}" has been permanently deleted with unanimous approval.`,
             project.id,
-            project.title
+            projectTitlePlain
           );
         }
 
@@ -373,9 +376,9 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
             execUser.uid,
             'project_deleted',
             'Project Permanently Deleted',
-            `Project "${project.title}" has been permanently deleted with unanimous approval.`,
+            `Project "${projectTitlePlain}" has been permanently deleted with unanimous approval.`,
             project.id,
-            project.title
+            projectTitlePlain
           );
         }
 
@@ -660,9 +663,13 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
               <div key={project.id} className="bg-white rounded-lg shadow-md p-4 sm:p-6 min-w-0">
                 <div className="flex flex-wrap justify-between items-start gap-2 mb-3 sm:mb-4">
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-2 break-words">{project.title}</h2>
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-2 break-words">
+                      {richTextToPlainText(project.title) || project.title}
+                    </h2>
                     {project.description && (
-                      <p className="text-gray-600 mb-3">{project.description}</p>
+                      <p className="text-gray-600 mb-3">
+                        {richTextToPlainText(project.description) || project.description}
+                      </p>
                     )}
                     <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                       {project.deletedAt && (
