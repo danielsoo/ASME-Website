@@ -4,6 +4,7 @@ import { db, auth } from '../../src/firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Project } from '../../src/types';
 import Uploader from '../../src/components/Uploader';
+import DragUploader from '../../src/components/DragUploader';
 import { ProjectAdminImagePreview } from '../../src/components/ProjectAdminImagePreview';
 import { imageKitFolderForProjectId, imageKitTagsForProject } from '../../src/utils/imagekitProjectUpload';
 import AlertModal from '../../src/components/AlertModal';
@@ -411,11 +412,33 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Gallery images (shown on detail page)</label>
-                <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Gallery images (shown on detail page)</label>
+                <div className="space-y-4">
                   {imgs.map((url, i) => (
-                    <div key={i} className="flex flex-col gap-1">
-                      <div className="flex gap-2 items-center">
+                    <div key={i} className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-gray-500">Image {i + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => setImgs(imgs.filter((_, j) => j !== i))}
+                          className="text-xs text-red-500 hover:text-red-700 font-medium"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <DragUploader
+                        folder={`${imageKitFolderForProjectId(projectId)}/gallery`}
+                        tags={[...imageKitTagsForProject(projectId), 'gallery']}
+                        onComplete={(u) => {
+                          const next = [...imgs];
+                          next[i] = u.url;
+                          setImgs(next);
+                          setAlert({ isOpen: true, type: 'success', title: 'Image', message: `Gallery image ${i + 1} uploaded.` });
+                        }}
+                        onError={(msg) => setAlert({ isOpen: true, type: 'error', title: 'Upload Error', message: msg })}
+                      />
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400 shrink-0">Or paste URL:</span>
                         <input
                           type="url"
                           value={url}
@@ -424,22 +447,15 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                             next[i] = e.target.value;
                             setImgs(next);
                           }}
-                          className="flex-1 border border-gray-300 rounded px-3 py-2 text-gray-900"
+                          className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm text-gray-900"
                           placeholder="https://..."
                         />
-                        <button
-                          type="button"
-                          onClick={() => setImgs(imgs.filter((_, j) => j !== i))}
-                          className="text-red-500 hover:text-red-700 text-sm px-2 py-1 border border-red-300 rounded"
-                        >
-                          Remove
-                        </button>
                       </div>
-                      {url && (
+                      {url.trim() && (
                         <img
-                          src={url}
+                          src={url.trim()}
                           alt={`Preview ${i + 1}`}
-                          className="h-24 w-40 object-cover rounded border border-gray-200"
+                          className="h-28 rounded-lg object-cover border border-gray-200 w-full"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         />
                       )}
@@ -448,7 +464,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                   <button
                     type="button"
                     onClick={() => setImgs([...imgs, ''])}
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium border border-blue-300 rounded px-3 py-1"
+                    className="w-full py-2 rounded-lg border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-blue-300 hover:text-blue-500 transition-colors font-medium"
                   >
                     + Add Image
                   </button>

@@ -19,7 +19,7 @@ export const ProjectAdminImagePreview: React.FC<{
       <p className="text-xs font-medium text-gray-600 px-3 py-2 bg-gray-50 border-b border-gray-200">
         Preview — public Projects page card (top image)
       </p>
-      <div className="relative h-48 w-full overflow-hidden bg-[#DEE7ED]">
+      <div className="relative h-64 w-full overflow-hidden bg-[#DEE7ED]">
         <img
           src={src}
           alt=""
