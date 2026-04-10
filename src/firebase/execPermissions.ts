@@ -27,6 +27,14 @@ export const EXEC_PERMISSION_LABELS_KO: Record<ExecPermissionKey, string> = {
   sponsors: '스폰서 (추가·수정·휴지통·완전삭제 등 전체)',
 };
 
+/** English labels for admin UI (area-level permissions). */
+export const EXEC_PERMISSION_LABELS_EN: Record<ExecPermissionKey, string> = {
+  users: 'Users & signup (approve, reject, restore, delete — full access)',
+  members: 'Members (roles, teams, manual adds, edits — full access)',
+  projects: 'Projects (create, edit, approve, trash, permanent delete — full access)',
+  sponsors: 'Sponsors (add, edit, trash, permanent delete — full access)',
+};
+
 function allTrue(): ExecPermissionMap {
   return EXEC_PERMISSION_KEYS.reduce((acc, k) => {
     acc[k] = true;

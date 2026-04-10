@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../src/firebase/config';
 import { Lock, Unlock, ChevronDown, ChevronRight } from 'lucide-react';
@@ -7,7 +7,7 @@ import {
   CONFIG_COLLECTION,
   EXEC_PERMISSIONS_DOC,
   EXEC_PERMISSION_KEYS,
-  EXEC_PERMISSION_LABELS_KO,
+  EXEC_PERMISSION_LABELS_EN,
   getEffectiveExecPermissions,
   saveFullExecPermissionsByRole,
   type ExecPermissionsByRole,
@@ -33,9 +33,13 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
   const [allowedRoles, setAllowedRoles] = useState<string[]>(DEFAULT_ALLOWED_ROLES);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
-  const [execByRole, setExecByRole] = useState<ExecPermissionsByRole>({});
-  const [expandedDetailRole, setExpandedDetailRole] = useState<string | null>(null);
-  const [savingPerm, setSavingPerm] = useState<string | null>(null);
+  const [localByRole, setLocalByRole] = useState<ExecPermissionsByRole>({});
+  const [permDirty, setPermDirty] = useState(false);
+  const permDirtyRef = useRef(false);
+  const [expandedDetailId, setExpandedDetailId] = useState<string | null>(null);
+  const [savingPermissions, setSavingPermissions] = useState(false);
+  /** After first successful execPermissions snapshot — avoids saving before full byRole is loaded. */
+  const [execPermLoaded, setExecPermLoaded] = useState(false);
 
   const isPresident = currentUserRole === 'President';
 
@@ -84,11 +88,18 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
       doc(db, CONFIG_COLLECTION, EXEC_PERMISSIONS_DOC),
       (snap) => {
         const br = snap.exists() ? (snap.data()?.byRole as ExecPermissionsByRole | undefined) : undefined;
-        setExecByRole(br && typeof br === 'object' ? br : {});
+        const next = br && typeof br === 'object' ? br : {};
+        if (!permDirtyRef.current) {
+          setLocalByRole(next);
+        }
+        setExecPermLoaded(true);
       },
       (e) => {
         console.error('AdminAccess execPermissions subscription:', e);
-        setExecByRole({});
+        if (!permDirtyRef.current) {
+          setLocalByRole({});
+        }
+        setExecPermLoaded(true);
       }
     );
 
@@ -115,20 +126,27 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
     }
   };
 
-  const toggleExecPermission = async (roleName: string, key: (typeof EXEC_PERMISSION_KEYS)[number]) => {
-    if (!isPresident || savingPerm) return;
-    const effective = getEffectiveExecPermissions(roleName, { byRole: execByRole });
+  const toggleExecPermission = (roleName: string, key: (typeof EXEC_PERMISSION_KEYS)[number]) => {
+    if (!isPresident || savingPermissions || !execPermLoaded) return;
+    const effective = getEffectiveExecPermissions(roleName, { byRole: localByRole });
     const nextVal = !effective[key];
-    const row = { ...(execByRole[roleName] || {}), [key]: nextVal };
-    const nextByRole = { ...execByRole, [roleName]: row };
-    setSavingPerm(`${roleName}:${key}`);
+    const row = { ...(localByRole[roleName] || {}), [key]: nextVal };
+    setLocalByRole({ ...localByRole, [roleName]: row });
+    permDirtyRef.current = true;
+    setPermDirty(true);
+  };
+
+  const confirmExecPermissions = async () => {
+    if (!isPresident || savingPermissions || !permDirty || !execPermLoaded) return;
+    setSavingPermissions(true);
     try {
-      await saveFullExecPermissionsByRole(nextByRole);
-      setExecByRole(nextByRole);
+      await saveFullExecPermissionsByRole(localByRole);
+      permDirtyRef.current = false;
+      setPermDirty(false);
     } catch (e) {
-      console.error('Failed to update exec permission:', e);
+      console.error('Failed to save exec permissions:', e);
     } finally {
-      setSavingPerm(null);
+      setSavingPermissions(false);
     }
   };
 
@@ -223,36 +241,42 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mt-6 sm:mt-8">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">직책별 영역 권한</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">Area permissions by role</h2>
           <p className="text-gray-600 text-sm sm:text-base mb-4">
-            어드민 패널에 들어올 수 있는 직책(위에서 허용된 역할)마다, 아래 네 가지 <strong>영역</strong>을 켜거나 끌 수
-            있습니다. 각 영역이 켜져 있으면 해당 주제의 <strong>생성·수정·삭제·승인·휴지통</strong> 등 관련 동작이
-            모두 허용됩니다(세부 항목으로 나누지 않습니다). 예: 스폰서를 허용하면 스폰서 목록·휴지통·완전삭제까지
-            동일하게 적용됩니다. <strong>회장(President)</strong>과 <strong>admin</strong>은 항상 네 영역 모두
-            허용입니다. 저장한 적 없는 직책은 기본값 <strong>전부 허용</strong>입니다.
+            For each role that can open the admin panel (enabled above), you can turn four <strong>areas</strong> on or
+            off. When an area is on, all related actions are allowed for that topic—<strong>create, edit, delete,
+            approve, trash,</strong> and similar—not split into smaller toggles. For example, enabling{' '}
+            <strong>Sponsors</strong> applies to the sponsor list, trash, and permanent delete the same way.{' '}
+            <strong>President</strong> and <strong>admin</strong> always have all four areas. Roles you have never
+            configured default to <strong>everything allowed</strong>.
           </p>
           <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
-            보안 참고: 브라우저 UI만 바뀌는 것이 아니라, 실제 데이터 변경을 막으려면 Firebase 보안 규칙도 함께 조정하는 것이
-            좋습니다.
+            Security note: To enforce this on the server, update Firebase security rules in addition to this UI.
           </p>
 
           <div className="border border-gray-200 rounded-lg p-3 sm:p-4 bg-gray-50 mb-4">
-            <span className="font-semibold text-gray-800">President (회장)</span>
-            <p className="text-sm text-gray-600 mt-1">네 영역 모두 항상 허용됩니다. (변경 불가)</p>
+            <span className="font-semibold text-gray-800">President</span>
+            <p className="text-sm text-gray-600 mt-1">All four areas are always allowed. (Cannot be changed here.)</p>
           </div>
 
-          {loading ? (
-            <div className="text-gray-500">Loading…</div>
+          {permDirty && (
+            <p className="text-sm text-amber-900 bg-amber-100 border border-amber-300 rounded-lg px-3 py-2 mb-4">
+              You have unsaved changes. Click <strong>Confirm</strong> to save them.
+            </p>
+          )}
+
+          {!execPermLoaded ? (
+            <div className="text-gray-500">Loading permissions...</div>
           ) : (
             <div className="space-y-2">
               {entries.map((entry) => {
-                const open = expandedDetailRole === entry.name;
-                const effective = getEffectiveExecPermissions(entry.name, { byRole: execByRole });
+                const open = expandedDetailId === entry.id;
+                const effective = getEffectiveExecPermissions(entry.name, { byRole: localByRole });
                 return (
                   <div key={`detail-${entry.id}`} className="border border-gray-200 rounded-lg overflow-hidden bg-white">
                     <button
                       type="button"
-                      onClick={() => setExpandedDetailRole(open ? null : entry.name)}
+                      onClick={() => setExpandedDetailId(open ? null : entry.id)}
                       className="w-full flex items-center justify-between gap-2 px-3 py-3 sm:px-4 text-left hover:bg-gray-50"
                     >
                       <span className="font-semibold text-gray-800 break-words">{entry.name}</span>
@@ -272,11 +296,11 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
                               <input
                                 type="checkbox"
                                 checked={on}
-                                disabled={savingPerm !== null}
-                                onChange={() => void toggleExecPermission(entry.name, key)}
+                                disabled={savingPermissions}
+                                onChange={() => toggleExecPermission(entry.name, key)}
                                 className="mt-1 rounded border-gray-300"
                               />
-                              <span className="text-sm text-gray-800 leading-snug">{EXEC_PERMISSION_LABELS_KO[key]}</span>
+                              <span className="text-sm text-gray-800 leading-snug">{EXEC_PERMISSION_LABELS_EN[key]}</span>
                             </label>
                           );
                         })}
@@ -287,6 +311,17 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
               })}
             </div>
           )}
+
+          <div className="mt-6 flex flex-wrap items-center gap-3 justify-end border-t border-gray-100 pt-4">
+            <button
+              type="button"
+              disabled={!permDirty || savingPermissions || loading || !execPermLoaded}
+              onClick={() => void confirmExecPermissions()}
+              className="px-5 py-2.5 rounded-lg font-medium text-sm sm:text-base bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {savingPermissions ? 'Saving...' : 'Confirm'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
