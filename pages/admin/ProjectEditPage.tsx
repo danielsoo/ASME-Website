@@ -171,6 +171,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
         updatedAt: new Date().toISOString(),
         slack: slack.trim() || null,
         timeline: timeline.trim() || null,
+        chairs: [],
         img: null,
         imgs: imgs.map((u) => u.trim()).filter(Boolean),
         joinSectionTitle: joinSectionTitle.trim() || null,

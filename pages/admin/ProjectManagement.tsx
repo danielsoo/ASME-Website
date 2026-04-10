@@ -251,7 +251,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
   };
 
   const handleCreateProject = async () => {
-    if (!projectTitle.trim()) {
+    const plainTitle = richTextToPlainText(projectTitle);
+    if (!plainTitle) {
       showAlert('warning', 'Validation Error', 'Please enter a project title.');
       throw new Error('Validation failed');
     }

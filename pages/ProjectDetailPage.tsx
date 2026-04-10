@@ -95,23 +95,18 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNaviga
           </div>
         )}
           {/* Members Grid */}
-        {(project.chairs && project.chairs.length > 0) ? (
+        {(project.members && project.members.length > 0) && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 border-t border-gray-700 pt-4 mt-3 mb-11">
-            {/* Display chairs (legacy data) */}
-            {project.chairs?.map((chair, index) => (
-              <div key={`chair-${index}`} className="flex items-center space-x-3">
+            {project.members.map((member, index) => (
+              <div key={`member-${member.userId}-${index}`} className="flex items-center space-x-3">
                 <div className="flex flex-col">
-                  <span className="text-xs text-black font-medium">{chair.name}</span>
-                  <span className="text-[10px] text-[#48597F]">{chair.role}</span>
+                  <span className="text-xs text-black font-medium">{member.userName}</span>
+                  <span className="text-[10px] text-[#48597F]">{member.projectRole}</span>
                 </div>
               </div>
-            ))}  
+            ))}
           </div>
-        ) : !(project.leaderEmail || project.leaderId) ? (
-          <div className="text-sm text-gray-400 font-jost italic mb-11">
-            No members assigned yet.
-          </div>
-        ) : null}
+        )}
 
           {/* Join Section */}
           <div className="mb-8">
