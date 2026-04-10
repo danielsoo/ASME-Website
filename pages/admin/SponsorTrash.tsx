@@ -152,6 +152,12 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
 
   const handleRestore = async () => {
     if (!sponsorToRestore) return;
+    if (!perms.sponsors) {
+      setShowConfirmRestore(false);
+      setSponsorToRestore(null);
+      showAlert('error', 'Permission denied', 'You do not have permission to restore sponsors.');
+      return;
+    }
 
     try {
       await updateDoc(doc(db, 'sponsors', sponsorToRestore), {
@@ -170,6 +176,10 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
   };
 
   const handleRestoreAll = async () => {
+    if (!perms.sponsors) {
+      showAlert('error', 'Permission denied', 'You do not have permission to restore sponsors.');
+      return;
+    }
     // Only restore sponsors that are in trash (not already permanently deleted)
     const sponsorsToRestore = deletedSponsors.filter(s => 
       s.deletedAt && (!s.permanentDeleteRequest?.approvedByExec1 || !s.permanentDeleteRequest?.approvedByExec2)
@@ -216,6 +226,10 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
 
   const handlePermanentDelete = async () => {
     if (!sponsorToPermanentDelete) return;
+    if (!perms.sponsors) {
+      showAlert('error', 'Permission denied', 'You do not have permission to request permanent sponsor deletion.');
+      return;
+    }
 
     try {
       const sponsor = deletedSponsors.find(s => s.id === sponsorToPermanentDelete);
@@ -617,13 +631,15 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
                 })()}
 
                 <div className="flex gap-3 flex-wrap">
-                  <button
-                    onClick={() => handleRestoreClick(sponsor.id)}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-                  >
-                    <RotateCcw className="w-5 h-5" />
-                    Restore
-                  </button>
+                  {canManageTrash() && (
+                    <button
+                      onClick={() => handleRestoreClick(sponsor.id)}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                    >
+                      <RotateCcw className="w-5 h-5" />
+                      Restore
+                    </button>
+                  )}
                   {sponsor.permanentDeleteRequest ? (
                     <>
                       {/* Show approve/reject buttons only if not rejected and not already approved by this user */}

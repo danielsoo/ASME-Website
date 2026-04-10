@@ -272,7 +272,9 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
             <strong>Projects</strong> area permission in Admin Access to edit.
           </div>
         )}
-        <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
+        <div
+          className={`bg-white rounded-lg shadow-md p-6 space-y-6 ${readOnly ? 'pointer-events-none select-none' : ''}`}
+        >
           {/* Basic info */}
           <section>
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Basic Info</h2>
@@ -487,7 +489,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
             </div>
           )}
           {readOnly && (
-            <div className="pt-4">
+            <div className="pt-4 pointer-events-auto">
               <button
                 type="button"
                 onClick={() => safeNavigate('/admin/projects')}

@@ -78,7 +78,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   ];
 
   return (
-    <div className={`rich-text-editor ${className}`}>
+    <div
+      className={`rich-text-editor ${className} ${readOnly ? 'pointer-events-none select-none' : ''}`}
+    >
       {hint && (
         <p className="text-xs text-gray-500 mb-2">{hint}</p>
       )}

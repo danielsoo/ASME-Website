@@ -179,10 +179,8 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
     }
   };
 
-  const canManageTrash = (): boolean => {
-    if (perms.projects) return true;
-    return deletedProjects.some((p) => isProjectLeader(p));
-  };
+  /** Trash mutations (restore, request permanent delete) require Projects area permission — not project-leader bypass. */
+  const canManageTrash = (): boolean => perms.projects;
 
   const isProjectLeader = (project: Project): boolean => {
     return project.leaderId === currentUserId;
@@ -198,6 +196,12 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
 
   const handleRestore = async () => {
     if (!projectToRestore) return;
+    if (!perms.projects) {
+      setShowConfirmRestore(false);
+      setProjectToRestore(null);
+      showAlert('error', 'Permission denied', 'You do not have permission to restore projects.');
+      return;
+    }
 
     try {
       await updateDoc(doc(db, 'projects', projectToRestore), {
@@ -216,6 +220,10 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
   };
 
   const handleRestoreAll = async () => {
+    if (!perms.projects) {
+      showAlert('error', 'Permission denied', 'You do not have permission to restore projects.');
+      return;
+    }
     // Only restore projects that are in trash (not already permanently deleted)
     const projectsToRestore = deletedProjects.filter(p => p.deletedAt && !p.permanentDeleteRequest?.approvedByLeader || !p.permanentDeleteRequest?.approvedByExec);
 
@@ -260,6 +268,10 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
 
   const handlePermanentDelete = async () => {
     if (!projectToPermanentDelete) return;
+    if (!perms.projects) {
+      showAlert('error', 'Permission denied', 'You do not have permission to request permanent project deletion.');
+      return;
+    }
 
     try {
       const project = deletedProjects.find(p => p.id === projectToPermanentDelete);
@@ -780,13 +792,15 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
                 })()}
 
                 <div className="flex gap-3 flex-wrap">
-                  <button
-                    onClick={() => handleRestoreClick(project.id)}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-                  >
-                    <RotateCcw className="w-5 h-5" />
-                    Restore
-                  </button>
+                  {canManageTrash() && (
+                    <button
+                      onClick={() => handleRestoreClick(project.id)}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                    >
+                      <RotateCcw className="w-5 h-5" />
+                      Restore
+                    </button>
+                  )}
                   {project.permanentDeleteRequest ? (
                     <>
                       {/* Show approve/reject buttons only if not rejected and not already approved by this user */}
