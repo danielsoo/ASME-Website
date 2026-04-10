@@ -23,6 +23,8 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState('');
+  const [currentUserId, setCurrentUserId] = useState('');
+  const [currentUserEmail, setCurrentUserEmail] = useState('');
   const { ready: permReady, perms } = useExecPermissions();
   const [roleReady, setRoleReady] = useState(false);
   const [allUsers, setAllUsers] = useState<{ uid: string; name?: string; email?: string; role?: string }[]>([]);
@@ -60,9 +62,13 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) {
+        setCurrentUserId('');
+        setCurrentUserEmail('');
         setRoleReady(false);
         return;
       }
+      setCurrentUserId(user.uid);
+      setCurrentUserEmail((user.email || '').trim().toLowerCase());
       try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) setCurrentUserRole(userDoc.data()?.role || '');
@@ -150,9 +156,19 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
     return () => { cancelled = true; };
   }, [projectId]);
 
+  const isProjectLeaderOfThisProject = (p: Project): boolean => {
+    if (currentUserId && p.leaderId === currentUserId) return true;
+    const docEmail = (p.leaderEmail || '').trim().toLowerCase();
+    if (docEmail && currentUserEmail && docEmail === currentUserEmail) return true;
+    return false;
+  };
+
+  const canSaveThisProject = (): boolean =>
+    canManageProjects() || (!!project && isProjectLeaderOfThisProject(project));
+
   const handleSave = async (opts?: { navigateAfter?: boolean }) => {
     const navigateAfter = opts?.navigateAfter !== false;
-    if (!project || !canManageProjects() || saving) return;
+    if (!project || !canSaveThisProject() || saving) return;
     const plainTitle = richTextToPlainText(title);
     if (!plainTitle) {
       setAlert({ isOpen: true, type: 'error', title: 'Error', message: 'Project title is required.' });
@@ -160,14 +176,22 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
     }
     setSaving(true);
     try {
-      const leaderUser = leaderId ? allUsers.find((u) => u.uid === leaderId) : null;
+      const globalManage = canManageProjects();
+      const leaderIdToPersist = globalManage
+        ? leaderId || null
+        : project.leaderId || null;
+      const leaderUser = leaderIdToPersist
+        ? allUsers.find((u) => u.uid === leaderIdToPersist)
+        : null;
       const finalImageUrl = ikUrl || imageUrl.trim() || '';
       const updateData: Record<string, unknown> = {
         title: title.trim(),
         description: description.trim(),
         status,
-        leaderId: leaderId || null,
-        leaderEmail: leaderUser?.email || '',
+        leaderId: leaderIdToPersist,
+        leaderEmail: globalManage
+          ? leaderUser?.email || ''
+          : project.leaderEmail || leaderUser?.email || '',
         updatedAt: new Date().toISOString(),
         slack: slack.trim() || null,
         timeline: timeline.trim() || null,
@@ -196,19 +220,25 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
   };
 
   const currentPath = `/admin/projects/edit/${projectId}`;
-  const dirty = !!project && canManageProjects() && (
-    (title || '').trim() !== (project.title || '').trim() ||
-    (description || '').trim() !== (project.description || '').trim() ||
-    (ikUrl || imageUrl || '').trim() !== (project.imageUrl || '').trim() ||
-    status !== (project.status || 'current') ||
-    leaderId !== (project.leaderId || '') ||
-    (slack || '').trim() !== (project.slack || '').trim() ||
-    (timeline || '').trim() !== (project.timeline || '').trim() ||
-    JSON.stringify(imgs.map((u) => u.trim()).filter(Boolean)) !== JSON.stringify((project.imgs?.length ? project.imgs : (project.img ? [project.img] : [])).map((u) => u.trim()).filter(Boolean)) ||
-    (joinSectionTitle || '').trim() !== (project.joinSectionTitle ?? 'Want to Get Involved?').trim() ||
-    (joinSectionDescription || '').trim() !== (project.joinSectionDescription ?? '').trim() ||
-    (joinButtonLabel || '').trim() !== (project.joinButtonLabel ?? 'Join the Slack').trim()
-  );
+  const dirty =
+    !!project &&
+    canSaveThisProject() &&
+    ((title || '').trim() !== (project.title || '').trim() ||
+      (description || '').trim() !== (project.description || '').trim() ||
+      (ikUrl || imageUrl || '').trim() !== (project.imageUrl || '').trim() ||
+      status !== (project.status || 'current') ||
+      (canManageProjects() && leaderId !== (project.leaderId || '')) ||
+      (slack || '').trim() !== (project.slack || '').trim() ||
+      (timeline || '').trim() !== (project.timeline || '').trim() ||
+      JSON.stringify(imgs.map((u) => u.trim()).filter(Boolean)) !==
+        JSON.stringify(
+          (project.imgs?.length ? project.imgs : project.img ? [project.img] : [])
+            .map((u) => u.trim())
+            .filter(Boolean)
+        ) ||
+      (joinSectionTitle || '').trim() !== (project.joinSectionTitle ?? 'Want to Get Involved?').trim() ||
+      (joinSectionDescription || '').trim() !== (project.joinSectionDescription ?? '').trim() ||
+      (joinButtonLabel || '').trim() !== (project.joinButtonLabel ?? 'Join the Slack').trim());
   const saveForLeave = async () => {
     await handleSave({ navigateAfter: false });
   };
@@ -250,7 +280,9 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
     );
   }
 
-  const readOnly = !canManageProjects();
+  const readOnly = !canSaveThisProject();
+  const leaderOnlyEdit =
+    !!project && canSaveThisProject() && !canManageProjects() && isProjectLeaderOfThisProject(project);
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8">
@@ -266,10 +298,18 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
           </button>
         </div>
         {leaveConfirmModal}
+        {leaderOnlyEdit && (
+          <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
+            <strong>Project leader.</strong> You can update this project’s content and members from Project Management.
+            The assigned <strong>Project Leader</strong> field cannot be changed here; ask someone with{' '}
+            <strong>Projects</strong> permission in Admin Access to reassign leadership.
+          </div>
+        )}
         {readOnly && (
           <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
             <strong>View only.</strong> You can review this project but cannot save changes. Ask the President to grant{' '}
-            <strong>Projects</strong> area permission in Admin Access to edit.
+            <strong>Projects</strong> area permission in Admin Access to edit, or be set as this project’s leader to
+            edit it.
           </div>
         )}
         <div
@@ -345,7 +385,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                 <select
                   value={leaderId}
                   onChange={(e) => setLeaderId(e.target.value)}
-                  disabled={readOnly}
+                  disabled={readOnly || leaderOnlyEdit}
                   className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
                   <option value="">No Leader</option>

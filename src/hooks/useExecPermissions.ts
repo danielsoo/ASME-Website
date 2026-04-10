@@ -40,7 +40,7 @@ export function useExecPermissions(): {
         let r = 'member';
         try {
           const snap = await getDoc(doc(db, 'users', user.uid));
-          if (snap.exists()) r = String(snap.data()?.role ?? 'member');
+          if (snap.exists()) r = String(snap.data()?.role ?? 'member').trim();
         } catch {
           r = 'member';
         }

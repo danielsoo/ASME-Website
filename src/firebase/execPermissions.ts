@@ -80,14 +80,23 @@ function legacyRowToCoarse(row: Record<string, unknown>): Partial<ExecPermission
   return out;
 }
 
+function normalizeRoleKey(role: string): string {
+  return role.trim();
+}
+
 export function getEffectiveExecPermissions(
   role: string,
   raw: ExecPermissionsDocument | null | undefined
 ): ExecPermissionMap {
-  if (role === 'President' || role === 'admin') {
+  const r = normalizeRoleKey(role);
+  if (r === 'President' || r === 'admin') {
     return { ...ALL_TRUE };
   }
-  const rowRaw = raw?.byRole?.[role];
+  let rowRaw = raw?.byRole?.[r];
+  if (rowRaw === undefined && raw?.byRole) {
+    const key = Object.keys(raw.byRole).find((k) => normalizeRoleKey(k) === r);
+    if (key !== undefined) rowRaw = raw.byRole[key];
+  }
   const row =
     rowRaw && typeof rowRaw === 'object' ? (rowRaw as Record<string, unknown>) : null;
   const legacy = row ? legacyRowToCoarse(row) : {};

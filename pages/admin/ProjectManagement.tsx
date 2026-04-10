@@ -29,6 +29,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
   const { ready: permReady, perms } = useExecPermissions();
   const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -80,10 +81,13 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     // Get current user's role
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
+        setCurrentUserId('');
+        setCurrentUserEmail('');
         setRoleReady(false);
         return;
       }
       setCurrentUserId(user.uid);
+      setCurrentUserEmail((user.email || '').trim().toLowerCase());
       try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) {
@@ -240,9 +244,12 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
 
   const canEditProjectDetail = (): boolean => perms.projects;
 
-  // Check if user is project leader
+  // Check if user is project leader (this project only)
   const isProjectLeader = (project: Project): boolean => {
-    return project.leaderId === currentUserId;
+    if (currentUserId && project.leaderId === currentUserId) return true;
+    const docEmail = (project.leaderEmail || '').trim().toLowerCase();
+    if (docEmail && currentUserEmail && docEmail === currentUserEmail) return true;
+    return false;
   };
 
   const handleCreateProject = async () => {
@@ -464,13 +471,20 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                       )}
                     </div>
                   </div>
-                  {(canEditProjectDetail() || canDeleteProjects() || readOnlyProjectList) && (
+                  {(canEditProjectDetail() ||
+                    canDeleteProjects() ||
+                    readOnlyProjectList ||
+                    isProjectLeader(project)) && (
                     <div className="flex gap-1.5 sm:gap-2 shrink-0">
-                      {(canEditProjectDetail() || readOnlyProjectList) && (
+                      {(canEditProjectDetail() || readOnlyProjectList || isProjectLeader(project)) && (
                         <button
                           onClick={() => safeNavigate('/admin/projects/edit/' + project.id)}
                           className="text-blue-600 hover:text-blue-800 p-1"
-                          title={canEditProjectDetail() ? 'Edit Project' : 'View project'}
+                          title={
+                            canEditProjectDetail() || isProjectLeader(project)
+                              ? 'Edit Project'
+                              : 'View project'
+                          }
                         >
                           <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
@@ -523,7 +537,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   </div>
                 </div>
 
-                {(project.approvalStatus === 'approved' || !project.approvalStatus) && isProjectLeader(project) && (
+                {(project.approvalStatus === 'approved' || !project.approvalStatus) &&
+                  (canManageProjects() || isProjectLeader(project)) && (
                   <button
                     onClick={() => openMemberModal(project)}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center justify-center gap-2 text-sm"
@@ -722,6 +737,7 @@ interface ProjectMemberManagementProps {
   allUsers: any[];
   currentUserId: string;
   canManageProjects: boolean;
+  /** True when the current user is leader of this project (may edit members without global Projects perm). */
   isProjectLeader: boolean;
   onClose: () => void;
   onUpdate: () => void;
@@ -736,6 +752,7 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
   onClose,
   onUpdate,
 }) => {
+  const canMutateThisProject = canManageProjects || isProjectLeader;
   const [members, setMembers] = useState<ProjectMember[]>(project.members || []);
   const [showAddMember, setShowAddMember] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState('');
@@ -783,6 +800,8 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
   };
 
   const handleAddMember = async () => {
+    if (!canMutateThisProject) return;
+
     if (!selectedUserId) {
       showMemberAlert('warning', 'Validation Error', 'Please select a user.');
       return;
@@ -834,7 +853,7 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
   };
 
   const handleRemoveMember = async () => {
-    if (!memberToRemove) return;
+    if (!canMutateThisProject || !memberToRemove) return;
 
     try {
       const updatedMembers = members.filter(m => m.userId !== memberToRemove);
@@ -854,6 +873,8 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
   };
 
   const handleUpdateMemberRole = async (userId: string, newRole: string) => {
+    if (!canMutateThisProject) return;
+
     try {
       const updatedMembers = members.map(m =>
         m.userId === userId ? { ...m, projectRole: newRole } : m
@@ -879,6 +900,8 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
 
   // Handle add project role
   const handleAddProjectRole = async () => {
+    if (!canMutateThisProject) return;
+
     if (!newRoleName.trim()) {
       showMemberAlert('warning', 'Validation Error', 'Please enter a role name.');
       return;
@@ -919,7 +942,7 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
   };
 
   const handleDeleteProjectRole = async () => {
-    if (!roleToDelete) return;
+    if (!canMutateThisProject || !roleToDelete) return;
 
     try {
       const updatedRoles = projectRoles.filter(r => r !== roleToDelete);
@@ -953,7 +976,7 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
           </button>
         </div>
 
-        {(canManageProjects || isProjectLeader) && (
+        {canMutateThisProject && (
           <div className="mb-6 space-y-3">
             <div className="flex gap-2">
               {!showAddMember ? (
@@ -1143,7 +1166,7 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
                           {member.userEmail}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {(canManageProjects || isProjectLeader) ? (
+                          {canMutateThisProject ? (
                             <select
                               value={member.projectRole}
                               onChange={(e) => handleUpdateMemberRole(member.userId, e.target.value)}
@@ -1161,7 +1184,7 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {(canManageProjects || isProjectLeader) && (
+                          {canMutateThisProject && (
                             <button
                               onClick={() => handleRemoveMemberClick(member.userId)}
                               className="text-red-600 hover:text-red-800"
