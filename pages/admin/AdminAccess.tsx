@@ -10,8 +10,14 @@ import {
   EXEC_PERMISSION_LABELS_EN,
   getEffectiveExecPermissions,
   saveFullExecPermissionsByRole,
+  type ExecPermissionKey,
   type ExecPermissionsByRole,
 } from '../../src/firebase/execPermissions';
+
+interface RoleHolder {
+  name: string;
+  email: string;
+}
 
 const DEFAULT_ALLOWED_ROLES = ['President', 'Vice President'];
 const CONFIG_PATH = 'config';
@@ -40,6 +46,8 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
   const [savingPermissions, setSavingPermissions] = useState(false);
   /** After first successful execPermissions snapshot — avoids saving before full byRole is loaded. */
   const [execPermLoaded, setExecPermLoaded] = useState(false);
+  /** Approved users grouped by `users.role` (matches Executive Board position names). */
+  const [holdersByRole, setHoldersByRole] = useState<Record<string, RoleHolder[]>>({});
 
   const isPresident = currentUserRole === 'President';
 
@@ -103,10 +111,36 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
       }
     );
 
+    const unsubUsers = onSnapshot(
+      collection(db, 'users'),
+      (snapshot) => {
+        const map: Record<string, RoleHolder[]> = {};
+        snapshot.forEach((d) => {
+          const data = d.data();
+          if (data.status !== 'approved') return;
+          const role = String(data.role ?? '').trim();
+          if (!role) return;
+          const nameRaw = String(data.name ?? '').trim();
+          const email = String(data.email ?? '').trim();
+          const displayName = nameRaw || email || d.id;
+          if (!map[role]) map[role] = [];
+          map[role].push({ name: displayName, email });
+        });
+        for (const k of Object.keys(map)) {
+          map[k].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+        }
+        setHoldersByRole(map);
+      },
+      (e) => {
+        console.error('AdminAccess users subscription:', e);
+      }
+    );
+
     return () => {
       unsubPositions();
       unsubAccess();
       unsubExecPerm();
+      unsubUsers();
     };
   }, [isPresident]);
 
@@ -131,6 +165,35 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
     const effective = getEffectiveExecPermissions(roleName, { byRole: localByRole });
     const nextVal = !effective[key];
     const row = { ...(localByRole[roleName] || {}), [key]: nextVal };
+    setLocalByRole({ ...localByRole, [roleName]: row });
+    permDirtyRef.current = true;
+    setPermDirty(true);
+  };
+
+  /** Set all four areas to allowed (explicit true so merged Firestore data does not keep old denials). */
+  const allowAllAreasForRole = (roleName: string) => {
+    if (!isPresident || savingPermissions || !execPermLoaded) return;
+    const row = EXEC_PERMISSION_KEYS.reduce(
+      (acc, k) => {
+        acc[k] = true;
+        return acc;
+      },
+      {} as Record<ExecPermissionKey, boolean>
+    );
+    setLocalByRole({ ...localByRole, [roleName]: row });
+    permDirtyRef.current = true;
+    setPermDirty(true);
+  };
+
+  const denyAllAreasForRole = (roleName: string) => {
+    if (!isPresident || savingPermissions || !execPermLoaded) return;
+    const row = EXEC_PERMISSION_KEYS.reduce(
+      (acc, k) => {
+        acc[k] = false;
+        return acc;
+      },
+      {} as Record<ExecPermissionKey, boolean>
+    );
     setLocalByRole({ ...localByRole, [roleName]: row });
     permDirtyRef.current = true;
     setPermDirty(true);
@@ -272,6 +335,7 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
               {entries.map((entry) => {
                 const open = expandedDetailId === entry.id;
                 const effective = getEffectiveExecPermissions(entry.name, { byRole: localByRole });
+                const holders = holdersByRole[entry.name] ?? [];
                 return (
                   <div key={`detail-${entry.id}`} className="border border-gray-200 rounded-lg overflow-hidden bg-white">
                     <button
@@ -285,25 +349,66 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
                       </span>
                     </button>
                     {open && (
-                      <div className="px-3 pb-3 sm:px-4 sm:pb-4 border-t border-gray-100 pt-3 space-y-2">
-                        {EXEC_PERMISSION_KEYS.map((key) => {
-                          const on = effective[key];
-                          return (
-                            <label
-                              key={key}
-                              className="flex items-start gap-3 cursor-pointer rounded-md px-2 py-1.5 hover:bg-gray-50"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={on}
-                                disabled={savingPermissions}
-                                onChange={() => toggleExecPermission(entry.name, key)}
-                                className="mt-1 rounded border-gray-300"
-                              />
-                              <span className="text-sm text-gray-800 leading-snug">{EXEC_PERMISSION_LABELS_EN[key]}</span>
-                            </label>
-                          );
-                        })}
+                      <div className="border-t border-gray-100">
+                        <div className="px-3 sm:px-4 pt-3 pb-3 bg-gray-50/90">
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                            Members with this role
+                          </p>
+                          {holders.length === 0 ? (
+                            <p className="text-sm text-gray-500">
+                              No approved members are assigned this role in Member Management.
+                            </p>
+                          ) : (
+                            <ul className="text-sm text-gray-800 space-y-1">
+                              {holders.map((h, idx) => (
+                                <li key={`${entry.id}-${h.email}-${idx}`} className="pl-1">
+                                  <span className="font-medium">{h.name}</span>
+                                  {h.email && h.name !== h.email ? (
+                                    <span className="text-gray-600 font-normal"> — {h.email}</span>
+                                  ) : null}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        <div className="px-3 sm:px-4 py-2 border-t border-gray-100 flex flex-wrap gap-2 bg-white">
+                          <button
+                            type="button"
+                            disabled={savingPermissions}
+                            onClick={() => allowAllAreasForRole(entry.name)}
+                            className="text-sm px-3 py-1.5 rounded-md border border-green-200 bg-green-50 text-green-900 hover:bg-green-100 disabled:opacity-50"
+                          >
+                            Allow all areas
+                          </button>
+                          <button
+                            type="button"
+                            disabled={savingPermissions}
+                            onClick={() => denyAllAreasForRole(entry.name)}
+                            className="text-sm px-3 py-1.5 rounded-md border border-red-200 bg-red-50 text-red-900 hover:bg-red-100 disabled:opacity-50"
+                          >
+                            Deny all areas
+                          </button>
+                        </div>
+                        <div className="px-3 pb-3 sm:px-4 sm:pb-4 pt-2 space-y-2">
+                          {EXEC_PERMISSION_KEYS.map((key) => {
+                            const on = effective[key];
+                            return (
+                              <label
+                                key={key}
+                                className="flex items-start gap-3 cursor-pointer rounded-md px-2 py-1.5 hover:bg-gray-50"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={on}
+                                  disabled={savingPermissions}
+                                  onChange={() => toggleExecPermission(entry.name, key)}
+                                  className="mt-1 rounded border-gray-300"
+                                />
+                                <span className="text-sm text-gray-800 leading-snug">{EXEC_PERMISSION_LABELS_EN[key]}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
