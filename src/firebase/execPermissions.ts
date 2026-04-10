@@ -99,13 +99,19 @@ export function getEffectiveExecPermissions(
   }
   const row =
     rowRaw && typeof rowRaw === 'object' ? (rowRaw as Record<string, unknown>) : null;
-  const legacy = row ? legacyRowToCoarse(row) : {};
 
   /**
-   * If there is any stored row for this role, missing keys mean "not granted" (false), not default-allow.
-   * Only when there is no byRole entry at all do we keep legacy behavior: everything allowed until configured.
+   * If there is any stored row for this role, missing coarse keys mean "not granted" (false), not default-allow.
+   *
+   * Important: rows may mix **new** coarse keys (`users`, `members`, `projects`, `sponsors`) with **old**
+   * granular fields (`projectsEdit`, `membersManage`, …). If we fill gaps from legacy after some coarse
+   * keys exist, **Projects** was the worst offender: `everyTrueOrMissing` over a single leftover
+   * `projectsEdit: true` could force `projects: true` while Members/Sponsors looked correctly off from
+   * their coarse booleans. Once any coarse key is present, trust only coarse keys + default-deny.
    */
   if (row) {
+    const hasAnyCoarseKey = EXEC_PERMISSION_KEYS.some((k) => typeof row[k] === 'boolean');
+    const legacy = hasAnyCoarseKey ? {} : legacyRowToCoarse(row);
     const base = allFalse();
     for (const k of EXEC_PERMISSION_KEYS) {
       if (typeof row[k] === 'boolean') {
@@ -115,6 +121,21 @@ export function getEffectiveExecPermissions(
       }
     }
     return base;
+  }
+
+  /**
+   * Legacy: before any `byRole` data exists, non-President roles effectively had full admin-area access.
+   * Once at least one role row is stored, roles with **no** row must not inherit allow-all — otherwise
+   * configuring e.g. one officer's "deny Projects" leaves every other exec position with implicit full access.
+   */
+  const byRole = raw?.byRole;
+  const hasAnyConfiguredRole =
+    byRole !== null &&
+    byRole !== undefined &&
+    typeof byRole === 'object' &&
+    Object.keys(byRole).length > 0;
+  if (hasAnyConfiguredRole) {
+    return allFalse();
   }
 
   return { ...ALL_TRUE };

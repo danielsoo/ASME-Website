@@ -308,7 +308,10 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
             approve, trash,</strong> and similar—not split into smaller toggles. For example, enabling{' '}
             <strong>Sponsors</strong> applies to the sponsor list, trash, and permanent delete the same way.{' '}
             <strong>President</strong> and accounts with the <strong>admin</strong> user role always have all four
-            areas (not configured here). Roles you have never configured default to <strong>everything allowed</strong>.
+            areas (not configured here). Before any permissions are saved to Firebase, other roles default to{' '}
+            <strong>everything allowed</strong>. After at least one role has been saved, any role with{' '}
+            <strong>no saved row</strong> is treated as <strong>all areas off</strong> until you explicitly allow them
+            (use &quot;Allow all areas&quot; or toggle individual checkboxes and Confirm).
           </p>
           <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
             Security note: To enforce this on the server, update Firebase security rules in addition to this UI.
