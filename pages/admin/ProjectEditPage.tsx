@@ -250,20 +250,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
     );
   }
 
-  if (!canManageProjects()) {
-    return (
-      <div className="min-h-screen bg-gray-100 p-8">
-        <p className="text-gray-600 mb-4">프로젝트 상세 편집 권한이 없습니다.</p>
-        <button
-          type="button"
-          onClick={() => onNavigate('/admin/projects')}
-          className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"
-        >
-          Back to Projects
-        </button>
-      </div>
-    );
-  }
+  const readOnly = !canManageProjects();
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8">
@@ -279,6 +266,12 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
           </button>
         </div>
         {leaveConfirmModal}
+        {readOnly && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <strong>View only.</strong> You can review this project but cannot save changes. Ask the President to grant{' '}
+            <strong>Projects</strong> area permission in Admin Access to edit.
+          </div>
+        )}
         <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
           {/* Basic info */}
           <section>
@@ -290,6 +283,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                   value={title}
                   onChange={setTitle}
                   minHeight="60px"
+                  readOnly={readOnly}
                 />
               </div>
               <div>
@@ -298,28 +292,35 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                   value={description}
                   onChange={setDescription}
                   minHeight="120px"
+                  readOnly={readOnly}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Main Image</label>
-                <Uploader
-                  folder={imageKitFolderForProjectId(projectId)}
-                  tags={imageKitTagsForProject(projectId)}
-                  onProgress={(pct) => {
-                    setUploadPct(pct);
-                    setUploadingImage(pct > 0 && pct < 100);
-                  }}
-                  onError={(msg) => setAlert({ isOpen: true, type: 'error', title: 'Image Upload', message: msg })}
-                  onComplete={(u) => {
-                    setIkUrl(u.url);
-                    setIkFileId(u.fileId);
-                    setIkFilePath(u.filePath);
-                    setIkThumbUrl(u.thumbnailUrl ?? null);
-                    setImageUrl(u.url);
-                    setAlert({ isOpen: true, type: 'success', title: 'Image', message: 'Image uploaded.' });
-                  }}
-                />
-                {uploadPct > 0 && uploadPct < 100 && <p className="text-xs text-gray-500 mt-1">Uploading... {uploadPct}%</p>}
+                {!readOnly && (
+                  <>
+                    <Uploader
+                      folder={imageKitFolderForProjectId(projectId)}
+                      tags={imageKitTagsForProject(projectId)}
+                      onProgress={(pct) => {
+                        setUploadPct(pct);
+                        setUploadingImage(pct > 0 && pct < 100);
+                      }}
+                      onError={(msg) => setAlert({ isOpen: true, type: 'error', title: 'Image Upload', message: msg })}
+                      onComplete={(u) => {
+                        setIkUrl(u.url);
+                        setIkFileId(u.fileId);
+                        setIkFilePath(u.filePath);
+                        setIkThumbUrl(u.thumbnailUrl ?? null);
+                        setImageUrl(u.url);
+                        setAlert({ isOpen: true, type: 'success', title: 'Image', message: 'Image uploaded.' });
+                      }}
+                    />
+                    {uploadPct > 0 && uploadPct < 100 && (
+                      <p className="text-xs text-gray-500 mt-1">Uploading... {uploadPct}%</p>
+                    )}
+                  </>
+                )}
                 <ProjectAdminImagePreview
                   imageUrl={ikUrl || imageUrl}
                   titleHint={richTextToPlainText(title)}
@@ -330,7 +331,8 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as 'current' | 'past')}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
                   <option value="current">Current</option>
                   <option value="past">Past</option>
@@ -341,7 +343,8 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                 <select
                   value={leaderId}
                   onChange={(e) => setLeaderId(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
                   <option value="">No Leader</option>
                   {allUsers.map((u) => (
@@ -364,6 +367,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                   onChange={setJoinSectionTitle}
                   minHeight="60px"
                   placeholder="e.g. Want to Get Involved?"
+                  readOnly={readOnly}
                 />
               </div>
               <div>
@@ -373,6 +377,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                   onChange={setJoinSectionDescription}
                   minHeight="80px"
                   placeholder="e.g. Click the link below to authenticate your email and join the slack."
+                  readOnly={readOnly}
                 />
               </div>
               <div>
@@ -381,7 +386,8 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                   type="url"
                   value={slack}
                   onChange={(e) => setSlack(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
+                  readOnly={readOnly}
+                  className={`w-full border border-gray-300 rounded px-3 py-2 text-gray-900 ${readOnly ? 'bg-gray-100 cursor-default' : ''}`}
                   placeholder="https://..."
                 />
               </div>
@@ -391,7 +397,8 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                   type="text"
                   value={joinButtonLabel}
                   onChange={(e) => setJoinButtonLabel(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
+                  readOnly={readOnly}
+                  className={`w-full border border-gray-300 rounded px-3 py-2 text-gray-900 ${readOnly ? 'bg-gray-100 cursor-default' : ''}`}
                   placeholder="e.g. Join the Slack"
                 />
               </div>
@@ -401,7 +408,8 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                   type="text"
                   value={timeline}
                   onChange={(e) => setTimeline(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
+                  readOnly={readOnly}
+                  className={`w-full border border-gray-300 rounded px-3 py-2 text-gray-900 ${readOnly ? 'bg-gray-100 cursor-default' : ''}`}
                   placeholder="e.g. March 15, 2025"
                 />
               </div>
@@ -412,25 +420,29 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                     <div key={i} className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs font-medium text-gray-500">Image {i + 1}</span>
-                        <button
-                          type="button"
-                          onClick={() => setImgs(imgs.filter((_, j) => j !== i))}
-                          className="text-xs text-red-500 hover:text-red-700 font-medium"
-                        >
-                          Remove
-                        </button>
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            onClick={() => setImgs(imgs.filter((_, j) => j !== i))}
+                            className="text-xs text-red-500 hover:text-red-700 font-medium"
+                          >
+                            Remove
+                          </button>
+                        )}
                       </div>
-                      <DragUploader
-                        folder={`${imageKitFolderForProjectId(projectId)}/gallery`}
-                        tags={[...imageKitTagsForProject(projectId), 'gallery']}
-                        onComplete={(u) => {
-                          const next = [...imgs];
-                          next[i] = u.url;
-                          setImgs(next);
-                          setAlert({ isOpen: true, type: 'success', title: 'Image', message: `Gallery image ${i + 1} uploaded.` });
-                        }}
-                        onError={(msg) => setAlert({ isOpen: true, type: 'error', title: 'Upload Error', message: msg })}
-                      />
+                      {!readOnly && (
+                        <DragUploader
+                          folder={`${imageKitFolderForProjectId(projectId)}/gallery`}
+                          tags={[...imageKitTagsForProject(projectId), 'gallery']}
+                          onComplete={(u) => {
+                            const next = [...imgs];
+                            next[i] = u.url;
+                            setImgs(next);
+                            setAlert({ isOpen: true, type: 'success', title: 'Image', message: `Gallery image ${i + 1} uploaded.` });
+                          }}
+                          onError={(msg) => setAlert({ isOpen: true, type: 'error', title: 'Upload Error', message: msg })}
+                        />
+                      )}
                       {url.trim() && (
                         <img
                           src={url.trim()}
@@ -441,35 +453,50 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                       )}
                     </div>
                   ))}
-                  <button
-                    type="button"
-                    onClick={() => setImgs([...imgs, ''])}
-                    className="w-full py-2 rounded-lg border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-blue-300 hover:text-blue-500 transition-colors font-medium"
-                  >
-                    + Add Image
-                  </button>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      onClick={() => setImgs([...imgs, ''])}
+                      className="w-full py-2 rounded-lg border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-blue-300 hover:text-blue-500 transition-colors font-medium"
+                    >
+                      + Add Image
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           </section>
 
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={() => handleSave()}
-              disabled={saving || uploadingImage}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-4 py-2 rounded font-medium"
-            >
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-            <button
-              type="button"
-              onClick={() => safeNavigate('/admin/projects')}
-              className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
-            >
-              Cancel
-            </button>
-          </div>
+          {!readOnly && (
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() => handleSave()}
+                disabled={saving || uploadingImage}
+                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-4 py-2 rounded font-medium"
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button
+                type="button"
+                onClick={() => safeNavigate('/admin/projects')}
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+          {readOnly && (
+            <div className="pt-4">
+              <button
+                type="button"
+                onClick={() => safeNavigate('/admin/projects')}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"
+              >
+                Back to Projects
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

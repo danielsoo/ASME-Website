@@ -207,7 +207,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     if (!sponsorToDelete) return;
 
     if (!canDeleteSponsors()) {
-      showAlert('error', '권한 없음', '스폰서를 휴지통으로 보낼 권한이 없습니다.');
+      showAlert('error', 'Permission denied', 'You do not have permission to move sponsors to trash.');
       setSponsorToDelete(null);
       setShowConfirmDelete(false);
       return;
@@ -232,7 +232,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   const openEditModal = (sponsor: Sponsor) => {
     // Only allow editing if user is President/VP
     if (!canManageSponsors()) {
-      showAlert('error', '권한 없음', '스폰서를 수정할 권한이 없습니다.');
+      showAlert('error', 'Permission denied', 'You do not have permission to edit sponsors.');
       return;
     }
     setSelectedSponsor(sponsor);
@@ -269,16 +269,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     );
   }
 
-  if (!canManageSponsors()) {
-    return (
-      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">스폰서 관리 권한이 없습니다. 회장에게 Admin Access → 세부 권한을 요청하세요.</p>
-        </div>
-      </div>
-    );
-  }
+  const readOnlySponsors = !canManageSponsors();
 
   // President/VP can see all sponsors
   const visibleSponsors = sponsors;
@@ -309,22 +300,26 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                 Add Sponsor
               </button>
             )}
-            {canDeleteSponsors() && (
-              <button
-                onClick={() => safeNavigate('/admin/sponsors/trash')}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base relative"
-              >
-                Trash
-                {deletionRequestsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center px-1 shadow">
-                    {deletionRequestsCount > 99 ? '99+' : deletionRequestsCount}
-                  </span>
-                )}
-              </button>
-            )}
+            <button
+              onClick={() => safeNavigate('/admin/sponsors/trash')}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base relative"
+            >
+              Trash
+              {deletionRequestsCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center px-1 shadow">
+                  {deletionRequestsCount > 99 ? '99+' : deletionRequestsCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
         {leaveConfirmModal}
+        {readOnlySponsors && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <strong>View only.</strong> You can browse sponsors but cannot add, edit, or delete. Ask the President to
+            grant <strong>Sponsors</strong> area permission in Admin Access if you need to make changes.
+          </div>
+        )}
         {loading ? (
           <div className="text-center py-8">Loading...</div>
         ) : visibleSponsors.length === 0 ? (

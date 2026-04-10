@@ -6,7 +6,7 @@ export const CONFIG_COLLECTION = 'config';
 
 /**
  * Coarse admin areas (President configures per role). Each flag allows that area’s
- * create / update / delete flows (승인·거절·휴지통·완전삭제 등 포함).
+ * create / update / delete flows (approve, reject, trash, permanent delete, etc.).
  */
 export const EXEC_PERMISSION_KEYS = ['users', 'members', 'projects', 'sponsors'] as const;
 
@@ -20,14 +20,7 @@ export interface ExecPermissionsDocument {
   byRole?: ExecPermissionsByRole;
 }
 
-export const EXEC_PERMISSION_LABELS_KO: Record<ExecPermissionKey, string> = {
-  users: '가입·사용자 (승인·거절·복원·삭제 등 전체)',
-  members: '멤버 관리 (직책·팀·멤버 추가·수정 등 전체)',
-  projects: '프로젝트 (생성·수정·승인·휴지통·완전삭제 등 전체)',
-  sponsors: '스폰서 (추가·수정·휴지통·완전삭제 등 전체)',
-};
-
-/** English labels for admin UI (area-level permissions). */
+/** Labels for admin UI (area-level permissions). */
 export const EXEC_PERMISSION_LABELS_EN: Record<ExecPermissionKey, string> = {
   users: 'Users & signup (approve, reject, restore, delete — full access)',
   members: 'Members (roles, teams, manual adds, edits — full access)',

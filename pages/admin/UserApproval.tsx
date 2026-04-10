@@ -98,7 +98,7 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
 
   const handleApprove = async (uid: string) => {
     if (!perms.users) {
-      showAlert('error', '권한 없음', '가입 승인 권한이 없습니다.');
+      showAlert('error', 'Permission denied', 'You do not have permission to approve signups.');
       return;
     }
     try {
@@ -124,7 +124,7 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
   const handleReject = async () => {
     if (!userToReject) return;
     if (!perms.users) {
-      showAlert('error', '권한 없음', '가입 거절 권한이 없습니다.');
+      showAlert('error', 'Permission denied', 'You do not have permission to reject signups.');
       setShowConfirmReject(false);
       setUserToReject(null);
       return;
@@ -149,7 +149,7 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
 
   const handleRestoreClick = (uid: string) => {
     if (!perms.users) {
-      showAlert('error', '권한 없음', '사용자 복원 권한이 없습니다.');
+      showAlert('error', 'Permission denied', 'You do not have permission to restore users.');
       return;
     }
     setUserToRestore(uid);
@@ -160,7 +160,7 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
     if (!userToRestore) return;
 
     if (!perms.users) {
-      showAlert('error', '권한 없음', '사용자 복원 권한이 없습니다.');
+      showAlert('error', 'Permission denied', 'You do not have permission to restore users.');
       setShowConfirmRestore(false);
       setUserToRestore(null);
       return;
@@ -190,7 +190,7 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
 
   const handleDeleteClick = (user: PendingUser) => {
     if (!perms.users) {
-      showAlert('error', '권한 없음', '사용자 삭제 권한이 없습니다.');
+      showAlert('error', 'Permission denied', 'You do not have permission to delete users.');
       return;
     }
     setUserToDelete(user);
@@ -201,7 +201,7 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
     if (!userToDelete) return;
 
     if (!perms.users) {
-      showAlert('error', '권한 없음', '사용자 삭제 권한이 없습니다.');
+      showAlert('error', 'Permission denied', 'You do not have permission to delete users.');
       setShowConfirmDelete(false);
       setUserToDelete(null);
       return;
@@ -241,6 +241,13 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
             ← Back to Dashboard
           </button>
         </div>
+
+        {!perms.users && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <strong>View only.</strong> You can review users but cannot approve, reject, restore, or delete. Ask the
+            President to grant <strong>Users & signup</strong> area permission in Admin Access to take action.
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex flex-wrap gap-2 mb-6">

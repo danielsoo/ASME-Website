@@ -24,6 +24,8 @@ interface RichTextEditorProps {
   minHeight?: string;
   /** Hint text shown above the toolbar (e.g. "Select text then use the toolbar to format only that part") */
   hint?: string;
+  /** When true, content is not editable and the toolbar is hidden. */
+  readOnly?: boolean;
 }
 
 const FONT_OPTIONS = [
@@ -42,25 +44,29 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   className = '',
   minHeight = '120px',
   hint,
+  readOnly = false,
 }) => {
   useEffect(() => {
     registerQuillFont();
   }, []);
 
   const modules = useMemo(
-    () => ({
-      toolbar: [
-        [{ header: [1, 2, 3, false] }],
-        [{ font: FONT_OPTIONS.map((f) => f.value) }],
-        ['bold', 'italic', 'underline', 'strike'],
-        [{ color: [] }, { background: [] }],
-        [{ list: 'ordered' }, { list: 'bullet' }],
-        [{ align: [] }],
-        ['link'],
-        ['clean'],
-      ],
-    }),
-    []
+    () =>
+      readOnly
+        ? { toolbar: false }
+        : {
+            toolbar: [
+              [{ header: [1, 2, 3, false] }],
+              [{ font: FONT_OPTIONS.map((f) => f.value) }],
+              ['bold', 'italic', 'underline', 'strike'],
+              [{ color: [] }, { background: [] }],
+              [{ list: 'ordered' }, { list: 'bullet' }],
+              [{ align: [] }],
+              ['link'],
+              ['clean'],
+            ],
+          },
+    [readOnly]
   );
 
   const formats = [
@@ -80,6 +86,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         theme="snow"
         value={value}
         onChange={onChange}
+        readOnly={readOnly}
         modules={modules}
         formats={formats}
         placeholder={placeholder}

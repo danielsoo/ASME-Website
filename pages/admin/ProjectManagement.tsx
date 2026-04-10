@@ -311,7 +311,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     if (!projectToDelete) return;
 
     if (!canDeleteProjects()) {
-      showAlert('error', '권한 없음', '프로젝트를 휴지통으로 보낼 권한이 없습니다.');
+      showAlert('error', 'Permission denied', 'You do not have permission to move projects to trash.');
       setProjectToDelete(null);
       setShowConfirmDelete(false);
       return;
@@ -356,9 +356,6 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     onSave: saveCreateForLeave,
   });
 
-  // Check access: Executive Board can create, President/VP/Admin can manage all, leaders can manage their projects
-  const hasProjectAccess = isExecBoardMember() || canManageProjects() || projects.some(p => isProjectLeader(p));
-
   if (!roleReady || !execPositionsReady || !permReady) {
     return (
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
@@ -367,28 +364,19 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     );
   }
 
-  if (!hasProjectAccess) {
-    return (
-      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">You do not have permission to manage projects.</p>
-        </div>
-      </div>
+  // Filter projects: full list for managers or any Executive Board role (view-only without Projects permission); otherwise only own/led projects
+  let visibleProjects: Project[] = [];
+  if (canManageProjects()) {
+    visibleProjects = projects;
+  } else if (isExecBoardMember()) {
+    visibleProjects = projects;
+  } else {
+    visibleProjects = projects.filter(
+      (p) => p.createdBy === currentUserId || isProjectLeader(p)
     );
   }
 
-  // Filter projects based on user role
-  let visibleProjects: Project[] = [];
-  if (canManageProjects()) {
-    // President/VP/Admin: see all projects
-    visibleProjects = projects;
-  } else {
-    // Executive Board members: see projects they created or are leaders of
-    visibleProjects = projects.filter(p => 
-      p.createdBy === currentUserId || isProjectLeader(p)
-    );
-  }
+  const readOnlyProjectList = !canManageProjects() && isExecBoardMember();
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto">
@@ -402,7 +390,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
             >
               ← Back to Dashboard
             </button>
-            {isExecBoardMember() && (
+            {canManageProjects() && (
               <button
                 onClick={() => {
                   setProjectTitle('');
@@ -417,35 +405,37 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                 Create Project
               </button>
             )}
-            {canApproveProjects() && (
-              <button
-                onClick={() => safeNavigate('/admin/projects/approvals')}
-                className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base relative"
-              >
-                Approve
-                {pendingProjectsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center px-1 shadow">
-                    {pendingProjectsCount > 99 ? '99+' : pendingProjectsCount}
-                  </span>
-                )}
-              </button>
-            )}
-            {canDeleteProjects() && (
-              <button
-                onClick={() => safeNavigate('/admin/projects/trash')}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base relative"
-              >
-                Trash
-                {deletionRequestsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center px-1 shadow">
-                    {deletionRequestsCount > 99 ? '99+' : deletionRequestsCount}
-                  </span>
-                )}
-              </button>
-            )}
+            <button
+              onClick={() => safeNavigate('/admin/projects/approvals')}
+              className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base relative"
+            >
+              Approve
+              {pendingProjectsCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center px-1 shadow">
+                  {pendingProjectsCount > 99 ? '99+' : pendingProjectsCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => safeNavigate('/admin/projects/trash')}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base relative"
+            >
+              Trash
+              {deletionRequestsCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center px-1 shadow">
+                  {deletionRequestsCount > 99 ? '99+' : deletionRequestsCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
         {leaveConfirmModal}
+        {readOnlyProjectList && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <strong>View only.</strong> You can browse all projects but cannot create, edit, approve, or delete unless the
+            President grants <strong>Projects</strong> area permission in Admin Access.
+          </div>
+        )}
         {loading ? (
           <div className="text-center py-8">Loading...</div>
         ) : visibleProjects.length === 0 ? (
@@ -474,13 +464,13 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                       )}
                     </div>
                   </div>
-                  {(canEditProjectDetail() || canDeleteProjects()) && (
+                  {(canEditProjectDetail() || canDeleteProjects() || readOnlyProjectList) && (
                     <div className="flex gap-1.5 sm:gap-2 shrink-0">
-                      {canEditProjectDetail() && (
+                      {(canEditProjectDetail() || readOnlyProjectList) && (
                         <button
                           onClick={() => safeNavigate('/admin/projects/edit/' + project.id)}
                           className="text-blue-600 hover:text-blue-800 p-1"
-                          title="Edit Project"
+                          title={canEditProjectDetail() ? 'Edit Project' : 'View project'}
                         >
                           <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>

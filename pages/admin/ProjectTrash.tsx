@@ -21,6 +21,7 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
   const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [deletionRequestsCount, setDeletionRequestsCount] = useState(0);
+  const [execPositionNames, setExecPositionNames] = useState<string[]>([]);
 
   // Alert modal states
   const [alertModal, setAlertModal] = useState<{
@@ -79,6 +80,28 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, 'execPositions'),
+      (snapshot) => {
+        const names: string[] = [];
+        snapshot.forEach((d) => {
+          const n = d.data().name;
+          if (n) names.push(String(n));
+        });
+        setExecPositionNames(names);
+      },
+      () => setExecPositionNames([])
+    );
+    return () => unsub();
+  }, []);
+
+  const isExecBoardMember = (): boolean => {
+    if (currentUserRole === 'President' || currentUserRole === 'Vice President') return true;
+    if (currentUserRole === 'admin') return true;
+    return execPositionNames.includes(currentUserRole);
+  };
 
   // Listen for deletion requests count
   useEffect(() => {
@@ -585,9 +608,10 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
            !req.rejectedByExec;
   };
 
-  // Filter projects based on user role
+  // Filter: full trash for Projects permission or Executive Board (view); else only projects user leads
   const visibleProjects = deletedProjects.filter((project) => {
     if (perms.projects) return true;
+    if (isExecBoardMember()) return true;
     return isProjectLeader(project);
   });
 
@@ -595,17 +619,6 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
     return (
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-gray-600">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!canManageTrash() && visibleProjects.length === 0 && !loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">Only President, Vice President, or project leaders can access trash.</p>
-        </div>
       </div>
     );
   }
@@ -642,6 +655,13 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
             </button>
           </div>
         </div>
+
+        {!perms.projects && isExecBoardMember() && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <strong>View only.</strong> You can see deleted projects but cannot restore or vote on permanent deletion
+            unless the President grants <strong>Projects</strong> area permission in Admin Access.
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-8">Loading...</div>

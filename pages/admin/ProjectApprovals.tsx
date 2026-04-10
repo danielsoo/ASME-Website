@@ -119,6 +119,10 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
 
   const handleApprove = async () => {
     if (!selectedProject) return;
+    if (!canApproveProjects()) {
+      showAlert('error', 'Permission', 'You do not have permission to approve projects.');
+      return;
+    }
 
     if (!projectLeaderId) {
       showAlert('warning', 'Validation Error', 'Please assign a project leader before approving.');
@@ -153,12 +157,20 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
   };
 
   const handleRejectClick = (projectId: string) => {
+    if (!canApproveProjects()) {
+      showAlert('error', 'Permission', 'You do not have permission to reject projects.');
+      return;
+    }
     setProjectToReject(projectId);
     setShowConfirmReject(true);
   };
 
   const handleReject = async () => {
     if (!projectToReject) return;
+    if (!canApproveProjects()) {
+      showAlert('error', 'Permission', 'You do not have permission to reject projects.');
+      return;
+    }
 
     try {
       await updateDoc(doc(db, 'projects', projectToReject), {
@@ -176,6 +188,10 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
   };
 
   const openApproveModal = (project: Project) => {
+    if (!canApproveProjects()) {
+      showAlert('error', 'Permission', 'You do not have permission to approve projects.');
+      return;
+    }
     setSelectedProject(project);
     setProjectLeaderId('');
     setShowApproveModal(true);
@@ -189,16 +205,7 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
     );
   }
 
-  if (!canApproveProjects()) {
-    return (
-      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">프로젝트 승인 권한이 없습니다. 회장에게 Admin Access → 세부 권한을 요청하세요.</p>
-        </div>
-      </div>
-    );
-  }
+  const readOnlyApprovals = !canApproveProjects();
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto">
@@ -212,6 +219,13 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
             ← Back to Projects
           </button>
         </div>
+
+        {readOnlyApprovals && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <strong>View only.</strong> You can review pending projects but cannot approve or reject. Ask the President to
+            grant <strong>Projects</strong> area permission in Admin Access if you need to take action.
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-8">Loading...</div>
@@ -256,22 +270,24 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => openApproveModal(project)}
-                      className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base"
-                    >
-                      <Check className="w-4 h-4 sm:w-5 sm:h-5" />
-                      Approve & Assign Leader
-                    </button>
-                    <button
-                      onClick={() => handleRejectClick(project.id)}
-                      className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base"
-                    >
-                      <X className="w-4 h-4 sm:w-5 sm:h-5" />
-                      Reject
-                    </button>
-                  </div>
+                  {!readOnlyApprovals && (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => openApproveModal(project)}
+                        className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base"
+                      >
+                        <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                        Approve & Assign Leader
+                      </button>
+                      <button
+                        onClick={() => handleRejectClick(project.id)}
+                        className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base"
+                      >
+                        <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                        Reject
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}

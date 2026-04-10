@@ -447,23 +447,12 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
            !req.rejectedByExec2;
   };
 
-  const visibleSponsors = deletedSponsors.filter(() => perms.sponsors);
+  const visibleSponsors = deletedSponsors;
 
   if (!roleReady || !permReady) {
     return (
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-gray-600">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!canManageTrash() && visibleSponsors.length === 0 && !loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">스폰서 휴지통 권한이 없습니다.</p>
-        </div>
       </div>
     );
   }
@@ -500,6 +489,13 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
             </button>
           </div>
         </div>
+
+        {!perms.sponsors && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <strong>View only.</strong> You can see deleted sponsors but cannot restore or vote on permanent deletion. Ask
+            the President to grant <strong>Sponsors</strong> area permission in Admin Access to take action.
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-8">Loading...</div>

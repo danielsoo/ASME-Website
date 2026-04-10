@@ -69,7 +69,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   const [execPositions, setExecPositions] = useState<ExecPosition[]>([]);
   const [loading, setLoading] = useState(true);
   const { ready: permReady, perms } = useExecPermissions();
-  /** False until Firestore returns the signed-in user's role — avoids a flash of "Access Denied". */
+  /** False until Firestore returns the signed-in user's role — avoids a flash before content loads. */
   const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
 
@@ -601,16 +601,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     );
   }
 
-  if (!canManage()) {
-    return (
-      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">멤버 관리 권한이 없습니다. 회장에게 Admin Access → 세부 권한을 요청하세요.</p>
-        </div>
-      </div>
-    );
-  }
+  const readOnlyMembers = !canManage();
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto">
@@ -625,22 +616,30 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
           </button>
         </div>
         {leaveConfirmModal}
+        {readOnlyMembers && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <strong>View only.</strong> You can browse members and positions but cannot add, edit, or delete. Ask the
+            President to grant <strong>Members</strong> area permission in Admin Access if you need to make changes.
+          </div>
+        )}
         {/* Exec Position Management Section */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Executive Board Positions</h2>
-            <button
-              onClick={() => {
-                setEditingPosition(null);
-                setPositionName('');
-                setPositionTeam('');
-                setShowPositionModal(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base shrink-0"
-            >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-              Add Position
-            </button>
+            {!readOnlyMembers && (
+              <button
+                onClick={() => {
+                  setEditingPosition(null);
+                  setPositionName('');
+                  setPositionTeam('');
+                  setShowPositionModal(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base shrink-0"
+              >
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                Add Position
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -652,22 +651,24 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                     <p className="text-sm text-gray-500">{position.team}</p>
                   )}
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => openEditPosition(position)}
-                    className="text-blue-600 hover:text-blue-800"
-                    title="Edit"
-                  >
-                    <Edit className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteClick(position.id)}
-                    className="text-red-600 hover:text-red-800"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
+                {!readOnlyMembers && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => openEditPosition(position)}
+                      className="text-blue-600 hover:text-blue-800"
+                      title="Edit"
+                    >
+                      <Edit className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(position.id)}
+                      className="text-red-600 hover:text-red-800"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -688,15 +689,18 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
               value={newTeamName}
               onChange={(e) => setNewTeamName(e.target.value)}
               placeholder="New team name"
-              className="flex-1 min-w-[160px] px-3 py-2 border border-gray-300 rounded text-gray-900"
+              disabled={readOnlyMembers}
+              className="flex-1 min-w-[160px] px-3 py-2 border border-gray-300 rounded text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
-            <button
-              type="button"
-              onClick={handleAddTeam}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm shrink-0"
-            >
-              Add team
-            </button>
+            {!readOnlyMembers && (
+              <button
+                type="button"
+                onClick={handleAddTeam}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm shrink-0"
+              >
+                Add team
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-6">
@@ -708,14 +712,16 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                   <div className="min-w-0">
                     <span className="font-medium text-gray-800">{t}</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteTeam(t)}
-                    className="text-red-600 hover:text-red-800 text-sm shrink-0"
-                    title="Delete team"
-                  >
-                    <Trash2 className="w-4 h-4 inline" /> Remove
-                  </button>
+                  {!readOnlyMembers && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteTeam(t)}
+                      className="text-red-600 hover:text-red-800 text-sm shrink-0"
+                      title="Delete team"
+                    >
+                      <Trash2 className="w-4 h-4 inline" /> Remove
+                    </button>
+                  )}
                 </div>
             ))}
           </div>
@@ -732,14 +738,16 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                 member&apos;s Profile settings.
               </p>
             </div>
-            <button
-              onClick={openAddMemberModal}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base shrink-0"
-              title="Add member manually (President / Vice President only)"
-            >
-              <Plus className="w-5 h-5" />
-              Add Member
-            </button>
+            {!readOnlyMembers && (
+              <button
+                onClick={openAddMemberModal}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base shrink-0"
+                title="Add member manually (President / Vice President only)"
+              >
+                <Plus className="w-5 h-5" />
+                Add Member
+              </button>
+            )}
           </div>
 
           {loading ? (
@@ -760,7 +768,9 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       Executive Board (About)
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    {!readOnlyMembers && (
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -771,7 +781,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{member.major}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{member.year}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {editingMember?.id === member.id ? (
+                        {editingMember?.id === member.id && !readOnlyMembers ? (
                           <select
                             value={selectedRole}
                             onChange={(e) => {
@@ -793,7 +803,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {editingMember?.id === member.id ? (
+                        {editingMember?.id === member.id && !readOnlyMembers ? (
                           selectedRole !== 'member' ? (
                             <select
                               value={selectedTeam}
@@ -815,7 +825,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                         )}
                       </td>
                       <td className="px-6 py-4 text-sm align-top">
-                        {editingMember?.id === member.id ? (
+                        {editingMember?.id === member.id && !readOnlyMembers ? (
                           <label className="flex items-start gap-2 cursor-pointer max-w-[12rem]">
                             <input
                               type="checkbox"
@@ -829,39 +839,41 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                           <span className="text-gray-700">{member.onExecutiveBoard ? 'Yes' : '—'}</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {editingMember?.id === member.id ? (
-                          <div className="flex gap-2">
+                      {!readOnlyMembers && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {editingMember?.id === member.id ? (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={handleMemberRoleChange}
+                                className="text-green-600 hover:text-green-800"
+                                title="Save"
+                              >
+                                <Save className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingMember(null);
+                                  setSelectedRole('');
+                                  setSelectedTeam('');
+                                  setSelectedOnExecutiveBoard(false);
+                                }}
+                                className="text-red-600 hover:text-red-800"
+                                title="Cancel"
+                              >
+                                <X className="w-5 h-5" />
+                              </button>
+                            </div>
+                          ) : (
                             <button
-                              onClick={handleMemberRoleChange}
-                              className="text-green-600 hover:text-green-800"
-                              title="Save"
+                              onClick={() => openMemberEdit(member)}
+                              className="text-blue-600 hover:text-blue-800"
+                              title="Edit"
                             >
-                              <Save className="w-5 h-5" />
+                              <Edit className="w-5 h-5" />
                             </button>
-                            <button
-                              onClick={() => {
-                                setEditingMember(null);
-                                setSelectedRole('');
-                                setSelectedTeam('');
-                                setSelectedOnExecutiveBoard(false);
-                              }}
-                              className="text-red-600 hover:text-red-800"
-                              title="Cancel"
-                            >
-                              <X className="w-5 h-5" />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => openMemberEdit(member)}
-                            className="text-blue-600 hover:text-blue-800"
-                            title="Edit"
-                          >
-                            <Edit className="w-5 h-5" />
-                          </button>
-                        )}
-                      </td>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
