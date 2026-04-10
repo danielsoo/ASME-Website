@@ -81,9 +81,9 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNaviga
             )}
           </div>
 
-          {/* Project Leader Section */}
+          {/* Project Leader + Members */}
           {(project.leaderEmail || project.leaderId) && (
-          <div>
+          <div className="mb-11">
             <p className="text-xs text-[#48597F] font-jost uppercase tracking-wide">Project Leader</p>
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
@@ -92,19 +92,18 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNaviga
                 </span>
               </div>
             </div>
-          </div>
-        )}
-          {/* Members Grid */}
-        {(project.members && project.members.length > 0) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 border-t border-gray-700 pt-4 mt-3 mb-11">
-            {project.members.map((member, index) => (
-              <div key={`member-${member.userId}-${index}`} className="flex items-center space-x-3">
-                <div className="flex flex-col">
-                  <span className="text-xs text-black font-medium">{member.userName}</span>
-                  <span className="text-[10px] text-[#48597F]">{member.projectRole}</span>
-                </div>
+            {(project.members && project.members.length > 0) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 border-t border-gray-700 pt-4 mt-3">
+                {project.members.map((member, index) => (
+                  <div key={`member-${member.userId}-${index}`} className="flex items-center space-x-3">
+                    <div className="flex flex-col">
+                      <span className="text-xs text-black font-medium">{member.userName}</span>
+                      <span className="text-[10px] text-[#48597F]">{member.projectRole}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         )}
 
