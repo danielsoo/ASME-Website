@@ -65,7 +65,7 @@ const DragUploader: React.FC<Props> = ({ folder, tags, label, onComplete, onProg
       formData.append('expire', String(expire));
       formData.append('token', token);
       formData.append('fileName', file.name);
-      formData.append('useUniqueFileName', '1');
+      formData.append('useUniqueFileName', 'true');
       if (folder) formData.append('folder', folder);
       if (tags?.length) formData.append('tags', tags.join(','));
 
