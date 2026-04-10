@@ -68,14 +68,39 @@ function sortTeamMembers(members: TeamMember[]): TeamMember[] {
   });
 }
 
+/** Manual pre-registration + Auth signup can briefly produce two docs with the same email; prefer the Auth uid doc. */
+function dedupeExecutiveBoardByEmail(members: TeamMember[]): TeamMember[] {
+  const byKey = new Map<string, TeamMember>();
+  for (const m of members) {
+    const key = (m.email || '').trim().toLowerCase() || m.id;
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, m);
+      continue;
+    }
+    const prefer =
+      existing.id.length !== m.id.length
+        ? existing.id.length > m.id.length
+          ? existing
+          : m
+        : existing.id.localeCompare(m.id) < 0
+          ? existing
+          : m;
+    byKey.set(key, prefer);
+  }
+  return [...byKey.values()];
+}
+
 /** Approved users flagged for the main About Executive Board (not tied to a single team label). */
 export const getExecBoard = async (): Promise<TeamMember[]> => {
   const snapshot = await getDocs(
     query(collection(db, 'users'), where('onExecutiveBoard', '==', true))
   );
-  const members = snapshot.docs
-    .map((d) => mapUserDocToTeamMember(d, 'execOrder'))
-    .filter((m) => m.status === 'approved');
+  const members = dedupeExecutiveBoardByEmail(
+    snapshot.docs
+      .map((d) => mapUserDocToTeamMember(d, 'execOrder'))
+      .filter((m) => m.status === 'approved')
+  );
   return sortTeamMembers(members);
 };
 
@@ -88,9 +113,11 @@ export const subscribeExecutiveBoardMembers = (
   return onSnapshot(
     q,
     (snapshot) => {
-      const members = snapshot.docs
-        .map((d) => mapUserDocToTeamMember(d, 'execOrder'))
-        .filter((m) => m.status === 'approved');
+      const members = dedupeExecutiveBoardByEmail(
+        snapshot.docs
+          .map((d) => mapUserDocToTeamMember(d, 'execOrder'))
+          .filter((m) => m.status === 'approved')
+      );
       onNext(sortTeamMembers(members));
     },
     (err) => onError?.(err)

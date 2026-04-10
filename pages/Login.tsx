@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, sendEmailVerification, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../src/firebase/config';
+import { mergeDuplicateFirestoreUsersByEmail } from '../src/firebase/mergeUsersByEmail';
 import { Mail, Lock, User } from 'lucide-react';
 
 interface LoginProps {
@@ -39,6 +40,7 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
         } else {
           // Check Firestore user status after email verification
           try {
+            await mergeDuplicateFirestoreUsersByEmail(user.uid, user.email);
             const userDoc = await getDoc(doc(db, 'users', user.uid));
             if (userDoc.exists()) {
               const userData = userDoc.data();
@@ -63,12 +65,13 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
               // New Google user — create a Firestore document for them
               await setDoc(doc(db, 'users', user.uid), {
                 name: user.displayName || user.email || '',
-                email: user.email ?? '',
+                email: (user.email ?? '').toLowerCase(),
                 emailVerified: true,
                 status: 'pending',
                 role: 'member',
                 createdAt: new Date(),
               });
+              await mergeDuplicateFirestoreUsersByEmail(user.uid, user.email);
               isGoogleSigningIn.current = false;
               onNavigate('/');
             } else {
@@ -128,6 +131,11 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
             role: 'member', // Default: regular member
           });
 
+          await mergeDuplicateFirestoreUsersByEmail(
+            userCredential.user.uid,
+            userCredential.user.email
+          );
+
           try {
             await sendEmailVerification(userCredential.user);
             const sentTo = userCredential.user.email || email;
@@ -161,6 +169,10 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
         
         // Check user approval status: block only rejected; allow pending and approved
         try {
+          await mergeDuplicateFirestoreUsersByEmail(
+            userCredential.user.uid,
+            userCredential.user.email
+          );
           const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();

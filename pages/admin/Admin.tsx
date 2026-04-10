@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../../src/firebase/config';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { mergeDuplicateFirestoreUsersByEmail } from '../../src/firebase/mergeUsersByEmail';
 import Login from './Login';
 import Dashboard from './Dashboard';
 import UserApproval from './UserApproval';
@@ -53,33 +54,41 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
     setUserStatus('loading');
     setAccessChecked(false);
     let cancelled = false;
-    getDoc(doc(db, 'users', user.uid))
-      .then((snap) => {
-        if (cancelled) return;
-        if (!snap.exists()) {
-          setUserStatus('pending');
-          setUserRole('');
-          setUserOnExecutiveBoard(false);
-          setAccessChecked(true);
-          return;
-        }
-        const data = snap.data();
-        const status = (data?.status as 'approved' | 'pending' | 'rejected') || 'pending';
-        const role = data?.role || 'member';
-        setUserStatus(status);
-        setUserRole(role);
-        setUserOnExecutiveBoard(data?.onExecutiveBoard === true);
-        if (status !== 'approved') {
-          setAccessChecked(true);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setUserStatus(null);
-          setUserOnExecutiveBoard(false);
-          setAccessChecked(true);
-        }
-      });
+    (async () => {
+      try {
+        await mergeDuplicateFirestoreUsersByEmail(user.uid, user.email);
+      } catch (e) {
+        console.error('mergeDuplicateFirestoreUsersByEmail:', e);
+      }
+      if (cancelled) return;
+      getDoc(doc(db, 'users', user.uid))
+        .then((snap) => {
+          if (cancelled) return;
+          if (!snap.exists()) {
+            setUserStatus('pending');
+            setUserRole('');
+            setUserOnExecutiveBoard(false);
+            setAccessChecked(true);
+            return;
+          }
+          const data = snap.data();
+          const status = (data?.status as 'approved' | 'pending' | 'rejected') || 'pending';
+          const role = data?.role || 'member';
+          setUserStatus(status);
+          setUserRole(role);
+          setUserOnExecutiveBoard(data?.onExecutiveBoard === true);
+          if (status !== 'approved') {
+            setAccessChecked(true);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setUserStatus(null);
+            setUserOnExecutiveBoard(false);
+            setAccessChecked(true);
+          }
+        });
+    })();
     return () => {
       cancelled = true;
     };
