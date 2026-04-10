@@ -2,6 +2,7 @@ import React from 'react';
 import { Project } from '../src/types';
 import { sanitizeHtml, isHtmlString } from '../src/utils/sanitizeHtml';
 import { getProjectFormLinkByTitle } from '../src/formLinks';
+import ImageCarousel from '../src/components/ImageCarousel';
 
 function renderRichContent(content: string | undefined, fallback: string): React.ReactNode {
   const c = content ?? fallback;
@@ -112,112 +113,46 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNaviga
           </div>
         ) : null}
 
-          {/* Join Section + optional gallery */}
-          <div className={`mb-8 ${images.length === 1 ? 'grid grid-cols-1 md:grid-cols-2 gap-8' : ''}`}>
-            {/* Join Section */}
-            <div>
-              <h2 className="text-xl font-bold font-jost text-black mb-4 uppercase">
-                {renderRichContent(project.joinSectionTitle, 'Want to Get Involved?')}
-              </h2>
-              <div className="text-gray-700 font-jost mb-4 project-rich-content">
-                {project.joinSectionDescription && isHtmlString(project.joinSectionDescription) ? (
-                  <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(project.joinSectionDescription) }} />
-                ) : (
-                  <p>{project.joinSectionDescription ?? "Click the link below to authenticate your email and join the slack."}</p>
-                )}
-              </div>
-              {joinLink ? (
-                <a
-                  href={joinLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block px-6 py-2 bg-[#8B0000] text-white font-jost font-medium rounded hover:bg-[#700000] transition-colors"
-                >
-                  {project.joinButtonLabel ?? 'Join the Slack'}
-                </a>
+          {/* Join Section */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold font-jost text-black mb-4 uppercase">
+              {renderRichContent(project.joinSectionTitle, 'Want to Get Involved?')}
+            </h2>
+            <div className="text-gray-700 font-jost mb-4 project-rich-content">
+              {project.joinSectionDescription && isHtmlString(project.joinSectionDescription) ? (
+                <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(project.joinSectionDescription) }} />
               ) : (
-                <span className="inline-block px-6 py-2 bg-gray-400 text-white font-jost font-medium rounded cursor-not-allowed">
-                  {project.joinButtonLabel ?? 'Join the Slack'}
-                </span>
-              )}
-              {(project.timeline != null && project.timeline !== '') && (
-                <div className="flex flex-row mt-3 gap-2">
-                  <p className="text-gray-700 font-jost">DEADLINE TO JOIN:</p>
-                  <p className="text-black font-jost font-bold">{project.timeline}</p>
-                </div>
+                <p>{project.joinSectionDescription ?? "Click the link below to authenticate your email and join the slack."}</p>
               )}
             </div>
-
-            {/* Single image: right column */}
-            {images.length === 1 && (
-              <div className="w-full h-64 rounded-xl overflow-hidden shadow-md">
-                <img src={images[0]} alt="" className="w-full h-full object-cover" />
+            {joinLink ? (
+              <a
+                href={joinLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block px-6 py-2 bg-[#8B0000] text-white font-jost font-medium rounded hover:bg-[#700000] transition-colors"
+              >
+                {project.joinButtonLabel ?? 'Join the Slack'}
+              </a>
+            ) : (
+              <span className="inline-block px-6 py-2 bg-gray-400 text-white font-jost font-medium rounded cursor-not-allowed">
+                {project.joinButtonLabel ?? 'Join the Slack'}
+              </span>
+            )}
+            {(project.timeline != null && project.timeline !== '') && (
+              <div className="flex flex-row mt-3 gap-2">
+                <p className="text-gray-700 font-jost">DEADLINE TO JOIN:</p>
+                <p className="text-black font-jost font-bold">{project.timeline}</p>
               </div>
             )}
           </div>
 
-          {/* Gallery for 2+ images */}
-          {images.length >= 2 && (
+          {/* Photo gallery carousel */}
+          {images.length > 0 && (
             <div className="mb-8">
-              {images.length === 2 && (
-                <div className="grid grid-cols-2 gap-3">
-                  {images.map((src, i) => (
-                    <div key={i} className="rounded-xl overflow-hidden shadow-md h-56">
-                      <img src={src} alt="" className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-                </div>
-              )}
-              {images.length === 3 && (
-                <div className="grid grid-cols-3 grid-rows-2 gap-3 h-72">
-                  <div className="col-span-2 row-span-2 rounded-xl overflow-hidden shadow-md">
-                    <img src={images[0]} alt="" className="w-full h-full object-cover" />
-                  </div>
-                  <div className="rounded-xl overflow-hidden shadow-md">
-                    <img src={images[1]} alt="" className="w-full h-full object-cover" />
-                  </div>
-                  <div className="rounded-xl overflow-hidden shadow-md">
-                    <img src={images[2]} alt="" className="w-full h-full object-cover" />
-                  </div>
-                </div>
-              )}
-              {images.length === 4 && (
-                <div className="grid grid-cols-2 gap-3">
-                  {images.map((src, i) => (
-                    <div key={i} className="rounded-xl overflow-hidden shadow-md h-48">
-                      <img src={src} alt="" className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-                </div>
-              )}
-              {images.length >= 5 && (
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="col-span-2 rounded-xl overflow-hidden shadow-md h-56">
-                    <img src={images[0]} alt="" className="w-full h-full object-cover" />
-                  </div>
-                  <div className="flex flex-col gap-3">
-                    <div className="flex-1 rounded-xl overflow-hidden shadow-md">
-                      <img src={images[1]} alt="" className="w-full h-full object-cover" />
-                    </div>
-                    <div className="flex-1 rounded-xl overflow-hidden shadow-md">
-                      <img src={images[2]} alt="" className="w-full h-full object-cover" />
-                    </div>
-                  </div>
-                  {images.slice(3).map((src, i) => (
-                    <div key={i + 3} className="rounded-xl overflow-hidden shadow-md h-44">
-                      <img src={src} alt="" className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-                </div>
-              )}
+              <ImageCarousel images={images} />
             </div>
           )}
-
-          {/* Join Slack Section */}
-          <div className="mb-8">
-            
-            
-          </div>
         </div>
       </div>
     </div>
