@@ -233,11 +233,8 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
     );
   }
 
-  // President always has access, so exclude from the toggle list. Use id for key so duplicate role names (e.g. two "Design Team Director") don't cause React key warnings.
-  const entries: { id: string; name: string }[] = [
-    { id: 'admin', name: 'admin' },
-    ...positions.filter((p) => p.name !== 'President').map((p) => ({ id: p.id, name: p.name })),
-  ];
+  // Same documents as Member Management → Executive Board Positions (execPositions). Use id for key when names duplicate.
+  const entries: { id: string; name: string }[] = positions.map((p) => ({ id: p.id, name: p.name }));
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto">
@@ -310,17 +307,12 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
             off. When an area is on, all related actions are allowed for that topic—<strong>create, edit, delete,
             approve, trash,</strong> and similar—not split into smaller toggles. For example, enabling{' '}
             <strong>Sponsors</strong> applies to the sponsor list, trash, and permanent delete the same way.{' '}
-            <strong>President</strong> and <strong>admin</strong> always have all four areas. Roles you have never
-            configured default to <strong>everything allowed</strong>.
+            <strong>President</strong> and accounts with the <strong>admin</strong> user role always have all four
+            areas (not configured here). Roles you have never configured default to <strong>everything allowed</strong>.
           </p>
           <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
             Security note: To enforce this on the server, update Firebase security rules in addition to this UI.
           </p>
-
-          <div className="border border-gray-200 rounded-lg p-3 sm:p-4 bg-gray-50 mb-4">
-            <span className="font-semibold text-gray-800">President</span>
-            <p className="text-sm text-gray-600 mt-1">All four areas are always allowed. (Cannot be changed here.)</p>
-          </div>
 
           {permDirty && (
             <p className="text-sm text-amber-900 bg-amber-100 border border-amber-300 rounded-lg px-3 py-2 mb-4">
@@ -371,44 +363,54 @@ const AdminAccess: React.FC<AdminAccessProps> = ({ onNavigate, currentUserRole }
                             </ul>
                           )}
                         </div>
-                        <div className="px-3 sm:px-4 py-2 border-t border-gray-100 flex flex-wrap gap-2 bg-white">
-                          <button
-                            type="button"
-                            disabled={savingPermissions}
-                            onClick={() => allowAllAreasForRole(entry.name)}
-                            className="text-sm px-3 py-1.5 rounded-md border border-green-200 bg-green-50 text-green-900 hover:bg-green-100 disabled:opacity-50"
-                          >
-                            Allow all areas
-                          </button>
-                          <button
-                            type="button"
-                            disabled={savingPermissions}
-                            onClick={() => denyAllAreasForRole(entry.name)}
-                            className="text-sm px-3 py-1.5 rounded-md border border-red-200 bg-red-50 text-red-900 hover:bg-red-100 disabled:opacity-50"
-                          >
-                            Deny all areas
-                          </button>
-                        </div>
-                        <div className="px-3 pb-3 sm:px-4 sm:pb-4 pt-2 space-y-2">
-                          {EXEC_PERMISSION_KEYS.map((key) => {
-                            const on = effective[key];
-                            return (
-                              <label
-                                key={key}
-                                className="flex items-start gap-3 cursor-pointer rounded-md px-2 py-1.5 hover:bg-gray-50"
+                        {entry.name === 'President' ? (
+                          <div className="px-3 sm:px-4 py-3 border-t border-gray-100 bg-white">
+                            <p className="text-sm text-gray-600">
+                              The President role always has all four areas. This cannot be changed here.
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="px-3 sm:px-4 py-2 border-t border-gray-100 flex flex-wrap gap-2 bg-white">
+                              <button
+                                type="button"
+                                disabled={savingPermissions}
+                                onClick={() => allowAllAreasForRole(entry.name)}
+                                className="text-sm px-3 py-1.5 rounded-md border border-green-200 bg-green-50 text-green-900 hover:bg-green-100 disabled:opacity-50"
                               >
-                                <input
-                                  type="checkbox"
-                                  checked={on}
-                                  disabled={savingPermissions}
-                                  onChange={() => toggleExecPermission(entry.name, key)}
-                                  className="mt-1 rounded border-gray-300"
-                                />
-                                <span className="text-sm text-gray-800 leading-snug">{EXEC_PERMISSION_LABELS_EN[key]}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
+                                Allow all areas
+                              </button>
+                              <button
+                                type="button"
+                                disabled={savingPermissions}
+                                onClick={() => denyAllAreasForRole(entry.name)}
+                                className="text-sm px-3 py-1.5 rounded-md border border-red-200 bg-red-50 text-red-900 hover:bg-red-100 disabled:opacity-50"
+                              >
+                                Deny all areas
+                              </button>
+                            </div>
+                            <div className="px-3 pb-3 sm:px-4 sm:pb-4 pt-2 space-y-2">
+                              {EXEC_PERMISSION_KEYS.map((key) => {
+                                const on = effective[key];
+                                return (
+                                  <label
+                                    key={key}
+                                    className="flex items-start gap-3 cursor-pointer rounded-md px-2 py-1.5 hover:bg-gray-50"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={on}
+                                      disabled={savingPermissions}
+                                      onChange={() => toggleExecPermission(entry.name, key)}
+                                      className="mt-1 rounded border-gray-300"
+                                    />
+                                    <span className="text-sm text-gray-800 leading-snug">{EXEC_PERMISSION_LABELS_EN[key]}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

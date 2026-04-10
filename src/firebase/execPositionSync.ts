@@ -17,8 +17,12 @@ import { db } from './config';
 
 const ADMIN_ACCESS_PATH = 'config/adminAccess';
 
-/** Role names that are always valid in allowedRoles even if missing from execPositions (safety net). */
-const ALWAYS_VALID_ALLOWED_ROLES = new Set(['President', 'Vice President', 'admin']);
+/**
+ * Role names that stay in allowedRoles when pruning, even if there is no matching execPositions doc
+ * (e.g. President / VP are often implicit). Must match Admin Access + Admin gate defaults — not synthetic
+ * positions like the old "admin" row; users with role `admin` get panel access via Admin.tsx / Header.tsx.
+ */
+const ALWAYS_VALID_ALLOWED_ROLES = new Set(['President', 'Vice President']);
 
 export async function migrateUsersRoleAfterRename(
   oldName: string,

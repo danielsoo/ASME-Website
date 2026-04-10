@@ -153,8 +153,8 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
     );
   }
 
-  // President always has access; others need config/adminAccess.allowedRoles
-  if (userRole !== 'President' && !allowedRoles.includes(userRole)) {
+  // President and setup/system admin role always have access; others need config/adminAccess.allowedRoles
+  if (userRole !== 'President' && userRole !== 'admin' && !allowedRoles.includes(userRole)) {
     if (onNavigate) onNavigate('/');
     return (
       <div className="min-h-screen bg-[#0f131a] flex items-center justify-center">
