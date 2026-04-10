@@ -35,6 +35,13 @@ function allTrue(): ExecPermissionMap {
   }, {} as ExecPermissionMap);
 }
 
+function allFalse(): ExecPermissionMap {
+  return EXEC_PERMISSION_KEYS.reduce((acc, k) => {
+    acc[k] = false;
+    return acc;
+  }, {} as ExecPermissionMap);
+}
+
 const ALL_TRUE = allTrue();
 
 /** Map pre-v2 granular keys → coarse flags (best-effort for existing Firestore data). */
@@ -80,20 +87,28 @@ export function getEffectiveExecPermissions(
   if (role === 'President' || role === 'admin') {
     return { ...ALL_TRUE };
   }
-  const base = allTrue();
   const rowRaw = raw?.byRole?.[role];
   const row =
     rowRaw && typeof rowRaw === 'object' ? (rowRaw as Record<string, unknown>) : null;
   const legacy = row ? legacyRowToCoarse(row) : {};
 
-  for (const k of EXEC_PERMISSION_KEYS) {
-    if (row && typeof row[k] === 'boolean') {
-      base[k] = row[k] as boolean;
-    } else if (typeof legacy[k] === 'boolean') {
-      base[k] = legacy[k] as boolean;
+  /**
+   * If there is any stored row for this role, missing keys mean "not granted" (false), not default-allow.
+   * Only when there is no byRole entry at all do we keep legacy behavior: everything allowed until configured.
+   */
+  if (row) {
+    const base = allFalse();
+    for (const k of EXEC_PERMISSION_KEYS) {
+      if (typeof row[k] === 'boolean') {
+        base[k] = row[k] as boolean;
+      } else if (typeof legacy[k] === 'boolean') {
+        base[k] = legacy[k] as boolean;
+      }
     }
+    return base;
   }
-  return base;
+
+  return { ...ALL_TRUE };
 }
 
 export async function saveFullExecPermissionsByRole(byRole: ExecPermissionsByRole): Promise<void> {

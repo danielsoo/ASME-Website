@@ -33,6 +33,9 @@ export function useExecPermissions(): {
         return;
       }
 
+      // Clear stale role from a previous session before the new user doc loads
+      setRole('');
+
       void (async () => {
         let r = 'member';
         try {
@@ -64,7 +67,8 @@ export function useExecPermissions(): {
     };
   }, []);
 
-  const ready = permDoc !== null;
+  /** Require both Firestore role and permissions doc so we never apply defaults with a blank role. */
+  const ready = permDoc !== null && role !== '';
   const perms = useMemo(
     () => getEffectiveExecPermissions(role, permDoc ?? undefined),
     [role, permDoc]
