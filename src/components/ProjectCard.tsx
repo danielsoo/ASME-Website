@@ -64,7 +64,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavi
                   {project.leaderName || project.leaderEmail?.split('@')[0] || 'Project Leader'}
                 </span>
               </div>
-              {((project.chairs && project.chairs.length > 0) || (project.members && project.members.length > 0)) && (
+              {(project.members && project.members.length > 0) && (
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -80,10 +80,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavi
         )}
 
         {/* Members Grid */}
-        {((project.chairs && project.chairs.length > 0) || (project.members && project.members.length > 0)) && showAllMembers ? (
+        {(project.members && project.members.length > 0) && showAllMembers ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 border-t border-gray-700 pt-4 mt-3">
-            {/* Display members from members array (Firebase managed) */}
-            {project.members?.map((member, index) => (
+            {project.members.map((member, index) => (
               <div key={`member-${member.userId}-${index}`} className="flex items-center space-x-3">
                 <div className="flex flex-col">
                   <span className="text-xs text-black font-medium">{member.userName}</span>
@@ -91,21 +90,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavi
                 </div>
               </div>
             ))}
-            
-            {/* Display chairs (legacy data) */}
-            {project.chairs?.map((chair, index) => (
-              <div key={`chair-${index}`} className="flex items-center space-x-3">
-                <div className="flex flex-col">
-                  <span className="text-xs text-black font-medium">{chair.name}</span>
-                  <span className="text-[10px] text-[#48597F]">{chair.role}</span>
-                </div>
-              </div>
-            ))}
-            
-          </div>
-        ) : !(project.leaderEmail || project.leaderId) ? (
-          <div className="text-sm text-gray-400 font-jost italic">
-            No members assigned yet.
           </div>
         ) : null}
       </div>
