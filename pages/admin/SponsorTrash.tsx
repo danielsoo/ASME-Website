@@ -15,6 +15,7 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
   const [deletedSponsors, setDeletedSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
+  const [currentUserOnExecutiveBoard, setCurrentUserOnExecutiveBoard] = useState(false);
   const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [deletionRequestsCount, setDeletionRequestsCount] = useState(0);
@@ -55,6 +56,7 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setRoleReady(false);
+        setCurrentUserOnExecutiveBoard(false);
         return;
       }
       setCurrentUserId(user.uid);
@@ -63,12 +65,15 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
         if (userDoc.exists()) {
           const userData = userDoc.data();
           setCurrentUserRole(userData.role || 'member');
+          setCurrentUserOnExecutiveBoard(userData.onExecutiveBoard === true);
         } else {
           setCurrentUserRole('member');
+          setCurrentUserOnExecutiveBoard(false);
         }
       } catch (error) {
         console.error('Error fetching current user role:', error);
         setCurrentUserRole('member');
+        setCurrentUserOnExecutiveBoard(false);
       } finally {
         setRoleReady(true);
       }
@@ -153,9 +158,12 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
     }
   };
 
-  // Check if user can manage trash (President/VP only)
   const canManageTrash = (): boolean => {
-    return currentUserRole === 'President' || currentUserRole === 'Vice President';
+    return (
+      currentUserRole === 'President' ||
+      currentUserRole === 'Vice President' ||
+      currentUserOnExecutiveBoard
+    );
   };
 
   // Check if user is President or VP
@@ -465,10 +473,13 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
            !req.rejectedByExec2;
   };
 
-  // Filter sponsors based on user role (only President/VP can see)
-  const visibleSponsors = deletedSponsors.filter(sponsor => {
-    if (currentUserRole === 'President' || currentUserRole === 'Vice President') {
-      return true; // Exec can see all
+  const visibleSponsors = deletedSponsors.filter((sponsor) => {
+    if (
+      currentUserRole === 'President' ||
+      currentUserRole === 'Vice President' ||
+      currentUserOnExecutiveBoard
+    ) {
+      return true;
     }
     return false;
   });
@@ -486,7 +497,9 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">Only President and Vice President can access trash.</p>
+          <p className="text-gray-600">
+            Only President, Vice President, or members with Executive Board (About) enabled can access trash.
+          </p>
         </div>
       </div>
     );

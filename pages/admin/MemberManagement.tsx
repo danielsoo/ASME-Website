@@ -68,6 +68,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   const [execPositions, setExecPositions] = useState<ExecPosition[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
+  const [currentUserOnExecutiveBoard, setCurrentUserOnExecutiveBoard] = useState(false);
   /** False until Firestore returns the signed-in user's role — avoids a flash of "Access Denied". */
   const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
@@ -167,6 +168,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setRoleReady(false);
+        setCurrentUserOnExecutiveBoard(false);
         return;
       }
       setCurrentUserId(user.uid);
@@ -175,12 +177,15 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
         if (userDoc.exists()) {
           const userData = userDoc.data();
           setCurrentUserRole(userData.role || 'member');
+          setCurrentUserOnExecutiveBoard(userData.onExecutiveBoard === true);
         } else {
           setCurrentUserRole('member');
+          setCurrentUserOnExecutiveBoard(false);
         }
       } catch (error) {
         console.error('Error fetching current user role:', error);
         setCurrentUserRole('member');
+        setCurrentUserOnExecutiveBoard(false);
       } finally {
         setRoleReady(true);
       }
@@ -236,9 +241,12 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     }
   };
 
-  // Check if user can manage positions/members
+  const isPresidentOrVP = (): boolean =>
+    currentUserRole === 'President' || currentUserRole === 'Vice President';
+
+  // President/VP plus anyone flagged Executive Board (About) in Member Management
   const canManage = (): boolean => {
-    return currentUserRole === 'President' || currentUserRole === 'Vice President';
+    return isPresidentOrVP() || currentUserOnExecutiveBoard;
   };
 
   const handleAddTeam = async () => {
@@ -621,7 +629,9 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">Only President and Vice President can manage members.</p>
+          <p className="text-gray-600">
+            Only President, Vice President, or members with Executive Board (About) enabled can use this page.
+          </p>
         </div>
       </div>
     );
@@ -747,14 +757,16 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                 member&apos;s Profile settings.
               </p>
             </div>
-            <button
-              onClick={openAddMemberModal}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base shrink-0"
-              title="Add member manually (President / Vice President only)"
-            >
-              <Plus className="w-5 h-5" />
-              Add Member
-            </button>
+            {isPresidentOrVP() && (
+              <button
+                onClick={openAddMemberModal}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base shrink-0"
+                title="Add member manually (President / Vice President only)"
+              >
+                <Plus className="w-5 h-5" />
+                Add Member
+              </button>
+            )}
           </div>
 
           {loading ? (

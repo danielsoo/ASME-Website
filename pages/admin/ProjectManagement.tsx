@@ -25,6 +25,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
+  const [currentUserOnExecutiveBoard, setCurrentUserOnExecutiveBoard] = useState(false);
   const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -79,6 +80,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setRoleReady(false);
+        setCurrentUserOnExecutiveBoard(false);
         return;
       }
       setCurrentUserId(user.uid);
@@ -87,12 +89,15 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
         if (userDoc.exists()) {
           const userData = userDoc.data();
           setCurrentUserRole(userData.role || 'member');
+          setCurrentUserOnExecutiveBoard(userData.onExecutiveBoard === true);
         } else {
           setCurrentUserRole('member');
+          setCurrentUserOnExecutiveBoard(false);
         }
       } catch (error) {
         console.error('Error fetching current user role:', error);
         setCurrentUserRole('member');
+        setCurrentUserOnExecutiveBoard(false);
       } finally {
         setRoleReady(true);
       }
@@ -224,9 +229,10 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     return () => unsub();
   }, []);
 
-  // Executive roles from Member Management (execPositions) + common titles
+  // Executive roles from Member Management (execPositions) + Executive Board (About) flag
   const isExecBoardMember = (): boolean => {
     if (currentUserRole === 'President' || currentUserRole === 'Vice President') return true;
+    if (currentUserOnExecutiveBoard) return true;
     return execPositions.includes(currentUserRole);
   };
 
@@ -611,28 +617,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                       }}
                     />
                     {uploadPct > 0 && uploadPct < 100 && (
-                      <div className="text-xs text-gray-600 mt-1">Uploading... {uploadPct}%</div> 
+                      <div className="text-xs text-gray-600 mt-1">Uploading... {uploadPct}%</div>
                     )}
-                    
-                    {/* URL Input Option */}
-                    <div>
-                      <label className="text-sm text-gray-600 mb-1 block">Option 2: Paste Image URL</label>
-                      <input
-                        type="text"
-                        value={projectImageUrl}
-                        onChange={(e) => {
-                          setProjectImageUrl(e.target.value);
-                          setProjectImageFile(null); // Clear file when URL is entered
-                        }}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                        style={{ color: '#111827', backgroundColor: '#ffffff' }}
-                        placeholder="https://drive.google.com/uc?export=view&id=YOUR_FILE_ID"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Or paste a Google Drive link, Imgur link, etc.
-                      </p>
-                    </div>
-                    
                     <ProjectAdminImagePreview
                       imageUrl={ikUrl || (projectImageUrl !== '#' ? projectImageUrl : '')}
                       titleHint={richTextToPlainText(projectTitle)}

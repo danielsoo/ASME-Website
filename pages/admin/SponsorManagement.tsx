@@ -17,6 +17,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
+  const [currentUserOnExecutiveBoard, setCurrentUserOnExecutiveBoard] = useState(false);
   const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -57,6 +58,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setRoleReady(false);
+        setCurrentUserOnExecutiveBoard(false);
         return;
       }
       setCurrentUserId(user.uid);
@@ -65,12 +67,15 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
         if (userDoc.exists()) {
           const userData = userDoc.data();
           setCurrentUserRole(userData.role || 'member');
+          setCurrentUserOnExecutiveBoard(userData.onExecutiveBoard === true);
         } else {
           setCurrentUserRole('member');
+          setCurrentUserOnExecutiveBoard(false);
         }
       } catch (error) {
         console.error('Error fetching current user role:', error);
         setCurrentUserRole('member');
+        setCurrentUserOnExecutiveBoard(false);
       } finally {
         setRoleReady(true);
       }
@@ -132,14 +137,20 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   };
 
 
-  // Check if user can manage sponsors (President/VP only)
   const canManageSponsors = (): boolean => {
-    return currentUserRole === 'President' || currentUserRole === 'Vice President';
+    return (
+      currentUserRole === 'President' ||
+      currentUserRole === 'Vice President' ||
+      currentUserOnExecutiveBoard
+    );
   };
 
-  // Check if user can delete sponsors (President/VP only)
   const canDeleteSponsors = (): boolean => {
-    return currentUserRole === 'President' || currentUserRole === 'Vice President';
+    return (
+      currentUserRole === 'President' ||
+      currentUserRole === 'Vice President' ||
+      currentUserOnExecutiveBoard
+    );
   };
 
   const handleAddSponsor = async () => {
@@ -211,7 +222,11 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     if (!sponsorToDelete) return;
 
     if (!canDeleteSponsors()) {
-      showAlert('error', 'Access Denied', 'Only President and Vice President can delete sponsors.');
+      showAlert(
+        'error',
+        'Access Denied',
+        'Only President, Vice President, or Executive Board (About) members can delete sponsors.'
+      );
       setSponsorToDelete(null);
       setShowConfirmDelete(false);
       return;
@@ -236,7 +251,11 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   const openEditModal = (sponsor: Sponsor) => {
     // Only allow editing if user is President/VP
     if (!canManageSponsors()) {
-      showAlert('error', 'Access Denied', 'Only President and Vice President can edit sponsor details.');
+      showAlert(
+        'error',
+        'Access Denied',
+        'Only President, Vice President, or Executive Board (About) members can edit sponsor details.'
+      );
       return;
     }
     setSelectedSponsor(sponsor);
@@ -273,19 +292,20 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     );
   }
 
-  // Check access: Only President/VP can manage sponsors
   if (!canManageSponsors()) {
     return (
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">Only President and Vice President can manage sponsors.</p>
+          <p className="text-gray-600">
+            Only President, Vice President, or members with Executive Board (About) enabled can manage sponsors.
+          </p>
         </div>
       </div>
     );
   }
 
-  // President/VP can see all sponsors
+  // President/VP / Executive Board (About) see all sponsors
   const visibleSponsors = sponsors;
 
   return (

@@ -16,6 +16,7 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
   const [deletedProjects, setDeletedProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
+  const [currentUserOnExecutiveBoard, setCurrentUserOnExecutiveBoard] = useState(false);
   const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [deletionRequestsCount, setDeletionRequestsCount] = useState(0);
@@ -56,6 +57,7 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setRoleReady(false);
+        setCurrentUserOnExecutiveBoard(false);
         return;
       }
       setCurrentUserId(user.uid);
@@ -64,12 +66,15 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
         if (userDoc.exists()) {
           const userData = userDoc.data();
           setCurrentUserRole(userData.role || 'member');
+          setCurrentUserOnExecutiveBoard(userData.onExecutiveBoard === true);
         } else {
           setCurrentUserRole('member');
+          setCurrentUserOnExecutiveBoard(false);
         }
       } catch (error) {
         console.error('Error fetching current user role:', error);
         setCurrentUserRole('member');
+        setCurrentUserOnExecutiveBoard(false);
       } finally {
         setRoleReady(true);
       }
@@ -154,13 +159,15 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
     }
   };
 
-  // Check if user can manage trash (President/VP, or project leaders for their own projects)
   const canManageTrash = (): boolean => {
-    if (currentUserRole === 'President' || currentUserRole === 'Vice President') {
+    if (
+      currentUserRole === 'President' ||
+      currentUserRole === 'Vice President' ||
+      currentUserOnExecutiveBoard
+    ) {
       return true;
     }
-    // Project leaders can see projects they lead
-    return deletedProjects.some(p => isProjectLeader(p));
+    return deletedProjects.some((p) => isProjectLeader(p));
   };
 
   // Check if user is project leader
@@ -590,12 +597,15 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
            !req.rejectedByExec;
   };
 
-  // Filter projects based on user role
-  const visibleProjects = deletedProjects.filter(project => {
-    if (currentUserRole === 'President' || currentUserRole === 'Vice President') {
-      return true; // Exec can see all
+  const visibleProjects = deletedProjects.filter((project) => {
+    if (
+      currentUserRole === 'President' ||
+      currentUserRole === 'Vice President' ||
+      currentUserOnExecutiveBoard
+    ) {
+      return true;
     }
-    return isProjectLeader(project); // Leaders can only see their own projects
+    return isProjectLeader(project);
   });
 
   if (!roleReady) {
@@ -611,7 +621,10 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">Only President, Vice President, or project leaders can access trash.</p>
+          <p className="text-gray-600">
+            Only President, Vice President, members with Executive Board (About) enabled, or project leaders can access
+            trash.
+          </p>
         </div>
       </div>
     );

@@ -28,6 +28,7 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
   const [user, setUser] = useState<any>(null);
   const [userStatus, setUserStatus] = useState<'loading' | 'approved' | 'pending' | 'rejected' | null>(null);
   const [userRole, setUserRole] = useState<string>('');
+  const [userOnExecutiveBoard, setUserOnExecutiveBoard] = useState(false);
   const [allowedRoles, setAllowedRoles] = useState<string[]>(DEFAULT_ALLOWED_ROLES);
   const [accessChecked, setAccessChecked] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -45,6 +46,7 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
     if (!user) {
       setUserStatus(null);
       setUserRole('');
+      setUserOnExecutiveBoard(false);
       setAccessChecked(false);
       return;
     }
@@ -56,6 +58,8 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
         if (cancelled) return;
         if (!snap.exists()) {
           setUserStatus('pending');
+          setUserRole('');
+          setUserOnExecutiveBoard(false);
           setAccessChecked(true);
           return;
         }
@@ -64,6 +68,7 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
         const role = data?.role || 'member';
         setUserStatus(status);
         setUserRole(role);
+        setUserOnExecutiveBoard(data?.onExecutiveBoard === true);
         if (status !== 'approved') {
           setAccessChecked(true);
         }
@@ -71,6 +76,7 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
       .catch(() => {
         if (!cancelled) {
           setUserStatus(null);
+          setUserOnExecutiveBoard(false);
           setAccessChecked(true);
         }
       });
@@ -143,13 +149,20 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
     );
   }
 
-  // President always has access; others need config/adminAccess.allowedRoles
-  if (userRole !== 'President' && !allowedRoles.includes(userRole)) {
+  // President always has access; Executive Board (About) members always have access; others need config/adminAccess.allowedRoles
+  if (
+    userRole !== 'President' &&
+    !userOnExecutiveBoard &&
+    !allowedRoles.includes(userRole)
+  ) {
     if (onNavigate) onNavigate('/');
     return (
       <div className="min-h-screen bg-[#0f131a] flex items-center justify-center">
         <div className="text-center text-white max-w-md px-4">
-          <p className="text-red-300 mb-4">Only Executive Board members with access can use the admin panel.</p>
+          <p className="text-red-300 mb-4">
+            Only the President, roles enabled in Admin Access, or members with Executive Board (About) checked in Member
+            Management can use the admin panel.
+          </p>
           <button
             type="button"
             onClick={() => onNavigate?.('/')}

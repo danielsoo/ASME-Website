@@ -10,7 +10,7 @@ export const ProjectAdminImagePreview: React.FC<{
   if (!src || src === '#') {
     return (
       <p className="text-xs text-gray-500 mt-2">
-        Upload or paste a URL to see a live preview (same height as the public Projects page cards).
+        Upload an image to see a live preview (same height as the public Projects page cards).
       </p>
     );
   }

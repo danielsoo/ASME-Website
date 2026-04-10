@@ -60,7 +60,9 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
 
   const canAccessAdmin =
     userData?.role &&
-    (userData.role === 'President' || allowedAdminRoles.includes(userData.role));
+    (userData.role === 'President' ||
+      userData.onExecutiveBoard === true ||
+      allowedAdminRoles.includes(userData.role));
 
   // Fetch admin notification counts (only when user can access admin)
   useEffect(() => {

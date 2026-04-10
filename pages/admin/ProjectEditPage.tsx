@@ -22,6 +22,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState('');
+  const [currentUserOnExecutiveBoard, setCurrentUserOnExecutiveBoard] = useState(false);
   const [roleReady, setRoleReady] = useState(false);
   const [allUsers, setAllUsers] = useState<{ uid: string; name?: string; email?: string; role?: string }[]>([]);
   const [execPositions, setExecPositions] = useState<string[]>([]);
@@ -54,22 +55,32 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
   });
 
   const canManageProjects = (): boolean => {
-    return ['President', 'Vice President', 'admin'].includes(currentUserRole);
+    return (
+      ['President', 'Vice President', 'admin'].includes(currentUserRole) || currentUserOnExecutiveBoard
+    );
   };
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setRoleReady(false);
+        setCurrentUserOnExecutiveBoard(false);
         return;
       }
       try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) setCurrentUserRole(userDoc.data()?.role || '');
-        else setCurrentUserRole('');
+        if (userDoc.exists()) {
+          const d = userDoc.data();
+          setCurrentUserRole(d?.role || '');
+          setCurrentUserOnExecutiveBoard(d?.onExecutiveBoard === true);
+        } else {
+          setCurrentUserRole('');
+          setCurrentUserOnExecutiveBoard(false);
+        }
       } catch (e) {
         console.error(e);
         setCurrentUserRole('');
+        setCurrentUserOnExecutiveBoard(false);
       } finally {
         setRoleReady(true);
       }
@@ -253,7 +264,10 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
   if (!canManageProjects()) {
     return (
       <div className="min-h-screen bg-gray-100 p-8">
-        <p className="text-gray-600 mb-4">Only President, Vice President, or Admin can edit project details.</p>
+        <p className="text-gray-600 mb-4">
+          Only President, Vice President, Admin, or members with Executive Board (About) enabled can edit project
+          details.
+        </p>
         <button
           type="button"
           onClick={() => onNavigate('/admin/projects')}
@@ -301,7 +315,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Main Image URL</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Main Image</label>
                 <Uploader
                   folder={imageKitFolderForProjectId(projectId)}
                   tags={imageKitTagsForProject(projectId)}
@@ -320,13 +334,6 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                   }}
                 />
                 {uploadPct > 0 && uploadPct < 100 && <p className="text-xs text-gray-500 mt-1">Uploading... {uploadPct}%</p>}
-                <input
-                  type="text"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900 mt-2"
-                  placeholder="Or paste image URL"
-                />
                 <ProjectAdminImagePreview
                   imageUrl={ikUrl || imageUrl}
                   titleHint={richTextToPlainText(title)}
@@ -438,20 +445,6 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                         }}
                         onError={(msg) => setAlert({ isOpen: true, type: 'error', title: 'Upload Error', message: msg })}
                       />
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-400 shrink-0">Or paste URL:</span>
-                        <input
-                          type="url"
-                          value={url}
-                          onChange={(e) => {
-                            const next = [...imgs];
-                            next[i] = e.target.value;
-                            setImgs(next);
-                          }}
-                          className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm text-gray-900"
-                          placeholder="https://..."
-                        />
-                      </div>
                       {url.trim() && (
                         <img
                           src={url.trim()}

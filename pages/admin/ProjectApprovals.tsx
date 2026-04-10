@@ -16,6 +16,7 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
   const [pendingProjects, setPendingProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
+  const [currentUserOnExecutiveBoard, setCurrentUserOnExecutiveBoard] = useState(false);
   const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [allUsers, setAllUsers] = useState<any[]>([]);
@@ -52,6 +53,7 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setRoleReady(false);
+        setCurrentUserOnExecutiveBoard(false);
         return;
       }
       setCurrentUserId(user.uid);
@@ -60,12 +62,15 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
         if (userDoc.exists()) {
           const userData = userDoc.data();
           setCurrentUserRole(userData.role || 'member');
+          setCurrentUserOnExecutiveBoard(userData.onExecutiveBoard === true);
         } else {
           setCurrentUserRole('member');
+          setCurrentUserOnExecutiveBoard(false);
         }
       } catch (error) {
         console.error('Error fetching current user role:', error);
         setCurrentUserRole('member');
+        setCurrentUserOnExecutiveBoard(false);
       } finally {
         setRoleReady(true);
       }
@@ -128,9 +133,12 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
     }
   };
 
-  // Check if user can approve projects
   const canApproveProjects = (): boolean => {
-    return currentUserRole === 'President' || currentUserRole === 'Vice President';
+    return (
+      currentUserRole === 'President' ||
+      currentUserRole === 'Vice President' ||
+      currentUserOnExecutiveBoard
+    );
   };
 
   const handleApprove = async () => {
@@ -210,7 +218,9 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">Only President and Vice President can approve projects.</p>
+          <p className="text-gray-600">
+            Only President, Vice President, or members with Executive Board (About) enabled can approve projects.
+          </p>
         </div>
       </div>
     );
@@ -281,7 +291,7 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
                       Approve & Assign Leader
                     </button>
                     <button
-                      onClick={() => handleReject(project.id)}
+                      onClick={() => handleRejectClick(project.id)}
                       className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-3 py-2 sm:px-4 rounded text-sm sm:text-base"
                     >
                       <X className="w-4 h-4 sm:w-5 sm:h-5" />

@@ -440,13 +440,6 @@ const AboutSiteImageField: React.FC<AboutSiteImageFieldProps> = ({
             onComplete={(u) => setCropSource(u.url)}
             onError={handleError}
           />
-          <input
-            type="url"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800 text-sm"
-            placeholder="Or paste image URL"
-          />
           {storedUrl ? (
             <div className="flex flex-wrap gap-2">
               <button
