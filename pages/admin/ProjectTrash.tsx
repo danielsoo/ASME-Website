@@ -7,6 +7,7 @@ import { RotateCcw, Trash2, X, Check } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
 import { richTextToPlainText } from '../../src/utils/sanitizeHtml';
+import { useExecPermissions } from '../../src/hooks/useExecPermissions';
 
 interface ProjectTrashProps {
   onNavigate: (path: string) => void;
@@ -16,7 +17,7 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
   const [deletedProjects, setDeletedProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
-  const [currentUserOnExecutiveBoard, setCurrentUserOnExecutiveBoard] = useState(false);
+  const { ready: permReady, perms } = useExecPermissions();
   const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [deletionRequestsCount, setDeletionRequestsCount] = useState(0);
@@ -57,7 +58,6 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setRoleReady(false);
-        setCurrentUserOnExecutiveBoard(false);
         return;
       }
       setCurrentUserId(user.uid);
@@ -66,15 +66,12 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
         if (userDoc.exists()) {
           const userData = userDoc.data();
           setCurrentUserRole(userData.role || 'member');
-          setCurrentUserOnExecutiveBoard(userData.onExecutiveBoard === true);
         } else {
           setCurrentUserRole('member');
-          setCurrentUserOnExecutiveBoard(false);
         }
       } catch (error) {
         console.error('Error fetching current user role:', error);
         setCurrentUserRole('member');
-        setCurrentUserOnExecutiveBoard(false);
       } finally {
         setRoleReady(true);
       }
@@ -160,25 +157,16 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
   };
 
   const canManageTrash = (): boolean => {
-    if (
-      currentUserRole === 'President' ||
-      currentUserRole === 'Vice President' ||
-      currentUserOnExecutiveBoard
-    ) {
-      return true;
-    }
+    if (perms.projects) return true;
     return deletedProjects.some((p) => isProjectLeader(p));
   };
 
-  // Check if user is project leader
   const isProjectLeader = (project: Project): boolean => {
     return project.leaderId === currentUserId;
   };
 
-  // Check if user is President or VP
-  const isExec = (): boolean => {
-    return currentUserRole === 'President' || currentUserRole === 'Vice President';
-  };
+  /** Can approve/reject the exec side of permanent project deletion. */
+  const canVotePermanentProjectDelete = (): boolean => perms.projects;
 
   const handleRestoreClick = (projectId: string) => {
     setProjectToRestore(projectId);
@@ -306,7 +294,7 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
     if (!project.permanentDeleteRequest) return;
 
     const isLeader = isProjectLeader(project);
-    const isExecUser = isExec();
+    const isExecUser = canVotePermanentProjectDelete();
 
     // Cannot approve if already rejected
     if (project.permanentDeleteRequest.rejectedByLeader || project.permanentDeleteRequest.rejectedByExec) {
@@ -409,7 +397,7 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
     if (!projectToReject || !projectToReject.permanentDeleteRequest) return;
 
     const isLeader = isProjectLeader(projectToReject);
-    const isExecUser = isExec();
+    const isExecUser = canVotePermanentProjectDelete();
 
     try {
       const currentRequest = projectToReject.permanentDeleteRequest;
@@ -597,18 +585,13 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
            !req.rejectedByExec;
   };
 
+  // Filter projects based on user role
   const visibleProjects = deletedProjects.filter((project) => {
-    if (
-      currentUserRole === 'President' ||
-      currentUserRole === 'Vice President' ||
-      currentUserOnExecutiveBoard
-    ) {
-      return true;
-    }
+    if (perms.projects) return true;
     return isProjectLeader(project);
   });
 
-  if (!roleReady) {
+  if (!roleReady || !permReady) {
     return (
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-gray-600">Loading...</div>
@@ -621,10 +604,7 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">
-            Only President, Vice President, members with Executive Board (About) enabled, or project leaders can access
-            trash.
-          </p>
+          <p className="text-gray-600">Only President, Vice President, or project leaders can access trash.</p>
         </div>
       </div>
     );
@@ -646,7 +626,7 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
             <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">Restore or permanently delete deleted projects</p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
-            {canManageTrash() && deletedProjects.length > 0 && (
+            {perms.projects && deletedProjects.length > 0 && (
               <button
                 onClick={() => setShowConfirmRestoreAll(true)}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base"
@@ -796,8 +776,8 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
                           {(isProjectLeader(project) && 
                             !project.permanentDeleteRequest.approvedByLeader && 
                             !project.permanentDeleteRequest.rejectedByLeader) ||
-                          (isExec() && 
-                            !project.permanentDeleteRequest.approvedByExec && 
+                          (canVotePermanentProjectDelete() &&
+                            !project.permanentDeleteRequest.approvedByExec &&
                             !project.permanentDeleteRequest.rejectedByExec) ? (
                             <>
                               <button

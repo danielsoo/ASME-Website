@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, updateDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db, auth } from '../../src/firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Project } from '../../src/types';
@@ -7,6 +7,7 @@ import { Check, X } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
 import { richTextToPlainText } from '../../src/utils/sanitizeHtml';
+import { useExecPermissions } from '../../src/hooks/useExecPermissions';
 
 interface ProjectApprovalsProps {
   onNavigate: (path: string) => void;
@@ -15,8 +16,7 @@ interface ProjectApprovalsProps {
 const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
   const [pendingProjects, setPendingProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUserRole, setCurrentUserRole] = useState<string>('');
-  const [currentUserOnExecutiveBoard, setCurrentUserOnExecutiveBoard] = useState(false);
+  const { ready: permReady, perms } = useExecPermissions();
   const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [allUsers, setAllUsers] = useState<any[]>([]);
@@ -49,31 +49,13 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
     loadPendingProjects();
     loadAllUsers();
 
-    // Get current user's role
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
         setRoleReady(false);
-        setCurrentUserOnExecutiveBoard(false);
         return;
       }
       setCurrentUserId(user.uid);
-      try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setCurrentUserRole(userData.role || 'member');
-          setCurrentUserOnExecutiveBoard(userData.onExecutiveBoard === true);
-        } else {
-          setCurrentUserRole('member');
-          setCurrentUserOnExecutiveBoard(false);
-        }
-      } catch (error) {
-        console.error('Error fetching current user role:', error);
-        setCurrentUserRole('member');
-        setCurrentUserOnExecutiveBoard(false);
-      } finally {
-        setRoleReady(true);
-      }
+      setRoleReady(true);
     });
 
     return () => unsubscribe();
@@ -133,13 +115,7 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
     }
   };
 
-  const canApproveProjects = (): boolean => {
-    return (
-      currentUserRole === 'President' ||
-      currentUserRole === 'Vice President' ||
-      currentUserOnExecutiveBoard
-    );
-  };
+  const canApproveProjects = (): boolean => perms.projects;
 
   const handleApprove = async () => {
     if (!selectedProject) return;
@@ -205,7 +181,7 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
     setShowApproveModal(true);
   };
 
-  if (!roleReady) {
+  if (!roleReady || !permReady) {
     return (
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-gray-600">Loading...</div>
@@ -218,9 +194,7 @@ const ProjectApprovals: React.FC<ProjectApprovalsProps> = ({ onNavigate }) => {
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">
-            Only President, Vice President, or members with Executive Board (About) enabled can approve projects.
-          </p>
+          <p className="text-gray-600">프로젝트 승인 권한이 없습니다. 회장에게 Admin Access → 세부 권한을 요청하세요.</p>
         </div>
       </div>
     );

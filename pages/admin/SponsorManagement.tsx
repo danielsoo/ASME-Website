@@ -8,6 +8,7 @@ import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
 import Uploader from '../../src/components/Uploader';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
+import { useExecPermissions } from '../../src/hooks/useExecPermissions';
 
 interface SponsorManagementProps {
   onNavigate: (path: string) => void;
@@ -17,7 +18,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
-  const [currentUserOnExecutiveBoard, setCurrentUserOnExecutiveBoard] = useState(false);
+  const { ready: permReady, perms } = useExecPermissions();
   const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -58,7 +59,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setRoleReady(false);
-        setCurrentUserOnExecutiveBoard(false);
         return;
       }
       setCurrentUserId(user.uid);
@@ -67,15 +67,12 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
         if (userDoc.exists()) {
           const userData = userDoc.data();
           setCurrentUserRole(userData.role || 'member');
-          setCurrentUserOnExecutiveBoard(userData.onExecutiveBoard === true);
         } else {
           setCurrentUserRole('member');
-          setCurrentUserOnExecutiveBoard(false);
         }
       } catch (error) {
         console.error('Error fetching current user role:', error);
         setCurrentUserRole('member');
-        setCurrentUserOnExecutiveBoard(false);
       } finally {
         setRoleReady(true);
       }
@@ -137,21 +134,9 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   };
 
 
-  const canManageSponsors = (): boolean => {
-    return (
-      currentUserRole === 'President' ||
-      currentUserRole === 'Vice President' ||
-      currentUserOnExecutiveBoard
-    );
-  };
+  const canManageSponsors = (): boolean => perms.sponsors;
 
-  const canDeleteSponsors = (): boolean => {
-    return (
-      currentUserRole === 'President' ||
-      currentUserRole === 'Vice President' ||
-      currentUserOnExecutiveBoard
-    );
-  };
+  const canDeleteSponsors = (): boolean => perms.sponsors;
 
   const handleAddSponsor = async () => {
     if (!sponsorName.trim()) {
@@ -222,11 +207,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     if (!sponsorToDelete) return;
 
     if (!canDeleteSponsors()) {
-      showAlert(
-        'error',
-        'Access Denied',
-        'Only President, Vice President, or Executive Board (About) members can delete sponsors.'
-      );
+      showAlert('error', '권한 없음', '스폰서를 휴지통으로 보낼 권한이 없습니다.');
       setSponsorToDelete(null);
       setShowConfirmDelete(false);
       return;
@@ -251,11 +232,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   const openEditModal = (sponsor: Sponsor) => {
     // Only allow editing if user is President/VP
     if (!canManageSponsors()) {
-      showAlert(
-        'error',
-        'Access Denied',
-        'Only President, Vice President, or Executive Board (About) members can edit sponsor details.'
-      );
+      showAlert('error', '권한 없음', '스폰서를 수정할 권한이 없습니다.');
       return;
     }
     setSelectedSponsor(sponsor);
@@ -284,7 +261,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   });
 
 
-  if (!roleReady) {
+  if (!roleReady || !permReady) {
     return (
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-gray-600">Loading...</div>
@@ -297,15 +274,13 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">
-            Only President, Vice President, or members with Executive Board (About) enabled can manage sponsors.
-          </p>
+          <p className="text-gray-600">스폰서 관리 권한이 없습니다. 회장에게 Admin Access → 세부 권한을 요청하세요.</p>
         </div>
       </div>
     );
   }
 
-  // President/VP / Executive Board (About) see all sponsors
+  // President/VP can see all sponsors
   const visibleSponsors = sponsors;
 
   return (

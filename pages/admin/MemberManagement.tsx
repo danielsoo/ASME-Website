@@ -19,6 +19,7 @@ import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
 import { TeamMember } from '../../src/types';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
+import { useExecPermissions } from '../../src/hooks/useExecPermissions';
 import {
   migrateUsersRoleAfterRename,
   syncAdminAccessRoleRename,
@@ -67,8 +68,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [execPositions, setExecPositions] = useState<ExecPosition[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUserRole, setCurrentUserRole] = useState<string>('');
-  const [currentUserOnExecutiveBoard, setCurrentUserOnExecutiveBoard] = useState(false);
+  const { ready: permReady, perms } = useExecPermissions();
   /** False until Firestore returns the signed-in user's role — avoids a flash of "Access Denied". */
   const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
@@ -168,27 +168,10 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setRoleReady(false);
-        setCurrentUserOnExecutiveBoard(false);
         return;
       }
       setCurrentUserId(user.uid);
-      try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setCurrentUserRole(userData.role || 'member');
-          setCurrentUserOnExecutiveBoard(userData.onExecutiveBoard === true);
-        } else {
-          setCurrentUserRole('member');
-          setCurrentUserOnExecutiveBoard(false);
-        }
-      } catch (error) {
-        console.error('Error fetching current user role:', error);
-        setCurrentUserRole('member');
-        setCurrentUserOnExecutiveBoard(false);
-      } finally {
-        setRoleReady(true);
-      }
+      setRoleReady(true);
     });
 
     return () => {
@@ -241,13 +224,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     }
   };
 
-  const isPresidentOrVP = (): boolean =>
-    currentUserRole === 'President' || currentUserRole === 'Vice President';
-
-  // President/VP plus anyone flagged Executive Board (About) in Member Management
-  const canManage = (): boolean => {
-    return isPresidentOrVP() || currentUserOnExecutiveBoard;
-  };
+  const canManage = (): boolean => perms.members;
 
   const handleAddTeam = async () => {
     const name = newTeamName.trim();
@@ -616,7 +593,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
     ...execPositions.map((p) => ({ id: p.id, value: p.name, label: p.name })),
   ];
 
-  if (!roleReady) {
+  if (!roleReady || !permReady) {
     return (
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-gray-600">Loading...</div>
@@ -629,9 +606,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">
-            Only President, Vice President, or members with Executive Board (About) enabled can use this page.
-          </p>
+          <p className="text-gray-600">멤버 관리 권한이 없습니다. 회장에게 Admin Access → 세부 권한을 요청하세요.</p>
         </div>
       </div>
     );
@@ -757,16 +732,14 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
                 member&apos;s Profile settings.
               </p>
             </div>
-            {isPresidentOrVP() && (
-              <button
-                onClick={openAddMemberModal}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base shrink-0"
-                title="Add member manually (President / Vice President only)"
-              >
-                <Plus className="w-5 h-5" />
-                Add Member
-              </button>
-            )}
+            <button
+              onClick={openAddMemberModal}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base shrink-0"
+              title="Add member manually (President / Vice President only)"
+            >
+              <Plus className="w-5 h-5" />
+              Add Member
+            </button>
           </div>
 
           {loading ? (

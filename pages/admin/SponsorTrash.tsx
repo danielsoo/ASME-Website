@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, updateDoc, doc, getDoc, deleteDoc, onSnapshot, query } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc, deleteDoc, onSnapshot, query } from 'firebase/firestore';
 import { db, auth } from '../../src/firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Sponsor } from '../../src/types';
 import { RotateCcw, Trash2, X, Check } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
+import { useExecPermissions } from '../../src/hooks/useExecPermissions';
 
 interface SponsorTrashProps {
   onNavigate: (path: string) => void;
@@ -14,8 +15,7 @@ interface SponsorTrashProps {
 const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
   const [deletedSponsors, setDeletedSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUserRole, setCurrentUserRole] = useState<string>('');
-  const [currentUserOnExecutiveBoard, setCurrentUserOnExecutiveBoard] = useState(false);
+  const { ready: permReady, perms } = useExecPermissions();
   const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [deletionRequestsCount, setDeletionRequestsCount] = useState(0);
@@ -56,27 +56,10 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setRoleReady(false);
-        setCurrentUserOnExecutiveBoard(false);
         return;
       }
       setCurrentUserId(user.uid);
-      try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setCurrentUserRole(userData.role || 'member');
-          setCurrentUserOnExecutiveBoard(userData.onExecutiveBoard === true);
-        } else {
-          setCurrentUserRole('member');
-          setCurrentUserOnExecutiveBoard(false);
-        }
-      } catch (error) {
-        console.error('Error fetching current user role:', error);
-        setCurrentUserRole('member');
-        setCurrentUserOnExecutiveBoard(false);
-      } finally {
-        setRoleReady(true);
-      }
+      setRoleReady(true);
     });
 
     return () => unsubscribe();
@@ -158,18 +141,9 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
     }
   };
 
-  const canManageTrash = (): boolean => {
-    return (
-      currentUserRole === 'President' ||
-      currentUserRole === 'Vice President' ||
-      currentUserOnExecutiveBoard
-    );
-  };
+  const canManageTrash = (): boolean => perms.sponsors;
 
-  // Check if user is President or VP
-  const isExec = (): boolean => {
-    return currentUserRole === 'President' || currentUserRole === 'Vice President';
-  };
+  const canVoteSponsorPermanentDelete = (): boolean => perms.sponsors;
 
   const handleRestoreClick = (sponsorId: string) => {
     setSponsorToRestore(sponsorId);
@@ -270,7 +244,7 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
   const handleApprovePermanentDelete = async (sponsor: Sponsor) => {
     if (!sponsor.permanentDeleteRequest) return;
 
-    const isExecUser = isExec();
+    const isExecUser = canVoteSponsorPermanentDelete();
 
     // Cannot approve if already rejected
     if (sponsor.permanentDeleteRequest.rejectedByExec1 || sponsor.permanentDeleteRequest.rejectedByExec2) {
@@ -335,7 +309,7 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
   const handleRejectPermanentDelete = async () => {
     if (!sponsorToReject || !sponsorToReject.permanentDeleteRequest) return;
 
-    const isExecUser = isExec();
+    const isExecUser = canVoteSponsorPermanentDelete();
 
     try {
       const currentRequest = sponsorToReject.permanentDeleteRequest;
@@ -473,18 +447,9 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
            !req.rejectedByExec2;
   };
 
-  const visibleSponsors = deletedSponsors.filter((sponsor) => {
-    if (
-      currentUserRole === 'President' ||
-      currentUserRole === 'Vice President' ||
-      currentUserOnExecutiveBoard
-    ) {
-      return true;
-    }
-    return false;
-  });
+  const visibleSponsors = deletedSponsors.filter(() => perms.sponsors);
 
-  if (!roleReady) {
+  if (!roleReady || !permReady) {
     return (
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-gray-600">Loading...</div>
@@ -497,9 +462,7 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">
-            Only President, Vice President, or members with Executive Board (About) enabled can access trash.
-          </p>
+          <p className="text-gray-600">스폰서 휴지통 권한이 없습니다.</p>
         </div>
       </div>
     );
@@ -671,7 +634,7 @@ const SponsorTrash: React.FC<SponsorTrashProps> = ({ onNavigate }) => {
                       {!sponsor.permanentDeleteRequest.rejectedByExec1 && 
                        !sponsor.permanentDeleteRequest.rejectedByExec2 && (
                         <>
-                          {isExec() && 
+                          {canVoteSponsorPermanentDelete() && 
                            ((!sponsor.permanentDeleteRequest.approvedByExec1 && sponsor.permanentDeleteRequest.approvedByExec1By !== currentUserId) ||
                             (!sponsor.permanentDeleteRequest.approvedByExec2 && sponsor.permanentDeleteRequest.approvedByExec2By !== currentUserId && sponsor.permanentDeleteRequest.approvedByExec1)) ? (
                             <>

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, updateDoc, doc, Timestamp, getDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc, Timestamp, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../../src/firebase/config';
-import { onAuthStateChanged } from 'firebase/auth';
 import { Check, X, Trash2 } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
+import { useExecPermissions } from '../../src/hooks/useExecPermissions';
 
 interface UserApprovalProps {
   onNavigate: (path: string) => void;
@@ -28,8 +28,8 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
   const [rejectedUsers, setRejectedUsers] = useState<PendingUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
-  const [currentUserRole, setCurrentUserRole] = useState<string>('');
-  
+  const { ready: permReady, perms } = useExecPermissions();
+
   // Confirm reject modal states
   const [showConfirmReject, setShowConfirmReject] = useState(false);
   const [userToReject, setUserToReject] = useState<string | null>(null);
@@ -42,15 +42,6 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [userToDelete, setUserToDelete] = useState<PendingUser | null>(null);
 
-  // Check if user can restore rejected/approved users to pending (President/VP only)
-  const canRestoreToPending = (): boolean => {
-    return currentUserRole === 'President' || currentUserRole === 'Vice President';
-  };
-
-  // Check if user can permanently delete users (President/VP only)
-  const canDeleteUser = (): boolean => {
-    return currentUserRole === 'President' || currentUserRole === 'Vice President';
-  };
   
   // Alert modal states
   const [alertModal, setAlertModal] = useState<{
@@ -71,23 +62,6 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
 
   useEffect(() => {
     loadUsers();
-    
-    // Get current user's role
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setCurrentUserRole(userData.role || 'member');
-          }
-        } catch (error) {
-          console.error('Error fetching current user role:', error);
-        }
-      }
-    });
-    
-    return () => unsubscribe();
   }, []);
 
   const loadUsers = async () => {
@@ -123,6 +97,10 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
   };
 
   const handleApprove = async (uid: string) => {
+    if (!perms.users) {
+      showAlert('error', '권한 없음', '가입 승인 권한이 없습니다.');
+      return;
+    }
     try {
       const currentUser = auth.currentUser;
       await updateDoc(doc(db, 'users', uid), {
@@ -145,6 +123,12 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
 
   const handleReject = async () => {
     if (!userToReject) return;
+    if (!perms.users) {
+      showAlert('error', '권한 없음', '가입 거절 권한이 없습니다.');
+      setShowConfirmReject(false);
+      setUserToReject(null);
+      return;
+    }
 
     try {
       const currentUser = auth.currentUser;
@@ -164,8 +148,8 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
   };
 
   const handleRestoreClick = (uid: string) => {
-    if (!canRestoreToPending()) {
-      showAlert('error', 'Access Denied', 'Only President and Vice President can restore users to pending.');
+    if (!perms.users) {
+      showAlert('error', '권한 없음', '사용자 복원 권한이 없습니다.');
       return;
     }
     setUserToRestore(uid);
@@ -175,8 +159,8 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
   const handleRestoreToPending = async () => {
     if (!userToRestore) return;
 
-    if (!canRestoreToPending()) {
-      showAlert('error', 'Access Denied', 'Only President and Vice President can restore users to pending.');
+    if (!perms.users) {
+      showAlert('error', '권한 없음', '사용자 복원 권한이 없습니다.');
       setShowConfirmRestore(false);
       setUserToRestore(null);
       return;
@@ -205,8 +189,8 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
 
 
   const handleDeleteClick = (user: PendingUser) => {
-    if (!canDeleteUser()) {
-      showAlert('error', 'Access Denied', 'Only President and Vice President can delete users.');
+    if (!perms.users) {
+      showAlert('error', '권한 없음', '사용자 삭제 권한이 없습니다.');
       return;
     }
     setUserToDelete(user);
@@ -216,8 +200,8 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
 
-    if (!canDeleteUser()) {
-      showAlert('error', 'Access Denied', 'Only President and Vice President can delete users.');
+    if (!perms.users) {
+      showAlert('error', '권한 없음', '사용자 삭제 권한이 없습니다.');
       setShowConfirmDelete(false);
       setUserToDelete(null);
       return;
@@ -236,6 +220,14 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
   };
 
   const currentUsers = activeTab === 'pending' ? pendingUsers : activeTab === 'approved' ? approvedUsers : rejectedUsers;
+
+  if (!permReady) {
+    return (
+      <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center">
+        <div className="text-gray-600">Loading…</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto">
@@ -339,21 +331,25 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
                       {activeTab === 'pending' && (
                         <div className="flex justify-center items-center gap-2 sm:gap-3 flex-shrink-0">
-                          <button
-                            onClick={() => handleApprove(user.uid)}
-                            className="p-1.5 sm:p-2 bg-green-500 hover:bg-green-600 text-white rounded transition-colors shadow-sm hover:shadow flex items-center justify-center"
-                            title="Approve"
-                          >
-                            <Check className="w-4 h-4 sm:w-5 sm:h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleRejectClick(user.uid)}
-                            className="p-1.5 sm:p-2 bg-red-500 hover:bg-red-600 text-white rounded transition-colors shadow-sm hover:shadow flex items-center justify-center"
-                            title="Reject"
-                          >
-                            <X className="w-4 h-4 sm:w-5 sm:h-5" />
-                          </button>
-                          {canDeleteUser() && (
+                          {perms.users && (
+                            <button
+                              onClick={() => handleApprove(user.uid)}
+                              className="p-1.5 sm:p-2 bg-green-500 hover:bg-green-600 text-white rounded transition-colors shadow-sm hover:shadow flex items-center justify-center"
+                              title="Approve"
+                            >
+                              <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </button>
+                          )}
+                          {perms.users && (
+                            <button
+                              onClick={() => handleRejectClick(user.uid)}
+                              className="p-1.5 sm:p-2 bg-red-500 hover:bg-red-600 text-white rounded transition-colors shadow-sm hover:shadow flex items-center justify-center"
+                              title="Reject"
+                            >
+                              <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </button>
+                          )}
+                          {perms.users && (
                             <button
                               onClick={() => handleDeleteClick(user)}
                               className="p-1.5 sm:p-2 bg-gray-700 hover:bg-gray-800 text-white rounded transition-colors shadow-sm hover:shadow flex items-center justify-center"
@@ -366,7 +362,7 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
                       )}
                       {activeTab === 'approved' && (
                         <div className="flex justify-center items-center gap-2 sm:gap-3 flex-shrink-0">
-                          {canRestoreToPending() ? (
+                          {perms.users ? (
                             <button
                               onClick={() => handleRestoreClick(user.uid)}
                               className="px-2 py-1 sm:px-3 sm:py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded transition-colors shadow-sm hover:shadow whitespace-nowrap"
@@ -377,7 +373,7 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
                           ) : (
                             <span className="text-green-600 text-xs sm:text-sm">✓ Approved</span>
                           )}
-                          {canDeleteUser() && (
+                          {perms.users && (
                             <button
                               onClick={() => handleDeleteClick(user)}
                               className="p-1.5 sm:p-2 bg-gray-700 hover:bg-gray-800 text-white rounded transition-colors shadow-sm hover:shadow flex items-center justify-center"
@@ -390,7 +386,7 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
                       )}
                       {activeTab === 'rejected' && (
                         <div className="flex justify-center items-center gap-2 sm:gap-3 flex-shrink-0">
-                          {canRestoreToPending() && (
+                          {perms.users && (
                             <button
                               onClick={() => handleRestoreClick(user.uid)}
                               className="px-2 py-1 sm:px-3 sm:py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded transition-colors shadow-sm hover:shadow whitespace-nowrap"
@@ -399,7 +395,7 @@ const UserApproval: React.FC<UserApprovalProps> = ({ onNavigate }) => {
                               Restore
                             </button>
                           )}
-                          {canDeleteUser() && (
+                          {perms.users && (
                             <button
                               onClick={() => handleDeleteClick(user)}
                               className="p-1.5 sm:p-2 bg-gray-700 hover:bg-gray-800 text-white rounded transition-colors shadow-sm hover:shadow flex items-center justify-center"

@@ -11,6 +11,7 @@ import AlertModal from '../../src/components/AlertModal';
 import RichTextEditor from '../../src/components/RichTextEditor';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 import { richTextToPlainText } from '../../src/utils/sanitizeHtml';
+import { useExecPermissions } from '../../src/hooks/useExecPermissions';
 
 interface ProjectEditPageProps {
   projectId: string;
@@ -22,7 +23,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState('');
-  const [currentUserOnExecutiveBoard, setCurrentUserOnExecutiveBoard] = useState(false);
+  const { ready: permReady, perms } = useExecPermissions();
   const [roleReady, setRoleReady] = useState(false);
   const [allUsers, setAllUsers] = useState<{ uid: string; name?: string; email?: string; role?: string }[]>([]);
   const [execPositions, setExecPositions] = useState<string[]>([]);
@@ -54,33 +55,21 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
     message: '',
   });
 
-  const canManageProjects = (): boolean => {
-    return (
-      ['President', 'Vice President', 'admin'].includes(currentUserRole) || currentUserOnExecutiveBoard
-    );
-  };
+  const canManageProjects = (): boolean => perms.projects;
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setRoleReady(false);
-        setCurrentUserOnExecutiveBoard(false);
         return;
       }
       try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          const d = userDoc.data();
-          setCurrentUserRole(d?.role || '');
-          setCurrentUserOnExecutiveBoard(d?.onExecutiveBoard === true);
-        } else {
-          setCurrentUserRole('');
-          setCurrentUserOnExecutiveBoard(false);
-        }
+        if (userDoc.exists()) setCurrentUserRole(userDoc.data()?.role || '');
+        else setCurrentUserRole('');
       } catch (e) {
         console.error(e);
         setCurrentUserRole('');
-        setCurrentUserOnExecutiveBoard(false);
       } finally {
         setRoleReady(true);
       }
@@ -253,7 +242,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
     );
   }
 
-  if (!roleReady) {
+  if (!roleReady || !permReady) {
     return (
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center">
         <p className="text-gray-600">Loading...</p>
@@ -264,10 +253,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
   if (!canManageProjects()) {
     return (
       <div className="min-h-screen bg-gray-100 p-8">
-        <p className="text-gray-600 mb-4">
-          Only President, Vice President, Admin, or members with Executive Board (About) enabled can edit project
-          details.
-        </p>
+        <p className="text-gray-600 mb-4">프로젝트 상세 편집 권한이 없습니다.</p>
         <button
           type="button"
           onClick={() => onNavigate('/admin/projects')}

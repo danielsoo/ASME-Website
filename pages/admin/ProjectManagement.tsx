@@ -15,6 +15,7 @@ import {
 } from '@/src/utils/imagekitProjectUpload';
 import RichTextEditor from '../../src/components/RichTextEditor';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
+import { useExecPermissions } from '../../src/hooks/useExecPermissions';
 import { richTextToPlainText } from '../../src/utils/sanitizeHtml';
 
 interface ProjectManagementProps {
@@ -25,7 +26,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
-  const [currentUserOnExecutiveBoard, setCurrentUserOnExecutiveBoard] = useState(false);
+  const { ready: permReady, perms } = useExecPermissions();
   const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -80,7 +81,6 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setRoleReady(false);
-        setCurrentUserOnExecutiveBoard(false);
         return;
       }
       setCurrentUserId(user.uid);
@@ -89,15 +89,12 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
         if (userDoc.exists()) {
           const userData = userDoc.data();
           setCurrentUserRole(userData.role || 'member');
-          setCurrentUserOnExecutiveBoard(userData.onExecutiveBoard === true);
         } else {
           setCurrentUserRole('member');
-          setCurrentUserOnExecutiveBoard(false);
         }
       } catch (error) {
         console.error('Error fetching current user role:', error);
         setCurrentUserRole('member');
-        setCurrentUserOnExecutiveBoard(false);
       } finally {
         setRoleReady(true);
       }
@@ -229,27 +226,19 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     return () => unsub();
   }, []);
 
-  // Executive roles from Member Management (execPositions) + Executive Board (About) flag
+  // Executive roles from Member Management (execPositions) + common titles
   const isExecBoardMember = (): boolean => {
     if (currentUserRole === 'President' || currentUserRole === 'Vice President') return true;
-    if (currentUserOnExecutiveBoard) return true;
     return execPositions.includes(currentUserRole);
   };
 
-  // Check if user can manage/approve projects (President/VP/Admin only)
-  const canManageProjects = (): boolean => {
-    return currentUserRole === 'President' || currentUserRole === 'Vice President' || currentUserRole === 'admin';
-  };
+  const canManageProjects = (): boolean => perms.projects;
 
-  // Check if user can delete projects (President/VP only)
-  const canDeleteProjects = (): boolean => {
-    return currentUserRole === 'President' || currentUserRole === 'Vice President';
-  };
+  const canDeleteProjects = (): boolean => perms.projects;
 
-  // Check if user can approve projects (President/VP only)
-  const canApproveProjects = (): boolean => {
-    return currentUserRole === 'President' || currentUserRole === 'Vice President';
-  };
+  const canApproveProjects = (): boolean => perms.projects;
+
+  const canEditProjectDetail = (): boolean => perms.projects;
 
   // Check if user is project leader
   const isProjectLeader = (project: Project): boolean => {
@@ -322,7 +311,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
     if (!projectToDelete) return;
 
     if (!canDeleteProjects()) {
-      showAlert('error', 'Access Denied', 'Only President and Vice President can delete projects.');
+      showAlert('error', '권한 없음', '프로젝트를 휴지통으로 보낼 권한이 없습니다.');
       setProjectToDelete(null);
       setShowConfirmDelete(false);
       return;
@@ -370,7 +359,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
   // Check access: Executive Board can create, President/VP/Admin can manage all, leaders can manage their projects
   const hasProjectAccess = isExecBoardMember() || canManageProjects() || projects.some(p => isProjectLeader(p));
 
-  if (!roleReady || !execPositionsReady) {
+  if (!roleReady || !execPositionsReady || !permReady) {
     return (
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
         <div className="text-gray-600">Loading...</div>
@@ -485,15 +474,17 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                       )}
                     </div>
                   </div>
-                  {canManageProjects() && (
+                  {(canEditProjectDetail() || canDeleteProjects()) && (
                     <div className="flex gap-1.5 sm:gap-2 shrink-0">
-                      <button
-                        onClick={() => safeNavigate('/admin/projects/edit/' + project.id)}
-                        className="text-blue-600 hover:text-blue-800 p-1"
-                        title="Edit Project"
-                      >
-                        <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </button>
+                      {canEditProjectDetail() && (
+                        <button
+                          onClick={() => safeNavigate('/admin/projects/edit/' + project.id)}
+                          className="text-blue-600 hover:text-blue-800 p-1"
+                          title="Edit Project"
+                        >
+                          <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
+                      )}
                       {canDeleteProjects() && (
                         <button
                           onClick={() => handleDeleteClick(project.id)}
