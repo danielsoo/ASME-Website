@@ -397,8 +397,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
                           project={projectWithLeaderName} 
                           onImageClick={(project) => {
                             if (onNavigate) {
-                              const slug = (project.title || '').replace(/<[^>]*>/g, '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                              onNavigate(`/projects/${slug}`);
+                              onNavigate(`/projects/${project.id}`);
                             }
                           }}
                         />
@@ -456,8 +455,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
                           project={projectWithLeaderName} 
                           onImageClick={(project) => {
                             if (onNavigate) {
-                              const slug = (project.title || '').replace(/<[^>]*>/g, '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                              onNavigate(`/projects/${slug}`);
+                              onNavigate(`/projects/${project.id}`);
                             }
                           }}
                           showDragHandle={canEdit}
