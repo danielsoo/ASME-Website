@@ -300,24 +300,26 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                 Add Sponsor
               </button>
             )}
-            <button
-              onClick={() => safeNavigate('/admin/sponsors/trash')}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base relative"
-            >
-              Trash
-              {deletionRequestsCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center px-1 shadow">
-                  {deletionRequestsCount > 99 ? '99+' : deletionRequestsCount}
-                </span>
-              )}
-            </button>
+            {canManageSponsors() && (
+              <button
+                onClick={() => safeNavigate('/admin/sponsors/trash')}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base relative"
+              >
+                Trash
+                {deletionRequestsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center px-1 shadow">
+                    {deletionRequestsCount > 99 ? '99+' : deletionRequestsCount}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
         </div>
         {leaveConfirmModal}
         {readOnlySponsors && (
           <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-            <strong>View only.</strong> You can browse sponsors but cannot add, edit, or delete. Ask the President to
-            grant <strong>Sponsors</strong> area permission in Admin Access if you need to make changes.
+            <strong>View only.</strong> You can browse sponsors but cannot add, edit, delete, or open Trash. Ask the
+            President to grant <strong>Sponsors</strong> area permission in Admin Access if you need to make changes.
           </div>
         )}
         {loading ? (

@@ -26,22 +26,27 @@ interface AdminProps {
 
 const DEFAULT_ALLOWED_ROLES = ['President', 'Vice President'];
 
-/** Shown briefly while redirecting away from Projects Approve/Trash without `perms.projects`. */
-const ProjectsAreaDenied: React.FC<{ onNavigate?: (path: string) => void }> = ({ onNavigate }) => {
+/** Shown briefly while redirecting away from a gated admin route without the matching exec area permission. */
+const ExecAreaDenied: React.FC<{
+  onNavigate?: (path: string) => void;
+  redirectPath: string;
+  areaLabel: string;
+  backButtonLabel: string;
+}> = ({ onNavigate, redirectPath, areaLabel, backButtonLabel }) => {
   useEffect(() => {
-    onNavigate?.('/admin/projects');
-  }, [onNavigate]);
+    onNavigate?.(redirectPath);
+  }, [onNavigate, redirectPath]);
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center gap-4 p-8">
       <p className="text-gray-600 text-center text-sm">
-        Projects area permission is required. Returning to Project Management…
+        <strong>{areaLabel}</strong> area permission is required. Returning…
       </p>
       <button
         type="button"
         className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm"
-        onClick={() => onNavigate?.('/admin/projects')}
+        onClick={() => onNavigate?.(redirectPath)}
       >
-        Back to Project Management
+        {backButtonLabel}
       </button>
     </div>
   );
@@ -236,7 +241,14 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
       );
     }
     if (!perms.projects) {
-      return <ProjectsAreaDenied onNavigate={onNavigate} />;
+      return (
+        <ExecAreaDenied
+          onNavigate={onNavigate}
+          redirectPath="/admin/projects"
+          areaLabel="Projects"
+          backButtonLabel="Back to Project Management"
+        />
+      );
     }
     return <ProjectApprovals onNavigate={onNavigate || (() => {})} />;
   }
@@ -251,7 +263,14 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
       );
     }
     if (!perms.projects) {
-      return <ProjectsAreaDenied onNavigate={onNavigate} />;
+      return (
+        <ExecAreaDenied
+          onNavigate={onNavigate}
+          redirectPath="/admin/projects"
+          areaLabel="Projects"
+          backButtonLabel="Back to Project Management"
+        />
+      );
     }
     return <ProjectTrash onNavigate={onNavigate || (() => {})} />;
   }
@@ -274,8 +293,25 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
     return <SponsorManagement onNavigate={onNavigate || (() => {})} />;
   }
 
-  // Sponsor Trash page
+  // Sponsor Trash page (Sponsors area permission only)
   if (currentPath === '/admin/sponsors/trash') {
+    if (!permReady) {
+      return (
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-8">
+          <p className="text-gray-600">Loading…</p>
+        </div>
+      );
+    }
+    if (!perms.sponsors) {
+      return (
+        <ExecAreaDenied
+          onNavigate={onNavigate}
+          redirectPath="/admin/sponsors"
+          areaLabel="Sponsors"
+          backButtonLabel="Back to Sponsor Management"
+        />
+      );
+    }
     return <SponsorTrash onNavigate={onNavigate || (() => {})} />;
   }
 
