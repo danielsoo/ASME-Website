@@ -3,6 +3,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../../src/firebase/config';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { mergeDuplicateFirestoreUsersByEmail } from '../../src/firebase/mergeUsersByEmail';
+import { useExecPermissions } from '../../src/hooks/useExecPermissions';
 import Login from './Login';
 import Dashboard from './Dashboard';
 import UserApproval from './UserApproval';
@@ -24,6 +25,27 @@ interface AdminProps {
 }
 
 const DEFAULT_ALLOWED_ROLES = ['President', 'Vice President'];
+
+/** Shown briefly while redirecting away from Projects Approve/Trash without `perms.projects`. */
+const ProjectsAreaDenied: React.FC<{ onNavigate?: (path: string) => void }> = ({ onNavigate }) => {
+  useEffect(() => {
+    onNavigate?.('/admin/projects');
+  }, [onNavigate]);
+  return (
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center gap-4 p-8">
+      <p className="text-gray-600 text-center text-sm">
+        Projects area permission is required. Returning to Project Management…
+      </p>
+      <button
+        type="button"
+        className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm"
+        onClick={() => onNavigate?.('/admin/projects')}
+      >
+        Back to Project Management
+      </button>
+    </div>
+  );
+};
 
 const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => {
   const [user, setUser] = useState<any>(null);
@@ -107,6 +129,8 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
     );
     return () => unsub();
   }, [user?.uid, userStatus]);
+
+  const { ready: permReady, perms } = useExecPermissions();
 
   // Setup Admin page (accessible without login) - must be checked first
   if (currentPath === '/admin/setup' || currentPath.startsWith('/admin/setup')) {
@@ -202,13 +226,33 @@ const Admin: React.FC<AdminProps> = ({ currentPath = '/admin', onNavigate }) => 
     return <ProjectManagement onNavigate={onNavigate || (() => {})} />;
   }
 
-  // Project Approvals page
+  // Project Approvals page (Projects area permission only)
   if (currentPath === '/admin/projects/approvals') {
+    if (!permReady) {
+      return (
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-8">
+          <p className="text-gray-600">Loading…</p>
+        </div>
+      );
+    }
+    if (!perms.projects) {
+      return <ProjectsAreaDenied onNavigate={onNavigate} />;
+    }
     return <ProjectApprovals onNavigate={onNavigate || (() => {})} />;
   }
 
-  // Project Trash page
+  // Project Trash page (Projects area permission only)
   if (currentPath === '/admin/projects/trash') {
+    if (!permReady) {
+      return (
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-8">
+          <p className="text-gray-600">Loading…</p>
+        </div>
+      );
+    }
+    if (!perms.projects) {
+      return <ProjectsAreaDenied onNavigate={onNavigate} />;
+    }
     return <ProjectTrash onNavigate={onNavigate || (() => {})} />;
   }
 

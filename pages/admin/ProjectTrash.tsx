@@ -190,6 +190,10 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
   const canVotePermanentProjectDelete = (): boolean => perms.projects;
 
   const handleRestoreClick = (projectId: string) => {
+    if (!perms.projects) {
+      showAlert('error', 'Permission denied', 'You do not have permission to restore projects.');
+      return;
+    }
     setProjectToRestore(projectId);
     setShowConfirmRestore(true);
   };
@@ -225,7 +229,7 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
       return;
     }
     // Only restore projects that are in trash (not already permanently deleted)
-    const projectsToRestore = deletedProjects.filter(p => p.deletedAt && !p.permanentDeleteRequest?.approvedByLeader || !p.permanentDeleteRequest?.approvedByExec);
+    const projectsToRestore = deletedProjects.filter((p) => !!p.deletedAt);
 
     if (projectsToRestore.length === 0) {
       showAlert('info', 'No Projects', 'No projects to restore.');
@@ -648,7 +652,11 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
                 </span>
               )}
             </h1>
-            <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">Restore or permanently delete deleted projects</p>
+            <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">
+              {perms.projects
+                ? 'Restore or permanently delete deleted projects'
+                : 'View deleted projects — restoring and trash mutations require Projects permission in Admin Access'}
+            </p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
             {perms.projects && deletedProjects.length > 0 && (
@@ -877,7 +885,7 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
 
         {/* Confirm Restore Modal */}
         <ConfirmModal
-          isOpen={showConfirmRestore}
+          isOpen={showConfirmRestore && perms.projects}
           onClose={() => {
             setShowConfirmRestore(false);
             setProjectToRestore(null);
@@ -937,7 +945,7 @@ const ProjectTrash: React.FC<ProjectTrashProps> = ({ onNavigate }) => {
 
         {/* Confirm Restore All Modal */}
         <ConfirmModal
-          isOpen={showConfirmRestoreAll}
+          isOpen={showConfirmRestoreAll && perms.projects}
           onClose={() => setShowConfirmRestoreAll(false)}
           onConfirm={() => {
             handleRestoreAll();

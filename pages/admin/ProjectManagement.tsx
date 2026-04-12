@@ -412,35 +412,40 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                 Create Project
               </button>
             )}
-            <button
-              onClick={() => safeNavigate('/admin/projects/approvals')}
-              className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base relative"
-            >
-              Approve
-              {pendingProjectsCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center px-1 shadow">
-                  {pendingProjectsCount > 99 ? '99+' : pendingProjectsCount}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => safeNavigate('/admin/projects/trash')}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base relative"
-            >
-              Trash
-              {deletionRequestsCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center px-1 shadow">
-                  {deletionRequestsCount > 99 ? '99+' : deletionRequestsCount}
-                </span>
-              )}
-            </button>
+            {canManageProjects() && (
+              <button
+                onClick={() => safeNavigate('/admin/projects/approvals')}
+                className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base relative"
+              >
+                Approve
+                {pendingProjectsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center px-1 shadow">
+                    {pendingProjectsCount > 99 ? '99+' : pendingProjectsCount}
+                  </span>
+                )}
+              </button>
+            )}
+            {canManageProjects() && (
+              <button
+                onClick={() => safeNavigate('/admin/projects/trash')}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base relative"
+              >
+                Trash
+                {deletionRequestsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center px-1 shadow">
+                    {deletionRequestsCount > 99 ? '99+' : deletionRequestsCount}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
         </div>
         {leaveConfirmModal}
         {readOnlyProjectList && (
           <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-            <strong>View only.</strong> You can browse all projects but cannot create, edit, approve, or delete unless the
-            President grants <strong>Projects</strong> area permission in Admin Access.
+            <strong>View only.</strong> You can browse this list but cannot create projects, open approvals or trash, edit
+            content, or delete unless the President grants <strong>Projects</strong> in Admin Access. If you are a{' '}
+            <strong>project leader</strong>, you can still edit or manage members for projects you lead.
           </div>
         )}
         {loading ? (
@@ -471,20 +476,13 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                       )}
                     </div>
                   </div>
-                  {(canEditProjectDetail() ||
-                    canDeleteProjects() ||
-                    readOnlyProjectList ||
-                    isProjectLeader(project)) && (
+                  {(canEditProjectDetail() || canDeleteProjects() || isProjectLeader(project)) && (
                     <div className="flex gap-1.5 sm:gap-2 shrink-0">
-                      {(canEditProjectDetail() || readOnlyProjectList || isProjectLeader(project)) && (
+                      {(canEditProjectDetail() || isProjectLeader(project)) && (
                         <button
                           onClick={() => safeNavigate('/admin/projects/edit/' + project.id)}
                           className="text-blue-600 hover:text-blue-800 p-1"
-                          title={
-                            canEditProjectDetail() || isProjectLeader(project)
-                              ? 'Edit Project'
-                              : 'View project'
-                          }
+                          title={canEditProjectDetail() || isProjectLeader(project) ? 'Edit Project' : 'View project'}
                         >
                           <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
