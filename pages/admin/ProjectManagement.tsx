@@ -525,12 +525,18 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   <div className="text-sm">
                     <span className="font-semibold text-gray-700">Members:</span>{' '}
                     <span className="text-gray-600">
-                      {(project.members?.length || 0) + (project.chairs?.length || 0)}
+                      {project.members?.length || 0} managed
+                      {(project.chairs?.length || 0) > 0 && (
+                        <span>
+                          , {project.chairs!.length} legacy
+                        </span>
+                      )}
                     </span>
-                    {project.chairs?.length > 0 && project.members?.length > 0 && (
-                      <span className="text-xs text-gray-500 ml-1">
-                        ({project.members.length} managed, {project.chairs.length} legacy)
-                      </span>
+                    {(project.chairs?.length || 0) > 0 && (project.members?.length || 0) === 0 && (
+                      <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1.5">
+                        Legacy names are stored separately from the managed member list. Open Manage Members to see the
+                        legacy table; add people there to link them to accounts.
+                      </p>
                     )}
                   </div>
                 </div>
@@ -1126,13 +1132,45 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
           </div>
         )}
 
+        {(project.chairs?.length ?? 0) > 0 && (
+          <div className="mb-6 space-y-2 rounded-lg border border-amber-200 bg-amber-50/80 px-4 py-3">
+            <h3 className="text-base font-semibold text-amber-950">
+              Legacy team list ({project.chairs!.length})
+            </h3>
+            <p className="text-sm text-amber-900">
+              Older site data: name and role only (not linked to user accounts). The managed list below is what Manage
+              Members edits in Firestore.
+            </p>
+            <div className="bg-white border border-amber-100 rounded-md overflow-hidden max-h-48 overflow-y-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-amber-100/80 text-left text-xs font-medium text-amber-950 uppercase">
+                  <tr>
+                    <th className="px-3 py-2">Name</th>
+                    <th className="px-3 py-2">Role</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-amber-100">
+                  {(project.chairs || []).map((c, i) => (
+                    <tr key={`chair-${i}-${c.name}`}>
+                      <td className="px-3 py-2 text-gray-900">{c.name}</td>
+                      <td className="px-3 py-2 text-gray-600">{c.role}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-800">
-            Project Members ({members.length})
+            Managed members ({members.length})
           </h3>
 
           {members.length === 0 ? (
-            <p className="text-gray-500">No members assigned to this project.</p>
+            <p className="text-gray-500">
+              No linked members yet. Use Add Member to attach approved users. Legacy names (if any) are listed above.
+            </p>
           ) : (
             <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
