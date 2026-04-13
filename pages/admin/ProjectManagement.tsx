@@ -857,6 +857,7 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
 
       setMembers(updatedMembers);
       setMemberToRemove(null);
+      setShowConfirmRemoveMember(false);
       onUpdate();
       showMemberAlert('success', 'Success', 'Member removed from project successfully!');
     } catch (error) {
@@ -1204,6 +1205,21 @@ const ProjectMemberManagement: React.FC<ProjectMemberManagementProps> = ({
           type={memberAlertModal.type}
           title={memberAlertModal.title}
           message={memberAlertModal.message}
+        />
+
+        {/* Confirm Remove Member Modal */}
+        <ConfirmModal
+          isOpen={showConfirmRemoveMember}
+          onClose={() => {
+            setShowConfirmRemoveMember(false);
+            setMemberToRemove(null);
+          }}
+          onConfirm={handleRemoveMember}
+          title="Remove Member"
+          message="Are you sure you want to remove this member from the project?"
+          confirmText="Remove"
+          cancelText="Cancel"
+          type="warning"
         />
 
         {/* Confirm Delete Role Modal */}
