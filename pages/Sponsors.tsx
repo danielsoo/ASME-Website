@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, onSnapshot, query } from 'firebase/firestore';
 import { db } from '../src/firebase/config';
-import { SPONSORS } from '../src/constants';
 import { Settings } from 'lucide-react';
 import { getSponsorContactEmail } from '../src/firebase/services';
-import type { SponsorsContent } from '../src/types';
+import type { Sponsor, SponsorsContent } from '../src/types';
 import { DEFAULT_SPONSORS } from '../src/types';
 import { sanitizeHtml, isHtmlString } from '../src/utils/sanitizeHtml';
 
 const Sponsors: React.FC = () => {
   const [content, setContent] = useState<SponsorsContent>({ ...DEFAULT_SPONSORS });
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   
   // NOTE:: do we need this if the default is already handled in firebase services.tsx?
   const [fallbackEmail, setFallbackEmail] = useState('president.asme.psu@gmail.com');
@@ -22,6 +22,23 @@ const Sponsors: React.FC = () => {
       console.error('Sponsors config subscription error:', e);
       setContent({ ...DEFAULT_SPONSORS });
     });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const sponsorsQuery = query(collection(db, 'sponsors'));
+    const unsub = onSnapshot(sponsorsQuery, (snapshot) => {
+      const sponsorsList = snapshot.docs
+        .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Sponsor))
+        .filter((sponsor) => !sponsor.deletedAt)
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+      setSponsors(sponsorsList);
+    }, (e) => {
+      console.error('Sponsors list subscription error:', e);
+      setSponsors([]);
+    });
+
     return () => unsub();
   }, []);
 
@@ -111,7 +128,7 @@ const Sponsors: React.FC = () => {
               <h2 className="text-[#1E2B48] text-3xl font-bold mb-12">Our Sponsors</h2>
               <div className="bg-[#3b4c6b] p-8 md:p-12 rounded-lg">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                      {SPONSORS.map(sponsor => (
+                      {sponsors.map(sponsor => (
                           <div key={sponsor.id} className="aspect-square bg-white rounded shadow-lg overflow-hidden hover:scale-105 transition-transform duration-300">
                                <a href={sponsor.link} target="_blank" className="relative block w-full h-full">
                                   <img src={sponsor.logoUrl} alt={sponsor.name} className="w-full h-full object-cover object-center" />
