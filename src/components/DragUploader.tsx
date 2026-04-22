@@ -23,12 +23,23 @@ type Props = {
   folder?: string;
   tags?: string[];
   label?: string;
+  accept?: string;
+  allowedMimePrefixes?: string[];
   onComplete: (result: DragUploaderResult) => void;
   onProgress?: (pct: number) => void;
   onError?: (message: string) => void;
 };
 
-const DragUploader: React.FC<Props> = ({ folder, tags, label, onComplete, onProgress, onError }) => {
+const DragUploader: React.FC<Props> = ({
+  folder,
+  tags,
+  label,
+  accept = 'image/*',
+  allowedMimePrefixes = ['image/'],
+  onComplete,
+  onProgress,
+  onError,
+}) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -40,8 +51,9 @@ const DragUploader: React.FC<Props> = ({ folder, tags, label, onComplete, onProg
       onError?.('Image upload is not configured. Check VITE_IMAGEKIT_PUBLIC_KEY.');
       return;
     }
-    if (!file.type.startsWith('image/')) {
-      onError?.('Only image files are allowed.');
+    const isAllowed = allowedMimePrefixes.some((prefix) => file.type.startsWith(prefix));
+    if (!isAllowed) {
+      onError?.(`Only ${allowedMimePrefixes.join(', ')} files are allowed.`);
       return;
     }
 
@@ -134,7 +146,7 @@ const DragUploader: React.FC<Props> = ({ folder, tags, label, onComplete, onProg
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept={accept}
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />

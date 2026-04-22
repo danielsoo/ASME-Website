@@ -6,6 +6,8 @@ interface ImageCarouselProps {
 }
 
 const ImageCarousel: React.FC<ImageCarouselProps> = ({ images }) => {
+  const isVideoUrl = (url: string): boolean =>
+    /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(url);
   const [current, setCurrent] = useState(0);
   const [fade, setFade] = useState(true);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -36,20 +38,34 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ images }) => {
 
   return (
     <div className="w-full rounded-2xl overflow-hidden bg-[#1c2333] shadow-lg select-none">
-      {/* Main image area */}
+      {/* Main media area */}
       <div className="relative flex items-center justify-center" style={{ minHeight: 340, maxHeight: 540 }}>
-        <img
-          key={current}
-          src={images[current]}
-          alt={`Gallery image ${current + 1}`}
-          className="w-full object-contain"
-          style={{
-            maxHeight: 540,
-            transition: 'opacity 0.15s ease',
-            opacity: fade ? 1 : 0,
-          }}
-          draggable={false}
-        />
+        {isVideoUrl(images[current]) ? (
+          <video
+            key={current}
+            src={images[current]}
+            controls
+            className="w-full object-contain bg-black"
+            style={{
+              maxHeight: 540,
+              transition: 'opacity 0.15s ease',
+              opacity: fade ? 1 : 0,
+            }}
+          />
+        ) : (
+          <img
+            key={current}
+            src={images[current]}
+            alt={`Gallery media ${current + 1}`}
+            className="w-full object-contain"
+            style={{
+              maxHeight: 540,
+              transition: 'opacity 0.15s ease',
+              opacity: fade ? 1 : 0,
+            }}
+            draggable={false}
+          />
+        )}
 
         {/* Gradient overlays for arrows */}
         {images.length > 1 && (
@@ -59,14 +75,14 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ images }) => {
 
             <button
               onClick={() => go(current - 1)}
-              aria-label="Previous image"
+              aria-label="Previous media"
               className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/65 flex items-center justify-center text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
             <button
               onClick={() => go(current + 1)}
-              aria-label="Next image"
+              aria-label="Next media"
               className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/65 flex items-center justify-center text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <ChevronRight className="w-5 h-5" />
@@ -83,7 +99,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ images }) => {
               <button
                 key={i}
                 onClick={() => go(i)}
-                aria-label={`Go to image ${i + 1}`}
+                aria-label={`Go to media ${i + 1}`}
                 className={`rounded-full transition-all duration-200 focus:outline-none ${
                   i === current
                     ? 'w-5 h-2 bg-white'

@@ -58,6 +58,8 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
   });
 
   const canManageProjects = (): boolean => perms.projects;
+  const isVideoUrl = (url: string): boolean =>
+    /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(url);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -456,12 +458,12 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Gallery images (shown on detail page)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Gallery media (images/videos shown on detail page)</label>
                 <div className="space-y-4">
                   {imgs.map((url, i) => (
                     <div key={i} className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-medium text-gray-500">Image {i + 1}</span>
+                        <span className="text-xs font-medium text-gray-500">Media {i + 1}</span>
                         {!readOnly && (
                           <button
                             type="button"
@@ -476,22 +478,33 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                         <DragUploader
                           folder={`${imageKitFolderForProjectId(projectId)}/gallery`}
                           tags={[...imageKitTagsForProject(projectId), 'gallery']}
+                          accept="image/*,video/mp4,video/webm,video/ogg,video/quicktime,video/x-m4v"
+                          allowedMimePrefixes={['image/', 'video/']}
+                          label="Drag & drop image/video or click to upload"
                           onComplete={(u) => {
                             const next = [...imgs];
                             next[i] = u.url;
                             setImgs(next);
-                            setAlert({ isOpen: true, type: 'success', title: 'Image', message: `Gallery image ${i + 1} uploaded.` });
+                            setAlert({ isOpen: true, type: 'success', title: 'Media', message: `Gallery media ${i + 1} uploaded.` });
                           }}
                           onError={(msg) => setAlert({ isOpen: true, type: 'error', title: 'Upload Error', message: msg })}
                         />
                       )}
                       {url.trim() && (
-                        <img
-                          src={url.trim()}
-                          alt={`Preview ${i + 1}`}
-                          className="h-28 rounded-lg object-cover border border-gray-200 w-full"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
+                        isVideoUrl(url.trim()) ? (
+                          <video
+                            src={url.trim()}
+                            controls
+                            className="h-28 rounded-lg border border-gray-200 w-full bg-black"
+                          />
+                        ) : (
+                          <img
+                            src={url.trim()}
+                            alt={`Preview ${i + 1}`}
+                            className="h-28 rounded-lg object-cover border border-gray-200 w-full"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        )
                       )}
                     </div>
                   ))}
@@ -501,7 +514,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                       onClick={() => setImgs([...imgs, ''])}
                       className="w-full py-2 rounded-lg border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-blue-300 hover:text-blue-500 transition-colors font-medium"
                     >
-                      + Add Image
+                      + Add Media
                     </button>
                   )}
                 </div>
