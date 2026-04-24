@@ -19,7 +19,7 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
   
   // Editable fields
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(''); // Public contact email shown on site
   const [major, setMajor] = useState('');
   const [year, setYear] = useState('');
   const [funFact, setFunFact] = useState('');
@@ -85,7 +85,7 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
     if (!user) return;
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) {
-      setError('Email is required.');
+      setError('Public contact email is required.');
       return;
     }
     
@@ -524,20 +524,36 @@ const Profile: React.FC<ProfileProps> = ({ onNavigate }) => {
             />
           </div>
 
-          {/* Display Email */}
+          {/* Login Email (Read-only) */}
           <div className="mb-6">
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2">
               <Mail className="w-5 h-5" />
-              Email
+              Login Email (read-only)
+            </label>
+            <input
+              type="email"
+              value={user.email || ''}
+              readOnly
+              disabled
+              className="w-full px-4 py-3 bg-[#0f131a] border border-gray-700 rounded-lg text-gray-400 cursor-not-allowed"
+            />
+            <p className="mt-1 text-xs text-gray-500">This is your authentication account email used for sign-in and cannot be changed here.</p>
+          </div>
+
+          {/* Public Contact Email (Editable) */}
+          <div className="mb-6">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2">
+              <Mail className="w-5 h-5" />
+              Public Contact Email (shown on site)
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 bg-[#0f131a] border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#3b4c6b] focus:border-transparent transition"
-              placeholder="Enter your contact email"
+              placeholder="Enter the email to display on the website"
             />
-            <p className="mt-1 text-xs text-gray-500">Shown on the About board card when you are assigned to a board role.</p>
+            <p className="mt-1 text-xs text-gray-500">This email is displayed on your About board card when assigned to a board role. Changing this does not change your login email.</p>
           </div>
 
           {/* Major */}
