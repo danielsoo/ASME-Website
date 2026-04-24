@@ -233,38 +233,38 @@ const Events: React.FC = () => {
                     {pastEvents.map(event => {
                         const isExpanded = expandedPastEventId === event.id;
                         return (
-                            <div key={event.id} className="bg-asme-red rounded-xl p-6 flex flex-row gap-6 shadow-md min-w-0">
-                                <div className="bg-white/20 rounded-lg w-24 h-24 flex-shrink-0 flex items-center justify-center">
-                                    <Calendar className="text-white w-10 h-10 opacity-70" />
+                            <div key={event.id} className="bg-white border border-slate-200 rounded-xl p-5 flex flex-row gap-4 shadow-sm hover:shadow-md transition-shadow min-w-0">
+                                <div className="bg-slate-100 rounded-lg w-20 h-20 flex-shrink-0 flex items-center justify-center">
+                                    <Calendar className="text-slate-500 w-8 h-8" />
                                 </div>
                                 <div className="flex-1 min-w-0 flex flex-col">
                                     <div className="flex items-start gap-2 mb-2">
-                                        <div className="w-8 h-8 bg-white rounded flex-shrink-0 flex items-center justify-center">
-                                            <div className="w-2 h-2 bg-asme-red rounded-full"></div>
+                                        <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center">
+                                            <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
                                         </div>
-                                        <h3 className={`font-bold text-lg text-white ${isExpanded ? 'break-words' : 'line-clamp-1'}`}>{renderEventContent(event.title, '')}</h3>
+                                        <h3 className={`font-bold text-lg text-slate-900 ${isExpanded ? 'break-words' : 'line-clamp-1'}`}>{renderEventContent(event.title, '')}</h3>
                                     </div>
                                     {isExpanded ? (
                                         <>
-                                            <div className="text-xs text-white/80 mb-2 break-words event-rich-content">{renderEventContent(event.description, '')}</div>
+                                            <div className="text-sm text-slate-600 mb-2 break-words event-rich-content">{renderEventContent(event.description, '')}</div>
                                             <div className="flex flex-wrap items-center gap-2 mt-2">
-                                                <div className="w-8 h-8 bg-white rounded flex-shrink-0 flex items-center justify-center">
-                                                    <Clock className="w-4 h-4 text-asme-red" />
+                                                <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center">
+                                                    <Clock className="w-4 h-4 text-slate-600" />
                                                 </div>
-                                                <span className="font-semibold text-sm text-white">{event.date}</span>
+                                                <span className="font-semibold text-sm text-slate-800">{event.date}</span>
                                                 {event.location && (
                                                     <>
-                                                        <div className="w-8 h-8 bg-white rounded flex-shrink-0 flex items-center justify-center">
-                                                            <MapPin className="w-4 h-4 text-asme-red" />
+                                                        <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center">
+                                                            <MapPin className="w-4 h-4 text-slate-600" />
                                                         </div>
-                                                        <span className="font-semibold text-sm text-white/90 break-words">{event.location}</span>
+                                                        <span className="font-semibold text-sm text-slate-700 break-words">{event.location}</span>
                                                     </>
                                                 )}
                                             </div>
                                             <button
                                               type="button"
                                               onClick={() => setExpandedPastEventId(null)}
-                                              className="mt-4 inline-flex items-center gap-1 text-white/90 hover:text-white text-sm font-medium"
+                                              className="mt-4 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
                                             >
                                               <ChevronUp size={16} />
                                               Close
@@ -272,15 +272,15 @@ const Events: React.FC = () => {
                                         </>
                                     ) : (
                                         <>
-                                            <div className="text-xs text-white/80 mb-2 line-clamp-2 event-rich-content">{renderEventContent(event.description, '')}</div>
+                                            <div className="text-sm text-slate-600 mb-2 line-clamp-2 event-rich-content">{renderEventContent(event.description, '')}</div>
                                             <div className="flex items-center gap-2 mt-2">
-                                                <Clock className="w-4 h-4 text-white flex-shrink-0" />
-                                                <span className="font-semibold text-sm text-white">{event.date}</span>
+                                                <Clock className="w-4 h-4 text-slate-600 flex-shrink-0" />
+                                                <span className="font-semibold text-sm text-slate-800">{event.date}</span>
                                             </div>
                                             <button
                                               type="button"
                                               onClick={() => setExpandedPastEventId(event.id)}
-                                              className="mt-3 inline-flex items-center gap-1 text-white/90 hover:text-white text-sm font-medium"
+                                              className="mt-3 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
                                             >
                                               View details
                                               <ChevronDown size={16} />
