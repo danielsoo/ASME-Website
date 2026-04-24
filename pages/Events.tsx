@@ -273,9 +273,17 @@ const Events: React.FC = () => {
                                     ) : (
                                         <>
                                             <div className="text-sm text-slate-600 mb-2 line-clamp-2 event-rich-content">{renderEventContent(event.description, '')}</div>
-                                            <div className="flex items-center gap-2 mt-2">
+                                            <div className="flex flex-wrap items-center gap-2 mt-2">
                                                 <Clock className="w-4 h-4 text-slate-600 flex-shrink-0" />
                                                 <span className="font-semibold text-sm text-slate-800">{event.date}</span>
+                                                {event.location && (
+                                                    <>
+                                                        <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center ml-2">
+                                                            <MapPin className="w-4 h-4 text-slate-600" />
+                                                        </div>
+                                                        <span className="font-semibold text-sm text-slate-700 break-words">{event.location}</span>
+                                                    </>
+                                                )}
                                             </div>
                                             <button
                                               type="button"
