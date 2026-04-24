@@ -18,6 +18,29 @@ function renderEventContent(content: string | undefined, fallback: string): Reac
   return c;
 }
 
+function extractMeetingLink(description?: string, location?: string): string | null {
+  const source = `${description ?? ''}\n${location ?? ''}`;
+  if (!source.trim()) return null;
+
+  const hrefMatch = source.match(/href=["'](https?:\/\/[^"']+)["']/i);
+  if (hrefMatch?.[1]) return hrefMatch[1];
+
+  const urlMatches = source.match(/https?:\/\/[^\s<>"')]+/gi) || [];
+  if (urlMatches.length === 0) return null;
+
+  const preferred = urlMatches.find((u) =>
+    /zoom\.us|teams\.microsoft\.com|meet\.google\.com/i.test(u)
+  );
+  return preferred || urlMatches[0];
+}
+
+function getMeetingLabel(url: string): string {
+  if (/zoom\.us/i.test(url)) return 'Join Zoom';
+  if (/teams\.microsoft\.com/i.test(url)) return 'Join Teams';
+  if (/meet\.google\.com/i.test(url)) return 'Join Google Meet';
+  return 'Open meeting link';
+}
+
 function eventsToIcs(events: EventWithDateTime[]): string {
   const lines = [
     'BEGIN:VCALENDAR',
@@ -232,6 +255,7 @@ const Events: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {pastEvents.map(event => {
                         const isExpanded = expandedPastEventId === event.id;
+                        const meetingLink = extractMeetingLink(event.description, event.location);
                         return (
                             <div key={event.id} className="bg-white border border-slate-200 rounded-xl p-5 flex flex-row gap-4 shadow-sm hover:shadow-md transition-shadow min-w-0">
                                 <div className="bg-slate-100 rounded-lg w-20 h-20 flex-shrink-0 flex items-center justify-center">
@@ -269,6 +293,16 @@ const Events: React.FC = () => {
                                               <ChevronUp size={16} />
                                               Close
                                             </button>
+                                            {meetingLink && (
+                                              <a
+                                                href={meetingLink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="mt-3 inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-semibold underline"
+                                              >
+                                                {getMeetingLabel(meetingLink)}
+                                              </a>
+                                            )}
                                         </>
                                     ) : (
                                         <>
