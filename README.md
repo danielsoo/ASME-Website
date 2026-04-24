@@ -1,287 +1,224 @@
-# ASME @ Penn State Website
+# ASME Penn State Website
 
-Official website for the American Society of Mechanical Engineers (ASME) chapter at Penn State University.
+Official website for the ASME chapter at Penn State.
 
-## Overview
+This repository contains the public site, member profile flow, and admin tools for managing users, projects, events, and sponsors.
 
-This is a modern web application built with React, TypeScript, and Firebase that serves as the official website for ASME @ Penn State. The platform includes member management, project tracking, event listings, content editing capabilities, and an administrative panel for managing the organization.
+## What This Site Includes
 
-## Features
+- Public pages: `Home`, `About`, `Projects`, `Events`, `Sponsors`
+- Member flow: sign up, email verification, profile settings, pending/approved/rejected status
+- Admin panel: user approvals, member/team management, project approvals, project trash/recovery, site content editing
+- Google Calendar integration for event data and embedded calendar view
+- Image upload workflow via ImageKit signed uploads
 
-### Public Features
-- **Home Page**: Welcome page with club description and mission, editable "What we do" section with rich text editor
-- **About Page**: Executive Board and Design Team member profiles with drag-and-drop reordering
-- **Projects Page**: Current and past project listings with details and drag-and-drop reordering
-- **Events Page**: Upcoming and past events
-- **Sponsors Page**: List of sponsors and supporters
+## Tech Stack
 
-### Member Features
-- **User Registration**: Any email allowed (admin approval required)
-- **Email Verification**: Firebase email verification required
-- **Profile Management**: Edit name, major, and year
-- **Status Tracking**: View approval status (pending/approved/rejected)
+- React 19 + TypeScript + Vite
+- Tailwind CSS
+- Firebase
+  - Authentication
+  - Firestore
+  - Storage (optional depending on features in use)
+- ImageKit (signed upload flow)
+- Lucide icons
 
-### Administrative Features
-- **User Approval System**: Approve or reject new member registrations
-- **Real-time Notifications**: Badge indicators for pending approvals and deletion requests
-- **Member Management**: 
-  - Manage Executive Board positions (add, edit, delete)
-  - Assign roles and teams (Design Team / General Body) to members
-- **Project Management**:
-  - Create and manage projects
-  - Assign project leaders
-  - Manage project-specific member roles
-  - Project approval system for Executive Board members
-  - **Image Upload Options**:
-    - Firebase Storage (requires payment after free tier)
-    - Google Drive/Imgur links (recommended, free)
-- **Content Editing** (President/Vice President only):
-  - Edit Home page "What we do" section with rich text editor
-  - Reorder Executive Board and Design Team members (drag-and-drop)
-  - Reorder Projects (drag-and-drop)
-  - All changes auto-save to Firebase
-- **Trash System**: Soft-delete projects with restore capability
-- **Permanent Deletion**: Two-approval system (Project Leader + President/VP) required
-- **Notifications**: Real-time notifications for project deletions and cancellations
+## Routing Model
 
-## Technology Stack
+This app uses hash-based routing in `src/App.tsx`.
 
-- **Frontend**: React 19, TypeScript, Vite
-- **Styling**: Tailwind CSS
-- **Backend**: Firebase
-  - Firestore (Database)
-  - Storage (for image uploads, optional)
-  - Authentication (Email/Password, Google OAuth)
-- **Icons**: Lucide React
+Examples:
+- `#/`
+- `#/about`
+- `#/projects`
+- `#/events`
+- `#/login`
+- `#/profile`
+- `#/admin/...`
 
-## Prerequisites
+## Local Development
 
-- Node.js (v18 or higher recommended)
-- npm or yarn
-- Firebase account and project setup
+### Prerequisites
 
-## Installation
+- Node.js 18+ (recommended)
+- npm
+- A Firebase project
+- (Optional) ImageKit account for uploads
+- (Optional) Google Cloud project for Calendar API key
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/danielsoo/ASME-Website.git
-   cd ASME-Website
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Set up Firebase:
-   - Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
-   - Enable Firestore Database
-   - Enable Authentication (Email/Password and Google Sign-in)
-   - Enable Storage (optional, for image uploads)
-   - Create a `.env.local` file in the `asme_web` directory:
-     ```env
-     VITE_FIREBASE_API_KEY=your_api_key
-     VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
-     VITE_FIREBASE_PROJECT_ID=your_project_id
-     VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-     VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
-     VITE_FIREBASE_APP_ID=your_app_id
-     ```
-
-4. Run the development server:
-   ```bash
-   cd asme_web
-   npm run dev
-   ```
-
-5. Open your browser and navigate to `http://localhost:3000`
-
-## Firebase Setup
-
-### Firestore Security Rules
-
-For development, use:
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
-    }
-  }
-}
-```
-
-**Note**: Update these rules for production with proper authentication checks.
-
-### Firestore Collections
-
-- `users`: User profiles with approval status and roles
-- `projects`: Project information with approval and deletion status
-- `execPositions`: Executive Board position definitions
-- `notifications`: User notifications for deletions and approvals
-- `homePageContent`: Home page editable content (title, content, button)
-
-### Initial Admin Setup
-
-1. Navigate to `/admin/setup`
-2. Create an admin account or promote an existing user to admin/President role
-3. Use this account to approve other users and manage the organization
-
-## Project Structure
-
-```
-asme_web/
-├── components/          # Reusable React components
-│   ├── Header.tsx
-│   ├── Footer.tsx
-│   ├── AlertModal.tsx
-│   ├── ConfirmModal.tsx
-│   ├── NotificationBanner.tsx
-│   ├── ProjectCard.tsx
-│   └── TeamCard.tsx
-├── pages/              # Page components
-│   ├── Home.tsx
-│   ├── About.tsx
-│   ├── Projects.tsx
-│   ├── Events.tsx
-│   ├── Sponsors.tsx
-│   ├── Profile.tsx
-│   └── admin/         # Admin panel pages
-│       ├── Admin.tsx
-│       ├── Dashboard.tsx
-│       ├── UserApproval.tsx
-│       ├── MemberManagement.tsx
-│       ├── ProjectManagement.tsx
-│       ├── ProjectApprovals.tsx
-│       ├── ProjectTrash.tsx
-│       └── SetupAdmin.tsx
-├── firebase/          # Firebase configuration and services
-│   ├── config.ts
-│   ├── services.ts
-│   └── migrate.ts
-├── types.ts           # TypeScript type definitions
-├── constants.ts       # Static data constants
-└── App.tsx           # Main application component
-```
-
-## User Roles & Permissions
-
-### Member
-- View public pages
-- Edit own profile
-- Create projects (requires approval)
-
-### Executive Board Member
-- All member permissions
-- Create projects (pending approval)
-- View assigned projects
-
-### Project Leader
-- Manage assigned project members
-- Assign project-specific roles
-- Edit own project information
-
-### President / Vice President
-- All previous permissions
-- Approve/reject user registrations
-- Manage Executive Board positions
-- Approve/delete projects
-- Edit all page content (Home, About, Projects, Events, Sponsors)
-- Reorder Executive Board, Design Team, and Projects (drag-and-drop)
-- Access trash and manage permanent deletions (President only for permanent deletion)
-
-### Admin
-- Full system access
-- All administrative functions
-
-## Key Features Explained
-
-### Content Editing System
-- **Home Page**: Rich text editor for "What we do" section
-  - Title editing
-  - Content editing with formatting (bold, italic, underline, text color)
-  - Button text and URL editing
-  - Only accessible to President/Vice President
-- **About Page**: Drag-and-drop reordering for Executive Board and Design Team
-- **Projects Page**: Drag-and-drop reordering for current and past projects
-- All changes auto-save to Firebase
-
-### Image Upload Options
-- **Option 1: Firebase Storage**
-  - Requires payment after free tier
-  - Direct file upload
-- **Option 2: Google Drive Links (Recommended)**
-  - Free and unlimited
-  - Set sharing to "Anyone with the link"
-  - Use format: `https://drive.google.com/uc?export=view&id=FILE_ID`
-
-### Project Approval System
-- Executive Board members can create projects
-- Projects start in "pending" status
-- President or VP must approve and assign a leader
-- Project leaders can then manage members
-
-### Project Deletion System
-- Projects are soft-deleted (moved to trash)
-- Can be restored from trash
-- Permanent deletion requires:
-  1. Deletion request from President/VP
-  2. Unanimous approval from Project Leader AND another President/VP
-  3. Real-time notifications sent to all involved parties
-
-### Real-time Notifications
-- Header badge shows count of pending approvals and deletion requests
-- Dashboard cards show pending counts
-- All notifications update in real-time using Firestore onSnapshot
-
-### Email Verification
-- All users must verify their PSU email address
-- Email verification required before login
-- Resend verification email option available
-
-## Building for Production
+### Install
 
 ```bash
-cd asme_web
-npm run build
+npm install
 ```
 
-The built files will be in the `dist` directory, ready for deployment.
-
-## Deployment
-
-This application can be deployed to:
-- Firebase Hosting
-- Vercel
-- Netlify
-- Any static hosting service
-
-### Firebase Hosting
+### Start Dev Server
 
 ```bash
-npm install -g firebase-tools
-firebase login
-firebase init hosting
-cd asme_web
-npm run build
-firebase deploy
+npm run dev
 ```
 
-## Contributing
+Default local URL:
 
-This is the official ASME @ Penn State website. For contributions or issues, please contact the organization administrators.
+- `http://localhost:3000`
+
+### Production Build
+
+```bash
+npm run build
+npm run preview
+```
+
+## Environment Variables
+
+Create `.env.local` in the project root.
+
+### Firebase (client)
+
+```env
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+VITE_FIREBASE_MEASUREMENT_ID=
+```
+
+### Google Calendar (client)
+
+Use one of the calendar ID modes below:
+
+```env
+VITE_GOOGLE_CALENDAR_API_KEY=
+VITE_GOOGLE_CALENDAR_ID=
+```
+
+or
+
+```env
+VITE_GOOGLE_CALENDAR_API_KEY=
+VITE_GOOGLE_CALENDAR_IDS=calendar1@group.calendar.google.com,calendar2@group.calendar.google.com
+```
+
+Notes:
+- `VITE_GOOGLE_CALENDAR_IDS` takes precedence over `VITE_GOOGLE_CALENDAR_ID`.
+- Calendar IDs should usually be group/public calendars for reliable browser access.
+
+### ImageKit
+
+Client-visible values:
+
+```env
+VITE_IMAGEKIT_PUBLIC_KEY=
+VITE_IMAGEKIT_URL_ENDPOINT=
+VITE_IMAGEKIT_AUTH_ENDPOINT=/api/imagekit-auth
+```
+
+Server-only value (never with `VITE_` prefix):
+
+```env
+IMAGEKIT_PRIVATE_KEY=
+```
+
+## Deployment (Vercel Recommended)
+
+1. Add all required environment variables in Vercel project settings.
+2. Ensure server secret keys are not exposed with `VITE_`.
+3. Deploy.
+4. Re-deploy whenever env values change.
+
+## Google Calendar Setup
+
+To avoid `403` when fetching events:
+
+1. In Google Calendar, make the target calendar publicly accessible (or otherwise externally readable according to your org policy).
+2. In Google Cloud:
+   - Enable `Google Calendar API`
+   - Restrict API key by `Websites` (HTTP referrers)
+   - Add your production and preview domains (for example `https://your-site.vercel.app/*`)
+   - Restrict key usage to `Google Calendar API`
+3. Wait a few minutes for policy propagation, then re-test.
+
+## ImageKit Security Notes
+
+- Keep `IMAGEKIT_PRIVATE_KEY` in server environment variables only.
+- Rotate keys immediately if a private key is exposed.
+- Keep `VITE_IMAGEKIT_PUBLIC_KEY` as public client config.
+- The signed upload endpoint is implemented at `api/imagekit-auth.js` and local dev middleware in `vite.config.ts`.
+
+## Firebase Data Model (High Level)
+
+Core collections used by this app include:
+
+- `users`
+- `projects`
+- `sponsors`
+- `notifications`
+- `homePageContent`
+- additional settings/team-management related documents
+
+The exact schema evolves with features. Review `src/types.ts` and `src/firebase/services.ts` for current field-level behavior.
+
+## Roles and Access (High Level)
+
+- Member: public pages + personal profile
+- Pending user: can log in but awaits admin approval for elevated access
+- Executive/Admin roles: access to admin routes and management functions
+- President/VP/Admin: broader content and approval capabilities
+
+Actual authorization behavior depends on both UI checks and Firestore security rules.
+
+## Admin Bootstrapping
+
+Typical first-time setup flow:
+
+1. Create first account.
+2. Promote first admin through setup/admin tooling.
+3. Use admin panel to approve users and assign team/role permissions.
+
+## Repository Structure (Simplified)
+
+```text
+api/                     # Serverless endpoints (ImageKit auth signer)
+pages/                   # Route-level pages (public + admin)
+src/components/          # Shared UI components
+src/firebase/            # Firebase config + service layer
+src/utils/               # Utility functions
+public/                  # Static assets
+```
+
+## Operational Troubleshooting
+
+### Events calendar visible for some users but not others
+
+- Verify same deployment URL and same environment.
+- Test in incognito with no Google session.
+- Confirm Calendar API request status in browser Network tab.
+- If only specific org accounts fail, it is usually account/org policy, not deployment code.
+
+### Firestore `permission-denied`
+
+- Check Firestore security rules against current user role/status.
+- Confirm required documents exist (for expected role/team/status).
+
+### Image upload fails
+
+- Confirm `/api/imagekit-auth` returns success.
+- Confirm `IMAGEKIT_PRIVATE_KEY` exists in deployment environment.
+- Confirm `VITE_IMAGEKIT_PUBLIC_KEY` and `VITE_IMAGEKIT_URL_ENDPOINT` are set.
+
+## Scripts
+
+- `npm run dev` — start local dev server
+- `npm run build` — production build
+- `npm run preview` — serve built assets locally
+
+## Contribution and Ownership
+
+This repository is used for the official ASME Penn State website operations.
+For role changes, admin access, or production updates, coordinate with current site maintainers and organization leadership.
 
 ## License
 
-This project is private and proprietary to ASME @ Penn State.
-
-## Contact
-
-- **Office Address**: 125 Hammond Building
-- **President Email**: president.asme.psu@gmail.com
-- **Phone**: 484-268-3741
-
----
-
-Built with ❤️ by ASME @ Penn State
+Private project. All rights reserved unless explicitly documented otherwise.
