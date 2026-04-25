@@ -3,13 +3,18 @@ import { collection, doc, onSnapshot, query } from 'firebase/firestore';
 import { db } from '../src/firebase/config';
 import { Settings } from 'lucide-react';
 import { getSponsorContactEmail } from '../src/firebase/services';
-import type { Sponsor, SponsorsContent } from '../src/types';
+import type { Sponsor, SponsorsContent, SponsorTier } from '../src/types';
 import { DEFAULT_SPONSORS } from '../src/types';
 import { sanitizeHtml, isHtmlString } from '../src/utils/sanitizeHtml';
 
 const Sponsors: React.FC = () => {
   const [content, setContent] = useState<SponsorsContent>({ ...DEFAULT_SPONSORS });
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [tiers, setTiers] = useState<SponsorTier[]>([
+    { id: 'platinum', name: 'Platinum Sponsors', order: 0 },
+    { id: 'gold', name: 'Gold Sponsors', order: 1 },
+    { id: 'silver', name: 'Silver Sponsors', order: 2 },
+  ]);
   
   // NOTE:: do we need this if the default is already handled in firebase services.tsx?
   const [fallbackEmail, setFallbackEmail] = useState('president.asme.psu@gmail.com');
@@ -26,12 +31,33 @@ const Sponsors: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const unsubTiers = onSnapshot(doc(db, 'config', 'sponsorTiers'), (snap) => {
+      const raw = (snap.exists() ? snap.data()?.tiers : undefined) as SponsorTier[] | undefined;
+      if (!Array.isArray(raw) || raw.length === 0) return;
+      const next = raw
+        .map((t, idx) => ({
+          id: String(t?.id || `tier-${idx}`),
+          name: String(t?.name || `Tier ${idx + 1}`),
+          order: typeof t?.order === 'number' ? t.order : idx,
+        }))
+        .sort((a, b) => a.order - b.order);
+      setTiers(next);
+    });
+
     const sponsorsQuery = query(collection(db, 'sponsors'));
     const unsub = onSnapshot(sponsorsQuery, (snapshot) => {
       const sponsorsList = snapshot.docs
         .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Sponsor))
         .filter((sponsor) => !sponsor.deletedAt)
-        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        .sort((a, b) => {
+          const aTier = a.tierId || '';
+          const bTier = b.tierId || '';
+          if (aTier !== bTier) return aTier.localeCompare(bTier);
+          const aOrder = typeof a.order === 'number' ? a.order : Number.MAX_SAFE_INTEGER;
+          const bOrder = typeof b.order === 'number' ? b.order : Number.MAX_SAFE_INTEGER;
+          if (aOrder !== bOrder) return aOrder - bOrder;
+          return (a.name || '').localeCompare(b.name || '');
+        });
 
       setSponsors(sponsorsList);
     }, (e) => {
@@ -39,7 +65,10 @@ const Sponsors: React.FC = () => {
       setSponsors([]);
     });
 
-    return () => unsub();
+    return () => {
+      unsubTiers();
+      unsub();
+    };
   }, []);
 
   useEffect(() => {
@@ -69,6 +98,16 @@ const Sponsors: React.FC = () => {
     }
     return asPlainParagraph ? <p className="mb-4 text-sm leading-relaxed">{renderWithEmailLink(c)}</p> : renderWithEmailLink(c);
   };
+
+  const sponsorsByTier: Record<string, Sponsor[]> = {};
+  tiers.forEach((tier) => {
+    sponsorsByTier[tier.id] = [];
+  });
+  sponsors.forEach((s) => {
+    const key = s.tierId || tiers[0]?.id || 'platinum';
+    if (!sponsorsByTier[key]) sponsorsByTier[key] = [];
+    sponsorsByTier[key].push(s);
+  });
 
   return (
     <div className="min-h-screen bg-[#0f131a] text-white font-jost pb-20 relative">
@@ -112,25 +151,31 @@ const Sponsors: React.FC = () => {
           </div>
       </div>
 
-      {/* Sponsors Grid */}
+      {/* Sponsors by Tier */}
       <div className="bg-white py-20 px-16">
           <div className="container mx-auto max-w-6xl">
               <h2 className="text-[#1E2B48] text-3xl font-bold mb-12">Our Sponsors</h2>
-              <div className="bg-[#3b4c6b] p-8 md:p-12 rounded-lg">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                      {sponsors.map(sponsor => (
-                          <div key={sponsor.id} className="aspect-square bg-white rounded shadow-lg overflow-hidden hover:scale-105 transition-transform duration-300">
-                               <a href={sponsor.link} target="_blank" className="relative block w-full h-full">
-                                  <img src={sponsor.logoUrl} alt={sponsor.name} className="w-full h-full object-cover object-center" />
-                                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
-                                      <span className="text-white text-sm font-bold uppercase tracking-wider text-center px-2">
-                                          {sponsor.name}
-                                      </span>
-                                  </div>
-                               </a>
-                          </div>
-                      ))}
-                  </div>
+              <div className="space-y-12">
+                {tiers.map((tier) => {
+                  const tierSponsors = sponsorsByTier[tier.id] || [];
+                  if (tierSponsors.length === 0) return null;
+                  return (
+                    <section key={tier.id}>
+                      <h3 className="text-[#1E2B48] text-2xl font-bold mb-6">{tier.name}</h3>
+                      <div className="bg-[#3b4c6b] p-8 md:p-12 rounded-lg">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                          {tierSponsors.map((sponsor) => (
+                            <div key={sponsor.id} className="aspect-square bg-white rounded shadow-lg overflow-hidden hover:scale-105 transition-transform duration-300">
+                              <a href={sponsor.link || '#'} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+                                <img src={sponsor.logoUrl} alt={sponsor.name} className="w-full h-full object-cover object-center" />
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </section>
+                  );
+                })}
               </div>
           </div>
       </div>

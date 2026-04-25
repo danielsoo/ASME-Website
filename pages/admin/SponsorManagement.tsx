@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, onSnapshot, query } from 'firebase/firestore';
+import React, { useEffect, useMemo, useState } from 'react';
+import { collection, doc, getDoc, getDocs, onSnapshot, query, setDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../../src/firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Sponsor } from '../../src/types';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Sponsor, SponsorTier } from '../../src/types';
+import { Plus, Edit, Trash2, GripVertical } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
 import Uploader from '../../src/components/Uploader';
@@ -14,10 +14,41 @@ interface SponsorManagementProps {
   onNavigate: (path: string) => void;
 }
 
+const DEFAULT_SPONSOR_TIERS: SponsorTier[] = [
+  { id: 'platinum', name: 'Platinum Sponsors', order: 0 },
+  { id: 'gold', name: 'Gold Sponsors', order: 1 },
+  { id: 'silver', name: 'Silver Sponsors', order: 2 },
+];
+
+function slugifyTierId(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+}
+
+function normalizeTiers(raw: unknown): SponsorTier[] {
+  if (!Array.isArray(raw) || raw.length === 0) return DEFAULT_SPONSOR_TIERS;
+  return raw
+    .map((t, idx) => {
+      const tier = t as Partial<SponsorTier>;
+      return {
+        id: String(tier.id || `tier-${idx}`),
+        name: String(tier.name || `Tier ${idx + 1}`),
+        order: typeof tier.order === 'number' ? tier.order : idx,
+      };
+    })
+    .sort((a, b) => a.order - b.order)
+    .map((t, i) => ({ ...t, order: i }));
+}
+
 const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [sponsorTiers, setSponsorTiers] = useState<SponsorTier[]>(DEFAULT_SPONSOR_TIERS);
+  const [tierNameDrafts, setTierNameDrafts] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [currentUserRole, setCurrentUserRole] = useState<string>('');
   const { ready: permReady, perms } = useExecPermissions();
   const [roleReady, setRoleReady] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
@@ -25,82 +56,69 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedSponsor, setSelectedSponsor] = useState<Sponsor | null>(null);
   const [deletionRequestsCount, setDeletionRequestsCount] = useState(0);
+  const [draggedSponsorId, setDraggedSponsorId] = useState<string | null>(null);
+  const [newTierName, setNewTierName] = useState('');
 
-  // Form states
   const [sponsorName, setSponsorName] = useState('');
   const [sponsorLink, setSponsorLink] = useState('');
   const [logoUrl, setLogoUrl] = useState<string>('');
+  const [sponsorTierId, setSponsorTierId] = useState<string>('');
 
-  // Confirm delete modal state
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [sponsorToDelete, setSponsorToDelete] = useState<string | null>(null);
 
-  // Alert modal states
   const [alertModal, setAlertModal] = useState<{
     isOpen: boolean;
     type: 'success' | 'error' | 'warning' | 'info';
     title: string;
     message: string;
-  }>({
-    isOpen: false,
-    type: 'info',
-    title: '',
-    message: '',
-  });
+  }>({ isOpen: false, type: 'info', title: '', message: '' });
 
   const showAlert = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string) => {
     setAlertModal({ isOpen: true, type, title, message });
   };
 
-  useEffect(() => {
-    loadSponsors();
+  const canManageSponsors = (): boolean => perms.sponsors;
+  const canDeleteSponsors = (): boolean => perms.sponsors;
 
-    // Get current user's role
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        setRoleReady(false);
-        return;
-      }
-      setCurrentUserId(user.uid);
-      try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setCurrentUserRole(userData.role || 'member');
-        } else {
-          setCurrentUserRole('member');
-        }
-      } catch (error) {
-        console.error('Error fetching current user role:', error);
-        setCurrentUserRole('member');
-      } finally {
-        setRoleReady(true);
-      }
+  const sortedTiers = useMemo(
+    () => [...sponsorTiers].sort((a, b) => a.order - b.order),
+    [sponsorTiers]
+  );
+
+  const defaultTierId = sortedTiers[0]?.id || DEFAULT_SPONSOR_TIERS[0].id;
+
+  const sortedSponsors = useMemo(() => {
+    const tierOrderMap = new Map(sortedTiers.map((t, idx) => [t.id, idx]));
+    return [...sponsors].sort((a, b) => {
+      const aTier = a.tierId || defaultTierId;
+      const bTier = b.tierId || defaultTierId;
+      const tierDiff = (tierOrderMap.get(aTier) ?? 999) - (tierOrderMap.get(bTier) ?? 999);
+      if (tierDiff !== 0) return tierDiff;
+      const orderA = typeof a.order === 'number' ? a.order : Number.MAX_SAFE_INTEGER;
+      const orderB = typeof b.order === 'number' ? b.order : Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.name || '').localeCompare(b.name || '');
     });
+  }, [sponsors, sortedTiers, defaultTierId]);
 
-    return () => unsubscribe();
-  }, []);
-
-  // Listen for deletion requests count
-  useEffect(() => {
-    const sponsorsQuery = query(collection(db, 'sponsors'));
-    const unsubscribe = onSnapshot(sponsorsQuery, (snapshot) => {
-      let count = 0;
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        if (data.permanentDeleteRequest) {
-          const request = data.permanentDeleteRequest;
-          // Count if not fully approved (both exec approvals are missing)
-          if (!request.approvedByExec1 || !request.approvedByExec2) {
-            count++;
-          }
-        }
-      });
-      setDeletionRequestsCount(count);
+  const sponsorsByTier = useMemo(() => {
+    const grouped: Record<string, Sponsor[]> = {};
+    sortedTiers.forEach((tier) => {
+      grouped[tier.id] = [];
     });
+    sortedSponsors.forEach((s) => {
+      const key = s.tierId || defaultTierId;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(s);
+    });
+    return grouped;
+  }, [sortedSponsors, sortedTiers, defaultTierId]);
 
-    return () => unsubscribe();
-  }, []);
+  const saveTierConfig = async (nextTiers: SponsorTier[]) => {
+    await setDoc(doc(db, 'config', 'sponsorTiers'), { tiers: nextTiers }, { merge: true });
+    setSponsorTiers(nextTiers);
+  };
 
   const loadSponsors = async () => {
     try {
@@ -108,21 +126,18 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
       const sponsorsRef = collection(db, 'sponsors');
       const snapshot = await getDocs(sponsorsRef);
       const sponsorsList: Sponsor[] = [];
-      
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        // Only show sponsors that are not deleted (deletedAt is null or undefined)
-        if (!data.deletedAt) {
-          sponsorsList.push({
-            id: docSnap.id,
-            ...data,
-          } as Sponsor);
-        }
-      });
 
-      // Sort: by name
-      sponsorsList.sort((a, b) => {
-        return a.name.localeCompare(b.name);
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data() as Sponsor;
+        if (data.deletedAt) return;
+
+        const normalizedTierId = data.tierId || slugifyTierId(data.tier || '') || defaultTierId;
+        sponsorsList.push({
+          id: docSnap.id,
+          ...data,
+          tierId: normalizedTierId,
+          order: typeof data.order === 'number' ? data.order : undefined,
+        });
       });
 
       setSponsors(sponsorsList);
@@ -133,10 +148,151 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     }
   };
 
+  useEffect(() => {
+    loadSponsors();
 
-  const canManageSponsors = (): boolean => perms.sponsors;
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setRoleReady(false);
+        return;
+      }
+      setCurrentUserId(user.uid);
+      try {
+        await getDoc(doc(db, 'users', user.uid));
+      } catch (error) {
+        console.error('Error fetching current user role:', error);
+      } finally {
+        setRoleReady(true);
+      }
+    });
 
-  const canDeleteSponsors = (): boolean => perms.sponsors;
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      doc(db, 'config', 'sponsorTiers'),
+      (snap) => {
+        const data = snap.exists() ? snap.data() : {};
+        const tiers = normalizeTiers((data as { tiers?: unknown }).tiers);
+        setSponsorTiers(tiers);
+        setTierNameDrafts((prev) => {
+          const next = { ...prev };
+          tiers.forEach((t) => {
+            if (next[t.id] === undefined) next[t.id] = t.name;
+          });
+          return next;
+        });
+      },
+      (e) => {
+        console.error('Sponsor tiers subscription error:', e);
+        setSponsorTiers(DEFAULT_SPONSOR_TIERS);
+      }
+    );
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const sponsorsQuery = query(collection(db, 'sponsors'));
+    const unsubscribe = onSnapshot(sponsorsQuery, (snapshot) => {
+      let count = 0;
+      const liveSponsors: Sponsor[] = [];
+
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data() as Sponsor;
+        if (data.permanentDeleteRequest) {
+          const request = data.permanentDeleteRequest;
+          if (!request.approvedByExec1 || !request.approvedByExec2) count++;
+        }
+        if (data.deletedAt) return;
+        liveSponsors.push({
+          id: docSnap.id,
+          ...data,
+          tierId: data.tierId || slugifyTierId(data.tier || '') || defaultTierId,
+          order: typeof data.order === 'number' ? data.order : undefined,
+        });
+      });
+
+      setDeletionRequestsCount(count);
+      setSponsors(liveSponsors);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [defaultTierId]);
+
+  const handleAddTier = async () => {
+    const name = newTierName.trim();
+    if (!name) {
+      showAlert('warning', 'Validation Error', 'Please enter a tier name.');
+      return;
+    }
+    const baseId = slugifyTierId(name) || `tier-${Date.now()}`;
+    let nextId = baseId;
+    let suffix = 2;
+    const existingIds = new Set(sortedTiers.map((t) => t.id));
+    while (existingIds.has(nextId)) {
+      nextId = `${baseId}-${suffix++}`;
+    }
+    const nextTiers = [...sortedTiers, { id: nextId, name, order: sortedTiers.length }];
+    await saveTierConfig(nextTiers);
+    setTierNameDrafts((prev) => ({ ...prev, [nextId]: name }));
+    setNewTierName('');
+    showAlert('success', 'Tier Added', `"${name}" tier was added.`);
+  };
+
+  const handleRenameTier = async (tierId: string) => {
+    const nextName = (tierNameDrafts[tierId] || '').trim();
+    if (!nextName) {
+      showAlert('warning', 'Validation Error', 'Tier name cannot be empty.');
+      return;
+    }
+    const nextTiers = sortedTiers.map((t) => (t.id === tierId ? { ...t, name: nextName } : t));
+    await saveTierConfig(nextTiers);
+    showAlert('success', 'Tier Updated', 'Tier name updated.');
+  };
+
+  const handleDeleteTier = async (tierId: string) => {
+    if (sortedTiers.length <= 1) {
+      showAlert('warning', 'Cannot Delete Tier', 'At least one sponsor tier must remain.');
+      return;
+    }
+    const tier = sortedTiers.find((t) => t.id === tierId);
+    if (!tier) return;
+    const ok = window.confirm(
+      `Delete tier "${tier.name}"? Sponsors in this tier will be moved to "${sortedTiers.find((t) => t.id !== tierId)?.name}".`
+    );
+    if (!ok) return;
+
+    const fallbackTier = sortedTiers.find((t) => t.id !== tierId);
+    if (!fallbackTier) return;
+
+    const affected = sponsors.filter((s) => (s.tierId || defaultTierId) === tierId);
+    if (affected.length > 0) {
+      await Promise.all(
+        affected.map((s, idx) =>
+          updateDoc(doc(db, 'sponsors', s.id), {
+            tierId: fallbackTier.id,
+            order: idx,
+            updatedAt: new Date().toISOString(),
+          })
+        )
+      );
+    }
+
+    const nextTiers = sortedTiers
+      .filter((t) => t.id !== tierId)
+      .map((t, idx) => ({ ...t, order: idx }));
+    await saveTierConfig(nextTiers);
+    showAlert('success', 'Tier Deleted', `Tier "${tier.name}" was deleted.`);
+  };
+
+  const resetSponsorModalFields = () => {
+    setSponsorName('');
+    setSponsorLink('');
+    setLogoUrl('');
+    setSponsorTierId(defaultTierId);
+  };
 
   const handleAddSponsor = async () => {
     if (!sponsorName.trim()) {
@@ -148,29 +304,26 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
       throw new Error('Validation failed');
     }
 
-    try {
-      await addDoc(collection(db, 'sponsors'), {
-        name: sponsorName.trim(),
-        link: sponsorLink.trim() || '',
-        logoUrl,
-        approvalStatus: 'approved',
-        createdBy: currentUserId,
-        approvedBy: currentUserId,
-        approvedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+    const targetTier = sponsorTierId || defaultTierId;
+    const nextOrder = (sponsorsByTier[targetTier]?.length ?? 0);
 
-      setShowCreateModal(false);
-      setSponsorName('');
-      setSponsorLink('');
-      setLogoUrl('');
-      await loadSponsors();
-      showAlert('success', 'Success', 'Sponsor added successfully!');
-    } catch (error) {
-      console.error('Error adding sponsor:', error);
-      showAlert('error', 'Error', 'Failed to add sponsor. Please try again.');
-    }
+    await setDoc(doc(collection(db, 'sponsors')), {
+      name: sponsorName.trim(),
+      link: sponsorLink.trim() || '',
+      logoUrl,
+      tierId: targetTier,
+      order: nextOrder,
+      approvalStatus: 'approved',
+      createdBy: currentUserId,
+      approvedBy: currentUserId,
+      approvedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    setShowCreateModal(false);
+    resetSponsorModalFields();
+    showAlert('success', 'Success', 'Sponsor added successfully!');
   };
 
   const handleEditSponsor = async () => {
@@ -178,24 +331,23 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
       showAlert('warning', 'Validation Error', 'Please enter a sponsor name.');
       throw new Error('Validation failed');
     }
+    const nextTierId = sponsorTierId || defaultTierId;
+    const movedTier = nextTierId !== (selectedSponsor.tierId || defaultTierId);
+    const nextOrder = movedTier ? (sponsorsByTier[nextTierId]?.length ?? 0) : selectedSponsor.order;
 
-    try {
-      await updateDoc(doc(db, 'sponsors', selectedSponsor.id), {
-        name: sponsorName.trim(),
-        link: sponsorLink.trim() || '',
-        logoUrl: logoUrl || selectedSponsor.logoUrl,
-        updatedAt: new Date().toISOString(),
-      });
+    await updateDoc(doc(db, 'sponsors', selectedSponsor.id), {
+      name: sponsorName.trim(),
+      link: sponsorLink.trim() || '',
+      logoUrl: logoUrl || selectedSponsor.logoUrl,
+      tierId: nextTierId,
+      order: typeof nextOrder === 'number' ? nextOrder : 0,
+      updatedAt: new Date().toISOString(),
+    });
 
-      setShowEditModal(false);
-      setSelectedSponsor(null);
-      setLogoUrl('');
-      await loadSponsors();
-      showAlert('success', 'Success', 'Sponsor updated successfully!');
-    } catch (error) {
-      console.error('Error updating sponsor:', error);
-      showAlert('error', 'Error', 'Failed to update sponsor. Please try again.');
-    }
+    setShowEditModal(false);
+    setSelectedSponsor(null);
+    resetSponsorModalFields();
+    showAlert('success', 'Success', 'Sponsor updated successfully!');
   };
 
   const handleDeleteClick = (sponsorId: string) => {
@@ -205,7 +357,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
 
   const handleDeleteSponsor = async () => {
     if (!sponsorToDelete) return;
-
     if (!canDeleteSponsors()) {
       showAlert('error', 'Permission denied', 'You do not have permission to move sponsors to trash.');
       setSponsorToDelete(null);
@@ -213,24 +364,16 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
       return;
     }
 
-    try {
-      // Soft delete: Set deletedAt timestamp instead of actually deleting
-      await updateDoc(doc(db, 'sponsors', sponsorToDelete), {
-        deletedAt: new Date().toISOString(),
-        deletedBy: currentUserId,
-        updatedAt: new Date().toISOString(),
-      });
-      await loadSponsors();
-      setSponsorToDelete(null);
-      showAlert('success', 'Success', 'Sponsor moved to trash successfully!');
-    } catch (error) {
-      console.error('Error deleting sponsor:', error);
-      showAlert('error', 'Error', 'Failed to delete sponsor. Please try again.');
-    }
+    await updateDoc(doc(db, 'sponsors', sponsorToDelete), {
+      deletedAt: new Date().toISOString(),
+      deletedBy: currentUserId,
+      updatedAt: new Date().toISOString(),
+    });
+    setSponsorToDelete(null);
+    showAlert('success', 'Success', 'Sponsor moved to trash successfully!');
   };
 
   const openEditModal = (sponsor: Sponsor) => {
-    // Only allow editing if user is President/VP
     if (!canManageSponsors()) {
       showAlert('error', 'Permission denied', 'You do not have permission to edit sponsors.');
       return;
@@ -239,15 +382,60 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     setSponsorName(sponsor.name);
     setSponsorLink(sponsor.link || '');
     setLogoUrl('');
+    setSponsorTierId(sponsor.tierId || defaultTierId);
     setShowEditModal(true);
   };
 
-  const createModalDirty = showCreateModal && (sponsorName.trim() !== '' || sponsorLink.trim() !== '' || !!logoUrl);
-  const editModalDirty = showEditModal && !!selectedSponsor && (
-    sponsorName.trim() !== (selectedSponsor.name || '').trim() ||
-    sponsorLink.trim() !== (selectedSponsor.link || '').trim() ||
-    !!logoUrl
-  );
+  const reorderWithinAndAcrossTiers = async (targetTierId: string, targetIndex: number) => {
+    if (!draggedSponsorId) return;
+    const dragged = sponsors.find((s) => s.id === draggedSponsorId);
+    if (!dragged) return;
+
+    const sourceTierId = dragged.tierId || defaultTierId;
+    const nextSponsors = [...sponsors];
+    const sourceList = nextSponsors
+      .filter((s) => (s.tierId || defaultTierId) === sourceTierId && s.id !== dragged.id)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const targetList = nextSponsors
+      .filter((s) => (s.tierId || defaultTierId) === targetTierId && s.id !== dragged.id)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+    const insertAt = Math.max(0, Math.min(targetIndex, targetList.length));
+    const moved = { ...dragged, tierId: targetTierId };
+    targetList.splice(insertAt, 0, moved);
+
+    const updates: Array<{ id: string; tierId: string; order: number }> = [];
+    sourceList.forEach((s, idx) => updates.push({ id: s.id, tierId: sourceTierId, order: idx }));
+    targetList.forEach((s, idx) => updates.push({ id: s.id, tierId: targetTierId, order: idx }));
+
+    setSponsors((prev) =>
+      prev.map((s) => {
+        const u = updates.find((x) => x.id === s.id);
+        return u ? { ...s, tierId: u.tierId, order: u.order } : s;
+      })
+    );
+
+    await Promise.all(
+      updates.map((u) =>
+        updateDoc(doc(db, 'sponsors', u.id), {
+          tierId: u.tierId,
+          order: u.order,
+          updatedAt: new Date().toISOString(),
+        })
+      )
+    );
+  };
+
+  const createModalDirty =
+    showCreateModal &&
+    (sponsorName.trim() !== '' || sponsorLink.trim() !== '' || !!logoUrl || sponsorTierId !== defaultTierId);
+  const editModalDirty =
+    showEditModal &&
+    !!selectedSponsor &&
+    (sponsorName.trim() !== (selectedSponsor.name || '').trim() ||
+      sponsorLink.trim() !== (selectedSponsor.link || '').trim() ||
+      !!logoUrl ||
+      sponsorTierId !== (selectedSponsor.tierId || defaultTierId));
   const dirty = createModalDirty || editModalDirty;
   const saveForLeave = async () => {
     if (showEditModal && selectedSponsor) await handleEditSponsor();
@@ -260,7 +448,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     onSave: saveForLeave,
   });
 
-
   if (!roleReady || !permReady) {
     return (
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
@@ -270,9 +457,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   }
 
   const readOnlySponsors = !canManageSponsors();
-
-  // President/VP can see all sponsors
-  const visibleSponsors = sponsors;
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto">
@@ -289,9 +473,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
             {canManageSponsors() && (
               <button
                 onClick={() => {
-                  setSponsorName('');
-                  setSponsorLink('');
-                  setLogoUrl('');
+                  resetSponsorModalFields();
                   setShowCreateModal(true);
                 }}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded flex items-center gap-1.5 text-sm sm:text-base"
@@ -315,119 +497,190 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
             )}
           </div>
         </div>
+
         {leaveConfirmModal}
+
         {readOnlySponsors && (
           <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-            <strong>View only.</strong> You can browse sponsors but cannot add, edit, delete, or open Trash. Ask the
-            President to grant <strong>Sponsors</strong> area permission in Admin Access if you need to make changes.
+            <strong>View only.</strong> You can browse sponsors but cannot add, edit, delete, or open Trash.
           </div>
         )}
+
+        {/* Tier management */}
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
+          <h2 className="text-lg font-bold text-gray-800 mb-4">Sponsor Tiers</h2>
+          <div className="space-y-3">
+            {sortedTiers.map((tier) => (
+              <div key={tier.id} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={tierNameDrafts[tier.id] ?? tier.name}
+                  onChange={(e) => setTierNameDrafts((prev) => ({ ...prev, [tier.id]: e.target.value }))}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                  disabled={!canManageSponsors()}
+                />
+                {canManageSponsors() && (
+                  <>
+                    <button
+                      onClick={() => handleRenameTier(tier.id)}
+                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTier(tier.id)}
+                      className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
+            {canManageSponsors() && (
+              <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
+                <input
+                  type="text"
+                  value={newTierName}
+                  onChange={(e) => setNewTierName(e.target.value)}
+                  placeholder="New tier name"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                />
+                <button
+                  onClick={handleAddTier}
+                  className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm"
+                >
+                  Add Tier
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         {loading ? (
           <div className="text-center py-8">Loading...</div>
-        ) : visibleSponsors.length === 0 ? (
+        ) : sponsors.length === 0 ? (
           <div className="text-center py-8 text-gray-500">No sponsors found.</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {visibleSponsors.map((sponsor) => (
-              <div key={sponsor.id} className="bg-white rounded-lg shadow-md p-4 sm:p-6 min-w-0">
-                <div className="flex flex-wrap justify-between items-start gap-2 mb-3 sm:mb-4">
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 break-words">{sponsor.name}</h2>
-                    <div className="flex gap-2 flex-wrap mb-2">
-                      {sponsor.approvalStatus === 'pending' && (
-                        <span className="inline-block px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-800">
-                          Pending Approval
-                        </span>
-                      )}
+          <div className="space-y-8">
+            {sortedTiers.map((tier) => {
+              const tierSponsors = sponsorsByTier[tier.id] || [];
+              return (
+                <div key={tier.id} className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">{tier.name}</h2>
+                  {tierSponsors.length === 0 ? (
+                    <div
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={async () => {
+                        if (!canManageSponsors()) return;
+                        await reorderWithinAndAcrossTiers(tier.id, 0);
+                        setDraggedSponsorId(null);
+                      }}
+                      className="rounded-md border border-dashed border-gray-300 p-6 text-sm text-gray-500"
+                    >
+                      No sponsors in this tier. Drag a sponsor here.
                     </div>
-                    {sponsor.link && (
-                      <a
-                        href={sponsor.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 text-sm break-all"
-                      >
-                        Visit Sponsor Website →
-                      </a>
-                    )}
-
-                    {sponsor.logoUrl && (
-                      <div className="mt-3 w-24 aspect-square rounded-lg overflow-hidden border bg-gray-100">
-                        <img
-                          src={sponsor.logoUrl}
-                          alt={sponsor.name}
-                          className="w-full h-full object-cover object-center"
-                        />
-                      </div>
-                    )}
-                    
-                  </div>
-                  {canManageSponsors() && (
-                    <div className="flex gap-2 ml-4">
-                      <button
-                        onClick={() => openEditModal(sponsor)}
-                        className="text-blue-600 hover:text-blue-800"
-                        title="Edit Sponsor"
-                      >
-                        <Edit className="w-5 h-5" />
-                      </button>
-                      {canDeleteSponsors() && (
-                        <button
-                          onClick={() => handleDeleteClick(sponsor.id)}
-                          className="text-red-600 hover:text-red-800"
-                          title="Delete Sponsor"
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {tierSponsors.map((sponsor, index) => (
+                        <div
+                          key={sponsor.id}
+                          draggable={canManageSponsors()}
+                          onDragStart={() => setDraggedSponsorId(sponsor.id)}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={async () => {
+                            if (!canManageSponsors()) return;
+                            await reorderWithinAndAcrossTiers(tier.id, index);
+                            setDraggedSponsorId(null);
+                          }}
+                          className="relative aspect-square bg-gray-50 rounded border overflow-hidden group"
                         >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      )}
+                          {canManageSponsors() && (
+                            <div className="absolute top-2 left-2 z-10 bg-black/60 rounded p-1 text-white">
+                              <GripVertical className="w-4 h-4" />
+                            </div>
+                          )}
+                          <img src={sponsor.logoUrl} alt={sponsor.name} className="w-full h-full object-cover object-center" />
+                          <div className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-xs p-2 truncate">
+                            {sponsor.name}
+                          </div>
+                          {canManageSponsors() && (
+                            <div className="absolute top-2 right-2 z-10 flex gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditModal(sponsor);
+                                }}
+                                className="bg-white/90 rounded p-1 text-blue-700 hover:text-blue-900"
+                                title="Edit Sponsor"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              {canDeleteSponsors() && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteClick(sponsor.id);
+                                  }}
+                                  className="bg-white/90 rounded p-1 text-red-700 hover:text-red-900"
+                                  title="Delete Sponsor"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
-
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
-        {/* Create Sponsor Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-bold mb-6 text-gray-800">Add New Sponsor</h2>
-              
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sponsor Name *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Sponsor Name *</label>
                   <input
                     type="text"
                     value={sponsorName}
                     onChange={(e) => setSponsorName(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
                     placeholder="e.g., Lockheed Martin"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sponsor Website
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tier *</label>
+                  <select
+                    value={sponsorTierId || defaultTierId}
+                    onChange={(e) => setSponsorTierId(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                  >
+                    {sortedTiers.map((tier) => (
+                      <option key={tier.id} value={tier.id}>
+                        {tier.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Sponsor Website</label>
                   <input
                     type="text"
                     value={sponsorLink}
                     onChange={(e) => setSponsorLink(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
                     placeholder="https://example.com"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sponsor Logo *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Sponsor Logo *</label>
                   <Uploader
                     folder="/sponsors"
                     tags={['sponsor']}
@@ -437,28 +690,16 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                   />
                   {logoUrl && (
                     <div className="mt-4 w-32 aspect-square border rounded overflow-hidden bg-gray-100">
-                      <img
-                        src={logoUrl}
-                        alt="Logo preview"
-                        className="w-full h-full object-cover object-center"
-                      />
+                      <img src={logoUrl} alt="Logo preview" className="w-full h-full object-cover object-center" />
                     </div>
                   )}
                 </div>
-
               </div>
-
               <div className="flex gap-4 mt-6">
-                <button
-                  onClick={handleAddSponsor}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-                >
+                <button onClick={handleAddSponsor} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
                   Add Sponsor
                 </button>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
-                >
+                <button onClick={() => setShowCreateModal(false)} className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded">
                   Cancel
                 </button>
               </div>
@@ -466,44 +707,46 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
           </div>
         )}
 
-        {/* Edit Sponsor Modal */}
         {showEditModal && selectedSponsor && (
           <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-bold mb-6 text-gray-800">Edit Sponsor</h2>
-              
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sponsor Name *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Sponsor Name *</label>
                   <input
                     type="text"
                     value={sponsorName}
                     onChange={(e) => setSponsorName(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sponsor Website Link
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tier *</label>
+                  <select
+                    value={sponsorTierId || defaultTierId}
+                    onChange={(e) => setSponsorTierId(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                  >
+                    {sortedTiers.map((tier) => (
+                      <option key={tier.id} value={tier.id}>
+                        {tier.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Sponsor Website Link</label>
                   <input
                     type="text"
                     value={sponsorLink}
                     onChange={(e) => setSponsorLink(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
-                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
                     placeholder="https://example.com"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sponsor Logo
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Sponsor Logo</label>
                   <Uploader
                     folder="/sponsors"
                     tags={['sponsor']}
@@ -522,12 +765,8 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                   )}
                 </div>
               </div>
-
               <div className="flex gap-4 mt-6">
-                <button
-                  onClick={handleEditSponsor}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-                >
+                <button onClick={handleEditSponsor} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
                   Save Changes
                 </button>
                 <button
@@ -544,7 +783,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
           </div>
         )}
 
-        {/* Alert Modal */}
         <AlertModal
           isOpen={alertModal.isOpen}
           onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
@@ -553,7 +791,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
           message={alertModal.message}
         />
 
-        {/* Confirm Delete Modal */}
         <ConfirmModal
           isOpen={showConfirmDelete}
           onClose={() => {

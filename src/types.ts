@@ -139,6 +139,10 @@ export interface Sponsor {
   logoUrl: string;
   link?: string;
   tier?: string;
+  /** Tier ID for ranked sponsor sections (e.g. platinum, gold, silver). */
+  tierId?: string;
+  /** Display order within a tier section. */
+  order?: number;
   // Approval system
   approvalStatus?: 'pending' | 'approved';
   createdBy?: string;
@@ -166,6 +170,12 @@ export interface Sponsor {
     rejectedByExec2At?: string; // When second exec rejected
     rejectedByExec2By?: string; // UID of second exec who rejected
   };
+}
+
+export interface SponsorTier {
+  id: string;
+  name: string;
+  order: number;
 }
 
 export interface HomePageWhatWeDo {
