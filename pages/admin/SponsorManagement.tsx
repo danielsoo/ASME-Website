@@ -848,10 +848,8 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
             setShowConfirmDeleteTier(false);
             setTierToDeleteId(null);
           }}
-          title="Delete Sponsor Tier"
-          message={`Delete tier "${
-            sortedTiers.find((t) => t.id === tierToDeleteId)?.name || ''
-          }"? Sponsors in this tier will be moved to "${
+          title={`Delete tier "${sortedTiers.find((t) => t.id === tierToDeleteId)?.name || ''}"`}
+          message={`Sponsors in this tier will be moved to "${
             sortedTiers.find((t) => t.id !== tierToDeleteId)?.name || ''
           }".`}
           confirmText="Delete Tier"
