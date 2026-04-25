@@ -897,13 +897,13 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
             Our Teams
           </h2>
 
-          <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {teamSettings.teamNames.map((teamName) => {
               const tileImg = heroOrTileImageForTeam(teamName);
               return (
                 <div
                   key={teamName}
-                  className="relative group cursor-pointer overflow-hidden rounded-xl h-48 w-full shadow-md"
+                  className="relative group cursor-pointer overflow-hidden rounded-xl h-56 md:h-48 w-full shadow-md"
                   onClick={() => onNavigate?.(teamAboutPath(teamName))}
                   role="button"
                   tabIndex={0}
