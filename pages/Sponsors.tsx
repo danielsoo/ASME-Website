@@ -112,16 +112,6 @@ const Sponsors: React.FC = () => {
           </div>
       </div>
 
-      {/* Special Thanks */}
-      <div className="bg-[#d1d5db] py-16 px-4 text-black">
-          <div className="container mx-auto max-w-5xl">
-              <h3 className="text-2xl font-bold mb-6 text-[#1E2B48]">{renderRichContent(content.specialThanksTitle || 'Special Thanks to our Supporters')}</h3>
-              <div className="mb-4 text-sm leading-relaxed sponsors-rich-content">
-                  {renderRichContent(content.specialThanksParagraph ?? '', true)}
-              </div>
-          </div>
-      </div>
-
       {/* Sponsors Grid */}
       <div className="bg-white py-20 px-16">
           <div className="container mx-auto max-w-6xl">
@@ -141,6 +131,16 @@ const Sponsors: React.FC = () => {
                           </div>
                       ))}
                   </div>
+              </div>
+          </div>
+      </div>
+
+      {/* Special Thanks */}
+      <div className="bg-[#d1d5db] py-16 px-4 text-black">
+          <div className="container mx-auto max-w-5xl">
+              <h3 className="text-2xl font-bold mb-6 text-[#1E2B48]">{renderRichContent(content.specialThanksTitle || 'Special Thanks to our Supporters')}</h3>
+              <div className="mb-4 text-sm leading-relaxed sponsors-rich-content">
+                  {renderRichContent(content.specialThanksParagraph ?? '', true)}
               </div>
           </div>
       </div>
