@@ -379,7 +379,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
 
           {/* Project List */}
           {!loading && !error && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 items-start gap-8 px-4 md:px-8 lg:px-12">
+            <div className="columns-1 lg:columns-2 gap-8 px-4 md:px-8 lg:px-12">
                 {filteredProjects.length > 0 ? (
                     filteredProjects.map((project) => {
                       // Add leader name to project for display
@@ -392,15 +392,16 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
                           : undefined
                       };
                       return (
-                        <ProjectCard 
-                          key={project.id} 
-                          project={projectWithLeaderName} 
-                          onImageClick={(project) => {
-                            if (onNavigate) {
-                              onNavigate(`/projects/${project.id}`);
-                            }
-                          }}
-                        />
+                        <div key={project.id} className="break-inside-avoid mb-8">
+                          <ProjectCard
+                            project={projectWithLeaderName}
+                            onImageClick={(project) => {
+                              if (onNavigate) {
+                                onNavigate(`/projects/${project.id}`);
+                              }
+                            }}
+                          />
+                        </div>
                       );
                     })
                 ) : (
