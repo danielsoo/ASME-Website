@@ -19,6 +19,7 @@ const DEFAULT_SPONSOR_TIERS: SponsorTier[] = [
   { id: 'gold', name: 'Gold Sponsors', order: 1 },
   { id: 'silver', name: 'Silver Sponsors', order: 2 },
 ];
+const SPONSOR_TIER_CONFIG_DOC_ID = '__tier_config__';
 
 function slugifyTierId(name: string): string {
   return name
@@ -116,7 +117,11 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   }, [sortedSponsors, sortedTiers, defaultTierId]);
 
   const saveTierConfig = async (nextTiers: SponsorTier[]) => {
-    await setDoc(doc(db, 'config', 'sponsorTiers'), { tiers: nextTiers }, { merge: true });
+    await setDoc(
+      doc(db, 'sponsors', SPONSOR_TIER_CONFIG_DOC_ID),
+      { kind: 'tier_config', tiers: nextTiers, updatedAt: new Date().toISOString() },
+      { merge: true }
+    );
     setSponsorTiers(nextTiers);
   };
 
@@ -129,6 +134,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data() as Sponsor;
+        if (docSnap.id === SPONSOR_TIER_CONFIG_DOC_ID || (data as Record<string, unknown>).kind === 'tier_config') return;
         if (data.deletedAt) return;
 
         const normalizedTierId = data.tierId || slugifyTierId(data.tier || '') || defaultTierId;
@@ -171,7 +177,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
 
   useEffect(() => {
     const unsub = onSnapshot(
-      doc(db, 'config', 'sponsorTiers'),
+      doc(db, 'sponsors', SPONSOR_TIER_CONFIG_DOC_ID),
       (snap) => {
         const data = snap.exists() ? snap.data() : {};
         const tiers = normalizeTiers((data as { tiers?: unknown }).tiers);
@@ -200,6 +206,9 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data() as Sponsor;
+        if (docSnap.id === SPONSOR_TIER_CONFIG_DOC_ID || (data as Record<string, unknown>).kind === 'tier_config') {
+          return;
+        }
         if (data.permanentDeleteRequest) {
           const request = data.permanentDeleteRequest;
           if (!request.approvedByExec1 || !request.approvedByExec2) count++;

@@ -8,6 +8,7 @@ import { DEFAULT_SPONSORS } from '../src/types';
 import { sanitizeHtml, isHtmlString } from '../src/utils/sanitizeHtml';
 
 const Sponsors: React.FC = () => {
+  const SPONSOR_TIER_CONFIG_DOC_ID = '__tier_config__';
   const [content, setContent] = useState<SponsorsContent>({ ...DEFAULT_SPONSORS });
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [tiers, setTiers] = useState<SponsorTier[]>([
@@ -31,7 +32,7 @@ const Sponsors: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const unsubTiers = onSnapshot(doc(db, 'config', 'sponsorTiers'), (snap) => {
+    const unsubTiers = onSnapshot(doc(db, 'sponsors', SPONSOR_TIER_CONFIG_DOC_ID), (snap) => {
       const raw = (snap.exists() ? snap.data()?.tiers : undefined) as SponsorTier[] | undefined;
       if (!Array.isArray(raw) || raw.length === 0) return;
       const next = raw
@@ -48,6 +49,8 @@ const Sponsors: React.FC = () => {
     const unsub = onSnapshot(sponsorsQuery, (snapshot) => {
       const sponsorsList = snapshot.docs
         .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Sponsor))
+        .filter((sponsor) => sponsor.id !== SPONSOR_TIER_CONFIG_DOC_ID)
+        .filter((sponsor) => (sponsor as unknown as Record<string, unknown>).kind !== 'tier_config')
         .filter((sponsor) => !sponsor.deletedAt)
         .sort((a, b) => {
           const aTier = a.tierId || '';
