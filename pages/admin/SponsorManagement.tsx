@@ -222,69 +222,84 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   }, [defaultTierId]);
 
   const handleAddTier = async () => {
-    const name = newTierName.trim();
-    if (!name) {
-      showAlert('warning', 'Validation Error', 'Please enter a tier name.');
-      return;
+    try {
+      const name = newTierName.trim();
+      if (!name) {
+        showAlert('warning', 'Validation Error', 'Please enter a tier name.');
+        return;
+      }
+      const baseId = slugifyTierId(name) || `tier-${Date.now()}`;
+      let nextId = baseId;
+      let suffix = 2;
+      const existingIds = new Set(sortedTiers.map((t) => t.id));
+      while (existingIds.has(nextId)) {
+        nextId = `${baseId}-${suffix++}`;
+      }
+      const nextTiers = [...sortedTiers, { id: nextId, name, order: sortedTiers.length }];
+      await saveTierConfig(nextTiers);
+      setTierNameDrafts((prev) => ({ ...prev, [nextId]: name }));
+      setNewTierName('');
+      showAlert('success', 'Tier Added', `"${name}" tier was added.`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      showAlert('error', 'Failed to Add Tier', `Could not add tier. ${message}`);
     }
-    const baseId = slugifyTierId(name) || `tier-${Date.now()}`;
-    let nextId = baseId;
-    let suffix = 2;
-    const existingIds = new Set(sortedTiers.map((t) => t.id));
-    while (existingIds.has(nextId)) {
-      nextId = `${baseId}-${suffix++}`;
-    }
-    const nextTiers = [...sortedTiers, { id: nextId, name, order: sortedTiers.length }];
-    await saveTierConfig(nextTiers);
-    setTierNameDrafts((prev) => ({ ...prev, [nextId]: name }));
-    setNewTierName('');
-    showAlert('success', 'Tier Added', `"${name}" tier was added.`);
   };
 
   const handleRenameTier = async (tierId: string) => {
-    const nextName = (tierNameDrafts[tierId] || '').trim();
-    if (!nextName) {
-      showAlert('warning', 'Validation Error', 'Tier name cannot be empty.');
-      return;
+    try {
+      const nextName = (tierNameDrafts[tierId] || '').trim();
+      if (!nextName) {
+        showAlert('warning', 'Validation Error', 'Tier name cannot be empty.');
+        return;
+      }
+      const nextTiers = sortedTiers.map((t) => (t.id === tierId ? { ...t, name: nextName } : t));
+      await saveTierConfig(nextTiers);
+      showAlert('success', 'Tier Updated', 'Tier name updated.');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      showAlert('error', 'Failed to Rename Tier', `Could not rename tier. ${message}`);
     }
-    const nextTiers = sortedTiers.map((t) => (t.id === tierId ? { ...t, name: nextName } : t));
-    await saveTierConfig(nextTiers);
-    showAlert('success', 'Tier Updated', 'Tier name updated.');
   };
 
   const handleDeleteTier = async (tierId: string) => {
-    if (sortedTiers.length <= 1) {
-      showAlert('warning', 'Cannot Delete Tier', 'At least one sponsor tier must remain.');
-      return;
-    }
-    const tier = sortedTiers.find((t) => t.id === tierId);
-    if (!tier) return;
-    const ok = window.confirm(
-      `Delete tier "${tier.name}"? Sponsors in this tier will be moved to "${sortedTiers.find((t) => t.id !== tierId)?.name}".`
-    );
-    if (!ok) return;
-
-    const fallbackTier = sortedTiers.find((t) => t.id !== tierId);
-    if (!fallbackTier) return;
-
-    const affected = sponsors.filter((s) => (s.tierId || defaultTierId) === tierId);
-    if (affected.length > 0) {
-      await Promise.all(
-        affected.map((s, idx) =>
-          updateDoc(doc(db, 'sponsors', s.id), {
-            tierId: fallbackTier.id,
-            order: idx,
-            updatedAt: new Date().toISOString(),
-          })
-        )
+    try {
+      if (sortedTiers.length <= 1) {
+        showAlert('warning', 'Cannot Delete Tier', 'At least one sponsor tier must remain.');
+        return;
+      }
+      const tier = sortedTiers.find((t) => t.id === tierId);
+      if (!tier) return;
+      const ok = window.confirm(
+        `Delete tier "${tier.name}"? Sponsors in this tier will be moved to "${sortedTiers.find((t) => t.id !== tierId)?.name}".`
       );
-    }
+      if (!ok) return;
 
-    const nextTiers = sortedTiers
-      .filter((t) => t.id !== tierId)
-      .map((t, idx) => ({ ...t, order: idx }));
-    await saveTierConfig(nextTiers);
-    showAlert('success', 'Tier Deleted', `Tier "${tier.name}" was deleted.`);
+      const fallbackTier = sortedTiers.find((t) => t.id !== tierId);
+      if (!fallbackTier) return;
+
+      const affected = sponsors.filter((s) => (s.tierId || defaultTierId) === tierId);
+      if (affected.length > 0) {
+        await Promise.all(
+          affected.map((s, idx) =>
+            updateDoc(doc(db, 'sponsors', s.id), {
+              tierId: fallbackTier.id,
+              order: idx,
+              updatedAt: new Date().toISOString(),
+            })
+          )
+        );
+      }
+
+      const nextTiers = sortedTiers
+        .filter((t) => t.id !== tierId)
+        .map((t, idx) => ({ ...t, order: idx }));
+      await saveTierConfig(nextTiers);
+      showAlert('success', 'Tier Deleted', `Tier "${tier.name}" was deleted.`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      showAlert('error', 'Failed to Delete Tier', `Could not delete tier. ${message}`);
+    }
   };
 
   const resetSponsorModalFields = () => {
