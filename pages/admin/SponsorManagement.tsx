@@ -599,27 +599,29 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
               return (
                 <div key={tier.id} className="bg-white rounded-lg shadow-md p-4 sm:p-6">
                   <h2 className="text-xl font-bold text-gray-800 mb-4">{tier.name}</h2>
-                  {tierSponsors.length === 0 ? (
-                    <div
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={async () => {
-                        if (!canManageSponsors()) return;
-                        await reorderWithinAndAcrossTiers(tier.id, 0);
-                        setDraggedSponsorId(null);
-                      }}
-                      className="rounded-md border border-dashed border-gray-300 p-6 text-sm text-gray-500"
-                    >
-                      No sponsors in this tier. Drag a sponsor here.
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={async () => {
+                      if (!canManageSponsors()) return;
+                      await reorderWithinAndAcrossTiers(tier.id, tierSponsors.length);
+                      setDraggedSponsorId(null);
+                    }}
+                    className="rounded-md"
+                  >
+                    {tierSponsors.length === 0 ? (
+                      <div className="border border-dashed border-gray-300 p-6 text-sm text-gray-500">
+                        No sponsors in this tier. Drag a sponsor here.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {tierSponsors.map((sponsor, index) => (
                         <div
                           key={sponsor.id}
                           draggable={canManageSponsors()}
                           onDragStart={() => setDraggedSponsorId(sponsor.id)}
                           onDragOver={(e) => e.preventDefault()}
-                          onDrop={async () => {
+                          onDrop={async (e) => {
+                            e.stopPropagation();
                             if (!canManageSponsors()) return;
                             await reorderWithinAndAcrossTiers(tier.id, index);
                             setDraggedSponsorId(null);
@@ -663,8 +665,9 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                           )}
                         </div>
                       ))}
-                    </div>
-                  )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
