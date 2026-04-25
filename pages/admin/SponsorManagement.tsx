@@ -67,6 +67,8 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
 
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [sponsorToDelete, setSponsorToDelete] = useState<string | null>(null);
+  const [showConfirmDeleteTier, setShowConfirmDeleteTier] = useState(false);
+  const [tierToDeleteId, setTierToDeleteId] = useState<string | null>(null);
 
   const [alertModal, setAlertModal] = useState<{
     isOpen: boolean;
@@ -279,10 +281,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
       }
       const tier = sortedTiers.find((t) => t.id === tierId);
       if (!tier) return;
-      const ok = window.confirm(
-        `Delete tier "${tier.name}"? Sponsors in this tier will be moved to "${sortedTiers.find((t) => t.id !== tierId)?.name}".`
-      );
-      if (!ok) return;
 
       const fallbackTier = sortedTiers.find((t) => t.id !== tierId);
       if (!fallbackTier) return;
@@ -309,6 +307,15 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
       const message = error instanceof Error ? error.message : 'Unknown error';
       showAlert('error', 'Failed to Delete Tier', `Could not delete tier. ${message}`);
     }
+  };
+
+  const requestDeleteTier = (tierId: string) => {
+    if (sortedTiers.length <= 1) {
+      showAlert('warning', 'Cannot Delete Tier', 'At least one sponsor tier must remain.');
+      return;
+    }
+    setTierToDeleteId(tierId);
+    setShowConfirmDeleteTier(true);
   };
 
   const resetSponsorModalFields = () => {
@@ -552,7 +559,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                       Save
                     </button>
                     <button
-                      onClick={() => handleDeleteTier(tier.id)}
+                      onClick={() => requestDeleteTier(tier.id)}
                       className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
                     >
                       Delete
@@ -825,6 +832,29 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
           title="Move to Trash"
           message="Are you sure you want to delete this sponsor? It will be moved to trash and can be restored later."
           confirmText="Move to Trash"
+          cancelText="Cancel"
+          type="warning"
+        />
+
+        <ConfirmModal
+          isOpen={showConfirmDeleteTier}
+          onClose={() => {
+            setShowConfirmDeleteTier(false);
+            setTierToDeleteId(null);
+          }}
+          onConfirm={async () => {
+            if (!tierToDeleteId) return;
+            await handleDeleteTier(tierToDeleteId);
+            setShowConfirmDeleteTier(false);
+            setTierToDeleteId(null);
+          }}
+          title="Delete Sponsor Tier"
+          message={`Delete tier "${
+            sortedTiers.find((t) => t.id === tierToDeleteId)?.name || ''
+          }"? Sponsors in this tier will be moved to "${
+            sortedTiers.find((t) => t.id !== tierToDeleteId)?.name || ''
+          }".`}
+          confirmText="Delete Tier"
           cancelText="Cancel"
           type="warning"
         />
