@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { collection, doc, getDoc, getDocs, onSnapshot, query, setDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../../src/firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -59,6 +59,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   const [deletionRequestsCount, setDeletionRequestsCount] = useState(0);
   const [draggedSponsorId, setDraggedSponsorId] = useState<string | null>(null);
   const [newTierName, setNewTierName] = useState('');
+  const dragScrollFrameRef = useRef<number | null>(null);
 
   const [sponsorName, setSponsorName] = useState('');
   const [sponsorLink, setSponsorLink] = useState('');
@@ -457,6 +458,37 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     );
   };
 
+  const stopAutoScroll = () => {
+    if (dragScrollFrameRef.current != null) {
+      cancelAnimationFrame(dragScrollFrameRef.current);
+      dragScrollFrameRef.current = null;
+    }
+  };
+
+  const startAutoScroll = (deltaY: number) => {
+    stopAutoScroll();
+    const tick = () => {
+      window.scrollBy({ top: deltaY, behavior: 'auto' });
+      dragScrollFrameRef.current = requestAnimationFrame(tick);
+    };
+    dragScrollFrameRef.current = requestAnimationFrame(tick);
+  };
+
+  const handleDragViewportScroll = (e: React.DragEvent) => {
+    if (!draggedSponsorId) return;
+    const threshold = 110;
+    const topZone = e.clientY < threshold;
+    const bottomZone = e.clientY > window.innerHeight - threshold;
+
+    if (topZone) {
+      startAutoScroll(-12);
+    } else if (bottomZone) {
+      startAutoScroll(12);
+    } else {
+      stopAutoScroll();
+    }
+  };
+
   const createModalDirty =
     showCreateModal &&
     (sponsorName.trim() !== '' || sponsorLink.trim() !== '' || !!logoUrl || sponsorTierId !== defaultTierId);
@@ -489,8 +521,24 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
 
   const readOnlySponsors = !canManageSponsors();
 
+  useEffect(() => {
+    if (!draggedSponsorId) stopAutoScroll();
+    return () => stopAutoScroll();
+  }, [draggedSponsorId]);
+
   return (
-    <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto">
+    <div
+      className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto"
+      onDragOver={handleDragViewportScroll}
+      onDrop={() => {
+        setDraggedSponsorId(null);
+        stopAutoScroll();
+      }}
+      onDragEnd={() => {
+        setDraggedSponsorId(null);
+        stopAutoScroll();
+      }}
+    >
       <div className="max-w-7xl mx-auto min-w-0">
         <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Sponsor Management</h1>
@@ -619,6 +667,10 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                           key={sponsor.id}
                           draggable={canManageSponsors()}
                           onDragStart={() => setDraggedSponsorId(sponsor.id)}
+                          onDragEnd={() => {
+                            setDraggedSponsorId(null);
+                            stopAutoScroll();
+                          }}
                           onDragOver={(e) => e.preventDefault()}
                           onDrop={async (e) => {
                             e.stopPropagation();
