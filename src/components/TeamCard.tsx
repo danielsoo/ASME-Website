@@ -2,6 +2,9 @@ import React from 'react';
 import { TeamMember } from '../types';
 import { GripVertical } from 'lucide-react';
 
+const DEFAULT_BOARD_MEMBER_IMAGE =
+  'https://ik.imagekit.io/zi9e3gkj8/site/about/general-body/about-1776788780089_JohdDHYhH.jpg?updatedAt=1776788780769';
+
 interface TeamCardProps {
   member: TeamMember;
   showDragHandle?: boolean;
@@ -12,6 +15,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ member, showDragHandle, onDragHandl
   const focusX = typeof member.imageFocusX === 'number' ? member.imageFocusX : 50;
   const focusY = typeof member.imageFocusY === 'number' ? member.imageFocusY : 50;
   const zoom = typeof member.imageZoom === 'number' && member.imageZoom >= 1 ? member.imageZoom : 1;
+  const memberImageUrl = member.imageUrl?.trim() || DEFAULT_BOARD_MEMBER_IMAGE;
 
   return (
     <div className="bg-asme-red rounded-xl p-6 flex flex-col shadow-lg transform hover:scale-[1.02] transition-transform duration-300 relative">
@@ -31,18 +35,16 @@ const TeamCard: React.FC<TeamCardProps> = ({ member, showDragHandle, onDragHandl
       </div>
       <div className="flex flex-row gap-6 items-center">
         <div className="w-28 sm:w-32 aspect-square flex-shrink-0 bg-white rounded-lg overflow-hidden ring-1 ring-white/40">
-            {member.imageUrl ? (
-              <img
-                src={member.imageUrl}
-                alt={member.name}
-                className="w-full h-full object-cover"
-                style={{ objectPosition: `${focusX}% ${focusY}%`, transform: `scale(${zoom})`, transformOrigin: 'center' }}
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500 text-[10px] text-center px-1 font-jost">
-                No photo
-              </div>
-            )}
+          <img
+            src={memberImageUrl}
+            alt={member.name}
+            className="w-full h-full object-cover"
+            style={{ objectPosition: `${focusX}% ${focusY}%`, transform: `scale(${zoom})`, transformOrigin: 'center' }}
+            onError={(e) => {
+              // If a member photo is broken, fall back to the default board image.
+              (e.currentTarget as HTMLImageElement).src = DEFAULT_BOARD_MEMBER_IMAGE;
+            }}
+          />
         </div>
         <div className="flex flex-col text-xs text-white space-y-2 font-jost">
           <p><span className="underline decoration-white/50 underline-offset-2">Year</span>: {member.year}</p>
