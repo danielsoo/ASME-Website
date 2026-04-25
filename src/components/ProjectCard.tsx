@@ -17,7 +17,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavi
 
 
   return (
-    <div id={`project-${project.id}`} className="bg-[#DEE7ED] border border-gray-700 rounded-lg overflow-hidden shadow-md h-full"
+    <div id={`project-${project.id}`} className="bg-[#DEE7ED] border border-gray-700 rounded-lg overflow-hidden shadow-md"
     onClick={() => onImageClick?.(project)}>
       {/* Image Header Section */}
       <div className="relative h-48 w-full overflow-hidden"
