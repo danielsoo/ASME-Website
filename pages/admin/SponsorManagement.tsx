@@ -274,6 +274,14 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     }
   };
 
+  const getFallbackTierForDelete = (tierId: string): SponsorTier | null => {
+    const idx = sortedTiers.findIndex((t) => t.id === tierId);
+    if (idx < 0 || sortedTiers.length <= 1) return null;
+    // Prefer immediate upper tier; if deleting the top tier, use immediate lower tier.
+    if (idx > 0) return sortedTiers[idx - 1];
+    return sortedTiers[1] || null;
+  };
+
   const handleDeleteTier = async (tierId: string) => {
     try {
       if (sortedTiers.length <= 1) {
@@ -283,7 +291,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
       const tier = sortedTiers.find((t) => t.id === tierId);
       if (!tier) return;
 
-      const fallbackTier = sortedTiers.find((t) => t.id !== tierId);
+      const fallbackTier = getFallbackTierForDelete(tierId);
       if (!fallbackTier) return;
 
       const affected = sponsors.filter((s) => (s.tierId || defaultTierId) === tierId);
@@ -905,7 +913,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
           }}
           title={`Delete tier "${sortedTiers.find((t) => t.id === tierToDeleteId)?.name || ''}"`}
           message={`Sponsors in this tier will be moved to "${
-            sortedTiers.find((t) => t.id !== tierToDeleteId)?.name || ''
+            (tierToDeleteId ? getFallbackTierForDelete(tierToDeleteId)?.name : '') || ''
           }".`}
           confirmText="Delete Tier"
           cancelText="Cancel"
