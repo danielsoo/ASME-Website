@@ -504,7 +504,7 @@ export const getSponsors = async (): Promise<Sponsor[]> => {
   const snapshot = await getDocs(sponsorsRef);
   const sponsors = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sponsor));
   return sponsors
-    .filter(sponsor => sponsor.id !== '__tier_config__')
+    .filter(sponsor => sponsor.id !== 'tier_config_v1')
     .filter(sponsor => (sponsor as unknown as Record<string, unknown>).kind !== 'tier_config')
     .filter(sponsor => sponsor != null && !sponsor.deletedAt)
     .sort((a, b) => (a.name || '').localeCompare(b.name || ''));

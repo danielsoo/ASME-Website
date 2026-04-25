@@ -19,7 +19,7 @@ const DEFAULT_SPONSOR_TIERS: SponsorTier[] = [
   { id: 'gold', name: 'Gold Sponsors', order: 1 },
   { id: 'silver', name: 'Silver Sponsors', order: 2 },
 ];
-const SPONSOR_TIER_CONFIG_DOC_ID = '__tier_config__';
+const SPONSOR_TIER_CONFIG_DOC_ID = 'tier_config_v1';
 
 function slugifyTierId(name: string): string {
   return name

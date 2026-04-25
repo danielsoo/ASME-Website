@@ -8,7 +8,7 @@ import { DEFAULT_SPONSORS } from '../src/types';
 import { sanitizeHtml, isHtmlString } from '../src/utils/sanitizeHtml';
 
 const Sponsors: React.FC = () => {
-  const SPONSOR_TIER_CONFIG_DOC_ID = '__tier_config__';
+  const SPONSOR_TIER_CONFIG_DOC_ID = 'tier_config_v1';
   const [content, setContent] = useState<SponsorsContent>({ ...DEFAULT_SPONSORS });
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [tiers, setTiers] = useState<SponsorTier[]>([
