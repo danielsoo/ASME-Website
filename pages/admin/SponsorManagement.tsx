@@ -511,6 +511,11 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
     onSave: saveForLeave,
   });
 
+  useEffect(() => {
+    if (!draggedSponsorId) stopAutoScroll();
+    return () => stopAutoScroll();
+  }, [draggedSponsorId]);
+
   if (!roleReady || !permReady) {
     return (
       <div className="min-h-screen bg-gray-100 p-8 flex items-center justify-center overflow-x-auto">
@@ -520,11 +525,6 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   }
 
   const readOnlySponsors = !canManageSponsors();
-
-  useEffect(() => {
-    if (!draggedSponsorId) stopAutoScroll();
-    return () => stopAutoScroll();
-  }, [draggedSponsorId]);
 
   return (
     <div
