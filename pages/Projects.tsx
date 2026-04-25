@@ -379,36 +379,93 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
 
           {/* Project List */}
           {!loading && !error && (
-            <div className="columns-1 lg:columns-2 gap-8 px-4 md:px-8 lg:px-12">
-                {filteredProjects.length > 0 ? (
-                    filteredProjects.map((project) => {
-                      // Add leader name to project for display
+            <div className="px-4 md:px-8 lg:px-12">
+              {filteredProjects.length > 0 ? (
+                <>
+                  {/* Mobile/tablet: single column in source order */}
+                  <div className="lg:hidden space-y-8">
+                    {filteredProjects.map((project) => {
                       const projectWithLeaderName = {
                         ...project,
-                        leaderName: project.leaderId 
-                          ? userNames[project.leaderId] 
-                          : project.leaderEmail 
+                        leaderName: project.leaderId
+                          ? userNames[project.leaderId]
+                          : project.leaderEmail
                           ? userNames[project.leaderEmail] || project.leaderEmail.split('@')[0]
                           : undefined
                       };
                       return (
-                        <div key={project.id} className="break-inside-avoid mb-8">
-                          <ProjectCard
-                            project={projectWithLeaderName}
-                            onImageClick={(project) => {
-                              if (onNavigate) {
-                                onNavigate(`/projects/${project.id}`);
-                              }
-                            }}
-                          />
-                        </div>
+                        <ProjectCard
+                          key={project.id}
+                          project={projectWithLeaderName}
+                          onImageClick={(project) => {
+                            if (onNavigate) {
+                              onNavigate(`/projects/${project.id}`);
+                            }
+                          }}
+                        />
                       );
-                    })
-                ) : (
-                    <div className="text-center text-gray-500 py-20 font-jost">
-                        No projects found for this category.
+                    })}
+                  </div>
+
+                  {/* Desktop: fixed two columns by index to keep visual order stable */}
+                  <div className="hidden lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start">
+                    <div className="space-y-8">
+                      {filteredProjects
+                        .filter((_, index) => index % 2 === 0)
+                        .map((project) => {
+                          const projectWithLeaderName = {
+                            ...project,
+                            leaderName: project.leaderId
+                              ? userNames[project.leaderId]
+                              : project.leaderEmail
+                              ? userNames[project.leaderEmail] || project.leaderEmail.split('@')[0]
+                              : undefined
+                          };
+                          return (
+                            <ProjectCard
+                              key={project.id}
+                              project={projectWithLeaderName}
+                              onImageClick={(project) => {
+                                if (onNavigate) {
+                                  onNavigate(`/projects/${project.id}`);
+                                }
+                              }}
+                            />
+                          );
+                        })}
                     </div>
-                )}
+                    <div className="space-y-8">
+                      {filteredProjects
+                        .filter((_, index) => index % 2 === 1)
+                        .map((project) => {
+                          const projectWithLeaderName = {
+                            ...project,
+                            leaderName: project.leaderId
+                              ? userNames[project.leaderId]
+                              : project.leaderEmail
+                              ? userNames[project.leaderEmail] || project.leaderEmail.split('@')[0]
+                              : undefined
+                          };
+                          return (
+                            <ProjectCard
+                              key={project.id}
+                              project={projectWithLeaderName}
+                              onImageClick={(project) => {
+                                if (onNavigate) {
+                                  onNavigate(`/projects/${project.id}`);
+                                }
+                              }}
+                            />
+                          );
+                        })}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-gray-500 py-20 font-jost">
+                  No projects found for this category.
+                </div>
+              )}
             </div>
           )}
 
