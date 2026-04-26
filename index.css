@@ -103,15 +103,16 @@ footer::before {
   max-width: 100%;
 }
 
-/* Some rich text blocks include inline styles (e.g. white-space: pre/nowrap). Force safe wrapping on all descendants. */
+/* Force safe whitespace/word-break on descendants — but do NOT set overflow-wrap here.
+   overflow-wrap: break-word on every * lets flex containers shrink to single-character
+   width, causing char-level breaks. Containers above already set overflow-wrap: break-word
+   which inherits down and handles long URLs without the layout side-effect. */
 .home-rich-content *,
 .sponsors-rich-content *,
 .about-rich-content *,
 .project-rich-content * {
   max-width: 100%;
-  overflow-wrap: break-word !important;
   word-break: normal !important;
-  hyphens: manual !important;
   white-space: normal !important;
 }
 
@@ -121,7 +122,5 @@ footer::before {
   max-width: 100%;
   white-space: normal !important;
   word-break: normal !important;
-  overflow-wrap: break-word !important;
-  hyphens: manual !important;
 }
 

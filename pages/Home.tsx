@@ -175,7 +175,7 @@ const Home: React.FC = () => {
               color: "#ffffff",
               maxWidth: "100%",
               overflowWrap: "break-word",
-              wordBreak: "break-word",
+              wordBreak: "normal",
             }}
           >
             {renderRichContent(homeContent.heroLine1 ?? DEFAULT_HOME.heroLine1, 'WE ARE')}
@@ -189,7 +189,7 @@ const Home: React.FC = () => {
               color: "#ffffff",
               maxWidth: "100%",
               overflowWrap: "break-word",
-              wordBreak: "break-word",
+              wordBreak: "normal",
             }}
           >
             {renderRichContent(homeContent.heroLine2 ?? DEFAULT_HOME.heroLine2, 'THE AMERICAN SOCIETY OF MECHANICAL ENGINEERS')}
@@ -202,7 +202,7 @@ const Home: React.FC = () => {
               color: "#ffffff",
               maxWidth: "100%",
               overflowWrap: "break-word",
-              wordBreak: "break-word",
+              wordBreak: "normal",
             }}
           >
             {renderRichContent(homeContent.heroLine3 ?? DEFAULT_HOME.heroLine3, '@ PENN STATE')}
