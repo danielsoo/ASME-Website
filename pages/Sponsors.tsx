@@ -156,7 +156,7 @@ const Sponsors: React.FC = () => {
       </div>
 
       {/* Sponsors by Tier */}
-      <div className="bg-white py-20 px-16">
+      <div className="bg-white py-20 px-4 sm:px-8 md:px-16">
           <div className="container mx-auto max-w-6xl">
               <h2 className="text-[#1E2B48] text-3xl font-bold mb-12">Our Sponsors</h2>
               <div className="space-y-12">
