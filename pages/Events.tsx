@@ -259,7 +259,7 @@ const Events: React.FC = () => {
                             const isExpanded = expandedPastEventId === event.id;
                             const meetingLink = extractMeetingLink(event.description, event.location);
                             return (
-                                <div key={event.id} className="bg-white border border-slate-200 rounded-xl p-5 flex flex-row gap-4 shadow-sm hover:shadow-md transition-shadow min-w-0">
+                                <div key={event.id} className={`bg-white border border-slate-200 rounded-xl p-5 flex flex-row gap-4 shadow-sm hover:shadow-md transition-shadow min-w-0 overflow-hidden ${isExpanded ? '' : 'h-[255px]'}`}>
                                     <div className="bg-slate-100 rounded-lg w-20 h-20 flex-shrink-0 flex items-center justify-center">
                                         <Calendar className="text-slate-500 w-8 h-8" />
                                     </div>
@@ -324,7 +324,7 @@ const Events: React.FC = () => {
                                                 <button
                                                   type="button"
                                                   onClick={() => setExpandedPastEventId(event.id)}
-                                                  className="mt-3 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
+                                                  className="mt-auto pt-3 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
                                                 >
                                                   View details
                                                   <ChevronDown size={16} />
@@ -346,7 +346,7 @@ const Events: React.FC = () => {
                                     const isExpanded = expandedPastEventId === event.id;
                                     const meetingLink = extractMeetingLink(event.description, event.location);
                                     return (
-                                        <div key={event.id} className="bg-white border border-slate-200 rounded-xl p-5 flex flex-row gap-4 shadow-sm hover:shadow-md transition-shadow min-w-0">
+                                        <div key={event.id} className={`bg-white border border-slate-200 rounded-xl p-5 flex flex-row gap-4 shadow-sm hover:shadow-md transition-shadow min-w-0 overflow-hidden ${isExpanded ? '' : 'h-[255px]'}`}>
                                             <div className="bg-slate-100 rounded-lg w-20 h-20 flex-shrink-0 flex items-center justify-center">
                                                 <Calendar className="text-slate-500 w-8 h-8" />
                                             </div>
@@ -411,7 +411,7 @@ const Events: React.FC = () => {
                                                         <button
                                                           type="button"
                                                           onClick={() => setExpandedPastEventId(event.id)}
-                                                          className="mt-3 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
+                                                          className="mt-auto pt-3 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
                                                         >
                                                           View details
                                                           <ChevronDown size={16} />
@@ -430,7 +430,7 @@ const Events: React.FC = () => {
                                     const isExpanded = expandedPastEventId === event.id;
                                     const meetingLink = extractMeetingLink(event.description, event.location);
                                     return (
-                                        <div key={event.id} className="bg-white border border-slate-200 rounded-xl p-5 flex flex-row gap-4 shadow-sm hover:shadow-md transition-shadow min-w-0">
+                                        <div key={event.id} className={`bg-white border border-slate-200 rounded-xl p-5 flex flex-row gap-4 shadow-sm hover:shadow-md transition-shadow min-w-0 overflow-hidden ${isExpanded ? '' : 'h-[255px]'}`}>
                                             <div className="bg-slate-100 rounded-lg w-20 h-20 flex-shrink-0 flex items-center justify-center">
                                                 <Calendar className="text-slate-500 w-8 h-8" />
                                             </div>
@@ -495,7 +495,7 @@ const Events: React.FC = () => {
                                                         <button
                                                           type="button"
                                                           onClick={() => setExpandedPastEventId(event.id)}
-                                                          className="mt-3 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
+                                                          className="mt-auto pt-3 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
                                                         >
                                                           View details
                                                           <ChevronDown size={16} />
