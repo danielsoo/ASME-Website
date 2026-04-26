@@ -868,8 +868,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
              
              <div className="w-full min-w-0 flex-1 text-white font-jost">
                  <h2 className="text-[#1E2B48] text-3xl font-bold mb-6">{renderTitle(aboutContent.aboutTitle, 'About Us')}</h2>
-                 <div
-                     className="text-gray-800 leading-relaxed mb-4"
+                <div
+                    className="about-copy text-gray-800 leading-relaxed mb-4"
                      style={{
                        fontFamily: aboutContent.paragraphFontFamily || undefined,
                        fontWeight: aboutContent.paragraphFontWeight ? Number(aboutContent.paragraphFontWeight) : undefined,
@@ -877,8 +877,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                  >
                      {renderParagraph(aboutContent.aboutParagraph1)}
                  </div>
-                 <div
-                     className="text-gray-800 leading-relaxed"
+                <div
+                    className="about-copy text-gray-800 leading-relaxed"
                      style={{
                        fontFamily: aboutContent.paragraphFontFamily || undefined,
                        fontWeight: aboutContent.paragraphFontWeight ? Number(aboutContent.paragraphFontWeight) : undefined,

@@ -5,13 +5,14 @@ import { sanitizeHtml, isHtmlString } from './sanitizeHtml';
 /** Render paragraph: HTML (rich editor) or plain text with optional "visit this link". */
 export function renderAboutParagraph(content: string | undefined, linkUrl?: string): React.ReactNode {
   const c = content ?? '';
+  const normalized = c.replace(/\r?\n+/g, ' ').replace(/\s{2,}/g, ' ').trim();
   if (isHtmlString(c)) {
     return (
-      <div className="about-rich-content prose prose-p:my-2 max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(c) }} />
+      <div className="about-rich-content about-copy prose prose-p:my-2 max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(c) }} />
     );
   }
-  if (linkUrl && c.includes('visit this link')) {
-    const parts = c.split('visit this link');
+  if (linkUrl && normalized.includes('visit this link')) {
+    const parts = normalized.split('visit this link');
     return (
       <>
         {parts[0]}
@@ -22,7 +23,7 @@ export function renderAboutParagraph(content: string | undefined, linkUrl?: stri
       </>
     );
   }
-  return c;
+  return normalized;
 }
 
 /** Render title that may be HTML from rich editor. */
