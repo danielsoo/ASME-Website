@@ -108,8 +108,8 @@ footer::before {
 .about-rich-content *,
 .project-rich-content * {
   max-width: 100%;
-  overflow-wrap: normal !important;
-  word-break: keep-all !important;
-  hyphens: none !important;
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
+  hyphens: manual !important;
   white-space: normal !important;
 }
