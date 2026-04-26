@@ -866,7 +866,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                  />
              </div>
              
-             <div className="w-full min-w-0 flex-1 text-white font-jost">
+             <div className="w-full min-w-0 flex-1 text-white font-jost overflow-hidden">
                  <h2 className="text-[#1E2B48] text-3xl font-bold mb-6">{renderTitle(aboutContent.aboutTitle, 'About Us')}</h2>
                 <div
                     className="about-copy text-gray-800 leading-relaxed mb-4"

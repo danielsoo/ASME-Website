@@ -10,7 +10,7 @@ export function renderAboutParagraph(content: string | undefined, linkUrl?: stri
   if (isHtmlString(c)) {
     const repairedHtml = repairMidWordBreaks(c);
     return (
-      <div className="about-rich-content about-copy prose prose-p:my-2 max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(repairedHtml) }} />
+      <div className="about-rich-content about-copy prose prose-p:my-2 max-w-full w-full" dangerouslySetInnerHTML={{ __html: sanitizeHtml(repairedHtml) }} />
     );
   }
   if (linkUrl && normalized.includes('visit this link')) {
@@ -55,7 +55,7 @@ export function renderDesignTeamIntroBlock(
       <>
         <div className="font-jost">
           {isHtmlString(mergedDesignBlock.introParagraph1) ? (
-            <div className="about-rich-content prose prose-p:my-2 max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(mergedDesignBlock.introParagraph1) }} />
+            <div className="about-rich-content prose prose-p:my-2 max-w-full w-full" dangerouslySetInnerHTML={{ __html: sanitizeHtml(mergedDesignBlock.introParagraph1) }} />
           ) : mergedDesignBlock.introParagraph1.includes('85,000 members') ? (
             mergedDesignBlock.introParagraph1.split('85,000 members').reduce<React.ReactNode[]>((acc, part, i, arr) => {
               acc.push(part);

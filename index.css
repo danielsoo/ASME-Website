@@ -114,13 +114,13 @@ footer::before {
   white-space: normal !important;
 }
 
-/* About body copy: keep words intact, wrap by word, never overflow viewport. */
+/* About body copy: wrap at word boundaries; only break mid-word if a single word is wider than its container. */
 .about-copy,
 .about-copy * {
   max-width: 100%;
   white-space: normal !important;
   word-break: normal !important;
-  overflow-wrap: normal !important;
+  overflow-wrap: break-word !important;
   hyphens: none !important;
 }
 
