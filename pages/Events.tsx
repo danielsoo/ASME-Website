@@ -252,88 +252,263 @@ const Events: React.FC = () => {
             {loading ? (
                 <div className="text-center text-gray-500 py-8">Loading events...</div>
             ) : pastEvents.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {pastEvents.map(event => {
-                        const isExpanded = expandedPastEventId === event.id;
-                        const meetingLink = extractMeetingLink(event.description, event.location);
-                        return (
-                            <div key={event.id} className="bg-white border border-slate-200 rounded-xl p-5 flex flex-row gap-4 shadow-sm hover:shadow-md transition-shadow min-w-0">
-                                <div className="bg-slate-100 rounded-lg w-20 h-20 flex-shrink-0 flex items-center justify-center">
-                                    <Calendar className="text-slate-500 w-8 h-8" />
-                                </div>
-                                <div className="flex-1 min-w-0 flex flex-col">
-                                    <div className="flex items-start gap-2 mb-2">
-                                        <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center">
-                                            <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
-                                        </div>
-                                        <h3 className={`font-bold text-lg text-slate-900 ${isExpanded ? 'break-words' : 'line-clamp-1'}`}>{renderEventContent(event.title, '')}</h3>
+                <>
+                    {/* Mobile/tablet: single column in source order */}
+                    <div className="md:hidden space-y-6">
+                        {pastEvents.map(event => {
+                            const isExpanded = expandedPastEventId === event.id;
+                            const meetingLink = extractMeetingLink(event.description, event.location);
+                            return (
+                                <div key={event.id} className="bg-white border border-slate-200 rounded-xl p-5 flex flex-row gap-4 shadow-sm hover:shadow-md transition-shadow min-w-0">
+                                    <div className="bg-slate-100 rounded-lg w-20 h-20 flex-shrink-0 flex items-center justify-center">
+                                        <Calendar className="text-slate-500 w-8 h-8" />
                                     </div>
-                                    {isExpanded ? (
-                                        <>
-                                            <div className="text-sm text-slate-600 mb-2 break-words event-rich-content">{renderEventContent(event.description, '')}</div>
-                                            <div className="flex flex-wrap items-center gap-2 mt-2">
-                                                <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center">
-                                                    <Clock className="w-4 h-4 text-slate-600" />
+                                    <div className="flex-1 min-w-0 flex flex-col">
+                                        <div className="flex items-start gap-2 mb-2">
+                                            <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center">
+                                                <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
+                                            </div>
+                                            <h3 className={`font-bold text-lg text-slate-900 ${isExpanded ? 'break-words' : 'line-clamp-1'}`}>{renderEventContent(event.title, '')}</h3>
+                                        </div>
+                                        {isExpanded ? (
+                                            <>
+                                                <div className="text-sm text-slate-600 mb-2 break-words event-rich-content">{renderEventContent(event.description, '')}</div>
+                                                <div className="flex flex-wrap items-center gap-2 mt-2">
+                                                    <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center">
+                                                        <Clock className="w-4 h-4 text-slate-600" />
+                                                    </div>
+                                                    <span className="font-semibold text-sm text-slate-800">{event.date}</span>
+                                                    {event.location && (
+                                                        <>
+                                                            <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center">
+                                                                <MapPin className="w-4 h-4 text-slate-600" />
+                                                            </div>
+                                                            <span className="font-semibold text-sm text-slate-700 break-words">{event.location}</span>
+                                                        </>
+                                                    )}
                                                 </div>
-                                                <span className="font-semibold text-sm text-slate-800">{event.date}</span>
-                                                {event.location && (
-                                                    <>
-                                                        <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center">
-                                                            <MapPin className="w-4 h-4 text-slate-600" />
-                                                        </div>
-                                                        <span className="font-semibold text-sm text-slate-700 break-words">{event.location}</span>
-                                                    </>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setExpandedPastEventId(null)}
+                                                  className="mt-4 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
+                                                >
+                                                  <ChevronUp size={16} />
+                                                  Close
+                                                </button>
+                                                {meetingLink && (
+                                                  <a
+                                                    href={meetingLink}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="mt-3 inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-semibold underline"
+                                                  >
+                                                    {getMeetingLabel(meetingLink)}
+                                                  </a>
                                                 )}
-                                            </div>
-                                            <button
-                                              type="button"
-                                              onClick={() => setExpandedPastEventId(null)}
-                                              className="mt-4 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
-                                            >
-                                              <ChevronUp size={16} />
-                                              Close
-                                            </button>
-                                            {meetingLink && (
-                                              <a
-                                                href={meetingLink}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="mt-3 inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-semibold underline"
-                                              >
-                                                {getMeetingLabel(meetingLink)}
-                                              </a>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="text-sm text-slate-600 mb-2 line-clamp-2 event-rich-content">{renderEventContent(event.description, '')}</div>
-                                            <div className="flex flex-wrap items-center gap-2 mt-2">
-                                                <Clock className="w-4 h-4 text-slate-600 flex-shrink-0" />
-                                                <span className="font-semibold text-sm text-slate-800">{event.date}</span>
-                                                {event.location && (
-                                                    <>
-                                                        <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center ml-2">
-                                                            <MapPin className="w-4 h-4 text-slate-600" />
-                                                        </div>
-                                                        <span className="font-semibold text-sm text-slate-700 break-words">{event.location}</span>
-                                                    </>
-                                                )}
-                                            </div>
-                                            <button
-                                              type="button"
-                                              onClick={() => setExpandedPastEventId(event.id)}
-                                              className="mt-3 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
-                                            >
-                                              View details
-                                              <ChevronDown size={16} />
-                                            </button>
-                                        </>
-                                    )}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="text-sm text-slate-600 mb-2 line-clamp-2 event-rich-content">{renderEventContent(event.description, '')}</div>
+                                                <div className="flex flex-wrap items-center gap-2 mt-2">
+                                                    <Clock className="w-4 h-4 text-slate-600 flex-shrink-0" />
+                                                    <span className="font-semibold text-sm text-slate-800">{event.date}</span>
+                                                    {event.location && (
+                                                        <>
+                                                            <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center ml-2">
+                                                                <MapPin className="w-4 h-4 text-slate-600" />
+                                                            </div>
+                                                            <span className="font-semibold text-sm text-slate-700 break-words">{event.location}</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setExpandedPastEventId(event.id)}
+                                                  className="mt-3 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
+                                                >
+                                                  View details
+                                                  <ChevronDown size={16} />
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Desktop: fixed two columns so expanded card only pushes downward in its own column */}
+                    <div className="hidden md:grid md:grid-cols-2 md:gap-6 md:items-start">
+                        <div className="space-y-6">
+                            {pastEvents
+                                .filter((_, index) => index % 2 === 0)
+                                .map(event => {
+                                    const isExpanded = expandedPastEventId === event.id;
+                                    const meetingLink = extractMeetingLink(event.description, event.location);
+                                    return (
+                                        <div key={event.id} className="bg-white border border-slate-200 rounded-xl p-5 flex flex-row gap-4 shadow-sm hover:shadow-md transition-shadow min-w-0">
+                                            <div className="bg-slate-100 rounded-lg w-20 h-20 flex-shrink-0 flex items-center justify-center">
+                                                <Calendar className="text-slate-500 w-8 h-8" />
+                                            </div>
+                                            <div className="flex-1 min-w-0 flex flex-col">
+                                                <div className="flex items-start gap-2 mb-2">
+                                                    <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center">
+                                                        <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
+                                                    </div>
+                                                    <h3 className={`font-bold text-lg text-slate-900 ${isExpanded ? 'break-words' : 'line-clamp-1'}`}>{renderEventContent(event.title, '')}</h3>
+                                                </div>
+                                                {isExpanded ? (
+                                                    <>
+                                                        <div className="text-sm text-slate-600 mb-2 break-words event-rich-content">{renderEventContent(event.description, '')}</div>
+                                                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                                                            <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center">
+                                                                <Clock className="w-4 h-4 text-slate-600" />
+                                                            </div>
+                                                            <span className="font-semibold text-sm text-slate-800">{event.date}</span>
+                                                            {event.location && (
+                                                                <>
+                                                                    <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center">
+                                                                        <MapPin className="w-4 h-4 text-slate-600" />
+                                                                    </div>
+                                                                    <span className="font-semibold text-sm text-slate-700 break-words">{event.location}</span>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => setExpandedPastEventId(null)}
+                                                          className="mt-4 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
+                                                        >
+                                                          <ChevronUp size={16} />
+                                                          Close
+                                                        </button>
+                                                        {meetingLink && (
+                                                          <a
+                                                            href={meetingLink}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="mt-3 inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-semibold underline"
+                                                          >
+                                                            {getMeetingLabel(meetingLink)}
+                                                          </a>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div className="text-sm text-slate-600 mb-2 line-clamp-2 event-rich-content">{renderEventContent(event.description, '')}</div>
+                                                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                                                            <Clock className="w-4 h-4 text-slate-600 flex-shrink-0" />
+                                                            <span className="font-semibold text-sm text-slate-800">{event.date}</span>
+                                                            {event.location && (
+                                                                <>
+                                                                    <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center ml-2">
+                                                                        <MapPin className="w-4 h-4 text-slate-600" />
+                                                                    </div>
+                                                                    <span className="font-semibold text-sm text-slate-700 break-words">{event.location}</span>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => setExpandedPastEventId(event.id)}
+                                                          className="mt-3 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
+                                                        >
+                                                          View details
+                                                          <ChevronDown size={16} />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                        </div>
+                        <div className="space-y-6">
+                            {pastEvents
+                                .filter((_, index) => index % 2 === 1)
+                                .map(event => {
+                                    const isExpanded = expandedPastEventId === event.id;
+                                    const meetingLink = extractMeetingLink(event.description, event.location);
+                                    return (
+                                        <div key={event.id} className="bg-white border border-slate-200 rounded-xl p-5 flex flex-row gap-4 shadow-sm hover:shadow-md transition-shadow min-w-0">
+                                            <div className="bg-slate-100 rounded-lg w-20 h-20 flex-shrink-0 flex items-center justify-center">
+                                                <Calendar className="text-slate-500 w-8 h-8" />
+                                            </div>
+                                            <div className="flex-1 min-w-0 flex flex-col">
+                                                <div className="flex items-start gap-2 mb-2">
+                                                    <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center">
+                                                        <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
+                                                    </div>
+                                                    <h3 className={`font-bold text-lg text-slate-900 ${isExpanded ? 'break-words' : 'line-clamp-1'}`}>{renderEventContent(event.title, '')}</h3>
+                                                </div>
+                                                {isExpanded ? (
+                                                    <>
+                                                        <div className="text-sm text-slate-600 mb-2 break-words event-rich-content">{renderEventContent(event.description, '')}</div>
+                                                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                                                            <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center">
+                                                                <Clock className="w-4 h-4 text-slate-600" />
+                                                            </div>
+                                                            <span className="font-semibold text-sm text-slate-800">{event.date}</span>
+                                                            {event.location && (
+                                                                <>
+                                                                    <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center">
+                                                                        <MapPin className="w-4 h-4 text-slate-600" />
+                                                                    </div>
+                                                                    <span className="font-semibold text-sm text-slate-700 break-words">{event.location}</span>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => setExpandedPastEventId(null)}
+                                                          className="mt-4 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
+                                                        >
+                                                          <ChevronUp size={16} />
+                                                          Close
+                                                        </button>
+                                                        {meetingLink && (
+                                                          <a
+                                                            href={meetingLink}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="mt-3 inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-semibold underline"
+                                                          >
+                                                            {getMeetingLabel(meetingLink)}
+                                                          </a>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div className="text-sm text-slate-600 mb-2 line-clamp-2 event-rich-content">{renderEventContent(event.description, '')}</div>
+                                                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                                                            <Clock className="w-4 h-4 text-slate-600 flex-shrink-0" />
+                                                            <span className="font-semibold text-sm text-slate-800">{event.date}</span>
+                                                            {event.location && (
+                                                                <>
+                                                                    <div className="w-8 h-8 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center ml-2">
+                                                                        <MapPin className="w-4 h-4 text-slate-600" />
+                                                                    </div>
+                                                                    <span className="font-semibold text-sm text-slate-700 break-words">{event.location}</span>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => setExpandedPastEventId(event.id)}
+                                                          className="mt-3 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
+                                                        >
+                                                          View details
+                                                          <ChevronDown size={16} />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                        </div>
+                    </div>
+                </>
             ) : (
                 <div className="text-center text-gray-500 py-8">No past events.</div>
             )}
