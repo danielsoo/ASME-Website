@@ -117,7 +117,10 @@ footer::before {
 }
 
 /* About body copy: keep words intact, wrap by word, never overflow viewport. */
-.about-copy,
+.about-copy {
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
 .about-copy * {
   max-width: 100%;
   white-space: normal !important;

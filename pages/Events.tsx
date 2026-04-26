@@ -137,7 +137,7 @@ const Events: React.FC = () => {
       
       {/* Calendar Section */}
       <div className="bg-white py-20 px-4">
-        <div className="container mx-auto max-w-4xl relative">
+        <div className="max-w-4xl mx-auto w-full relative">
             <h2 className="text-3xl font-bold mb-8">Calendar</h2>
             
             <div className="flex flex-col lg:flex-row gap-8">
@@ -237,7 +237,7 @@ const Events: React.FC = () => {
 
       {/* Coming Up Section (Instagram) */}
       <div className="bg-[#e5e7eb] py-20 px-4">
-        <div className="container mx-auto max-w-4xl relative">
+        <div className="max-w-4xl mx-auto w-full relative">
             <h2 className="text-3xl font-bold mb-8">Coming Up</h2>
             <div className="mt-8 min-h-[200px]" aria-hidden="true">
               <EmbedSocialHashtag />
@@ -247,7 +247,7 @@ const Events: React.FC = () => {
 
       {/* Past Events Section */}
       <div className="bg-white py-20 px-4">
-        <div className="container mx-auto max-w-4xl relative">
+        <div className="max-w-4xl mx-auto w-full relative">
             <h2 className="text-3xl font-bold mb-8">Past Events</h2>
             {loading ? (
                 <div className="text-center text-gray-500 py-8">Loading events...</div>
