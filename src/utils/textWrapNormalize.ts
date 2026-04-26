@@ -6,8 +6,6 @@ export function repairMidWordBreaks(text: string): string {
   return cleaned
     // Join words split by <br> tags.
     .replace(/([A-Za-z])\s*<br\s*\/?>\s*([A-Za-z])/gi, '$1$2')
-    // Join words split by paragraph/div/block closing+opening tags.
-    .replace(/([A-Za-z])\s*<\/(?:p|div|li|h[1-6])>\s*<(?:p|div|li|h[1-6])[^>]*>\s*([A-Za-z])/gi, '$1$2')
     // Join words split by line separators/newlines.
     .replace(/([A-Za-z])[\r\n\u2028\u2029]+\s*([A-Za-z])/g, '$1$2')
     // Join words split by tabs between letters.
