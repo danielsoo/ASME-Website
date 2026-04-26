@@ -175,7 +175,7 @@ const Home: React.FC = () => {
               color: "#ffffff",
               maxWidth: "100%",
               overflowWrap: "break-word",
-              wordBreak: "normal",
+              wordBreak: "break-word",
             }}
           >
             {renderRichContent(homeContent.heroLine1 ?? DEFAULT_HOME.heroLine1, 'WE ARE')}
@@ -189,7 +189,7 @@ const Home: React.FC = () => {
               color: "#ffffff",
               maxWidth: "100%",
               overflowWrap: "break-word",
-              wordBreak: "normal",
+              wordBreak: "break-word",
             }}
           >
             {renderRichContent(homeContent.heroLine2 ?? DEFAULT_HOME.heroLine2, 'THE AMERICAN SOCIETY OF MECHANICAL ENGINEERS')}
@@ -202,7 +202,7 @@ const Home: React.FC = () => {
               color: "#ffffff",
               maxWidth: "100%",
               overflowWrap: "break-word",
-              wordBreak: "normal",
+              wordBreak: "break-word",
             }}
           >
             {renderRichContent(homeContent.heroLine3 ?? DEFAULT_HOME.heroLine3, '@ PENN STATE')}
@@ -314,7 +314,7 @@ const Home: React.FC = () => {
       </div>
 
       {/* What we do Section */}
-      <div className="mx-auto px-[clamp(1rem,6vw,5rem)] mb-24 min-w-0 w-full max-w-full overflow-x-hidden">
+      <div className="container mx-auto px-4 sm:px-8 md:px-20 mb-24 min-w-0 max-w-full overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-center min-w-0">
             <div className="space-y-6 min-w-0">
                 <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4 min-w-0">
@@ -331,7 +331,7 @@ const Home: React.FC = () => {
                 </div>
             </div>
             
-            <div className="font-jost text-gray-300 space-y-6 min-w-0 max-w-full break-normal whitespace-normal">
+            <div className="font-jost text-gray-300 space-y-6 min-w-0 max-w-full overflow-hidden break-normal whitespace-normal">
                 <h2 className="text-3xl font-bold text-white break-normal whitespace-normal">{renderRichContent(homeContent.whatWeDoTitle ?? DEFAULT_HOME.whatWeDoTitle, 'What we do')}</h2>
                 <div className="home-rich-content break-normal whitespace-normal leading-relaxed">
                   {isHtmlString(homeContent.whatWeDoParagraph1 ?? '') ? (

@@ -103,27 +103,25 @@ footer::before {
   max-width: 100%;
 }
 
-/* Force safe whitespace/word-break on descendants — but do NOT set overflow-wrap here.
-   overflow-wrap: break-word on every * lets flex containers shrink to single-character
-   width, causing char-level breaks. Containers above already set overflow-wrap: break-word
-   which inherits down and handles long URLs without the layout side-effect. */
+/* Some rich text blocks include inline styles (e.g. white-space: pre/nowrap). Force safe wrapping on all descendants. */
 .home-rich-content *,
 .sponsors-rich-content *,
 .about-rich-content *,
 .project-rich-content * {
   max-width: 100%;
+  overflow-wrap: normal !important;
   word-break: normal !important;
+  hyphens: none !important;
   white-space: normal !important;
 }
 
 /* About body copy: keep words intact, wrap by word, never overflow viewport. */
-.about-copy {
-  overflow-wrap: break-word;
-  max-width: 100%;
-}
+.about-copy,
 .about-copy * {
   max-width: 100%;
   white-space: normal !important;
   word-break: normal !important;
+  overflow-wrap: normal !important;
+  hyphens: none !important;
 }
 

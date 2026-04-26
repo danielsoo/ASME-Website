@@ -331,7 +331,7 @@ const Projects: React.FC<ProjectsProps> = ({ currentPath = '/projects', onNaviga
     <div className="min-h-screen bg-[#0f131a] relative">
       {/* Content */}
       <div className="bg-gray-100 min-h-screen py-12 relative">
-        <div className="w-full max-w-6xl mx-auto px-[clamp(1rem,5vw,4rem)]">
+        <div className="container mx-auto px-16">
           
           {/* Toggle Controls */}
           <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">

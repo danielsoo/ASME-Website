@@ -409,7 +409,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
 
     return (
       <div className="min-h-screen bg-white pb-20">
-        <div className="w-full max-w-6xl mx-auto px-[clamp(1rem,5vw,4rem)] pt-8">
+        <div className="container mx-auto px-16 pt-8">
           <div className="flex flex-wrap gap-1 bg-[#DEE7ED] p-1 rounded-lg w-fit max-w-full mb-12 mx-auto md:mx-0 shadow-md">
             <button
               type="button"
@@ -437,8 +437,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
 
         {isExec ? (
           <>
-            <div className="bg-gray-100 pb-16 px-[clamp(1rem,5vw,4rem)]">
-              <div className="max-w-5xl mx-auto px-4 pt-4">
+            <div className="bg-gray-100 pb-16 px-16">
+              <div className="container mx-auto px-4 pt-4">
                 <div className="flex flex-col md:flex-row gap-12 items-start">
                   <div className="w-full md:w-1/2">
                     <div className="mb-6">
@@ -488,8 +488,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
           </>
         ) : (
           <>
-            <div className="bg-gray-100 pb-16 px-[clamp(1rem,5vw,4rem)]">
-              <div className="max-w-5xl mx-auto px-4 pt-4">
+            <div className="bg-gray-100 pb-16 px-16">
+              <div className="container mx-auto px-4 pt-4">
                 <div className="flex flex-col md:flex-row gap-12 items-start">
                   <div className="w-full md:w-1/2">
                     <div className="mb-6">
@@ -533,7 +533,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
               </div>
             </div>
             <div className="bg-[#e5e7eb] py-16">
-              <div className="w-full max-w-6xl mx-auto px-[clamp(1rem,5vw,4rem)]">
+              <div className="container mx-auto px-16">
                 <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-2">{boardHeading}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
                   {loading ? (
@@ -574,7 +574,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     return (
       <div className="min-h-screen bg-gray-100 py-12">
         {/* About Us Section - Full page view */}
-        <div className="w-full max-w-6xl mx-auto px-[clamp(1rem,5vw,4rem)]">
+        <div className="container mx-auto px-16">
                 
           {/* Toggle Controls */}
           <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">
@@ -599,8 +599,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
           </div>
         </div>
 
-        <div id="about-us-section" className="bg-gray-100 pb-16 px-[clamp(1rem,5vw,4rem)]">
-        <div className="max-w-5xl mx-auto px-4">
+        <div id="about-us-section" className="bg-gray-100 pb-16 px-16">
+        <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-12 items-start">
             {/* Left Column - Our General Body */}
             <div className="w-full md:w-1/2">
@@ -648,7 +648,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
 
       {/* Executive Board Section - Same as regular About page */}
       <div className="bg-[#e5e7eb] py-16">
-        <div className="w-full max-w-6xl mx-auto px-[clamp(1rem,5vw,4rem)]">
+        <div className="container mx-auto px-16">
           <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-4">
             Executive Board
           </h2>
@@ -694,7 +694,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     return (
       <div className="min-h-screen bg-gray-100 py-12">
         {/* Design Team Section - Full page view */}
-        <div className="w-full max-w-6xl mx-auto px-[clamp(1rem,5vw,4rem)]">
+        <div className="container mx-auto px-16">
                 
           {/* Toggle Controls */}
           <div className="flex space-x-1 bg-[#DEE7ED] p-1 rounded-lg w-fit mb-12 mx-auto md:mx-0 shadow-md">
@@ -719,8 +719,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
           </div>
         </div> 
 
-        <div id="about-us-section" className="bg-gray-100 pb-16 px-[clamp(1rem,5vw,4rem)]">
-        <div className="max-w-5xl mx-auto px-4">
+        <div id="about-us-section" className="bg-gray-100 pb-16 px-16">
+        <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-12 items-start">
             {/* Left Column - Our Design Team */}
             <div className="w-full md:w-1/2">
@@ -814,7 +814,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
 
       {/* Design Board Section - Same as regular About page */}
       <div className="bg-[#e5e7eb] py-16 ">
-        <div className="w-full max-w-6xl mx-auto px-[clamp(1rem,5vw,4rem)]">
+        <div className="container mx-auto px-16">
           <h2 className="text-3xl font-jost font-bold text-black mb-10 pl-2">
             Design Board
           </h2>
@@ -856,7 +856,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
     <div className="min-h-screen bg-white pb-20 relative">
       
       {/* Hero / About Us Text */}
-      <div className="w-full max-w-6xl mx-auto px-[clamp(1rem,5vw,4rem)] py-16">
+      <div className="container mx-auto px-16 py-16">
          <div className="flex flex-col md:flex-row gap-12 items-start">
              <div className="w-full max-w-[344px] aspect-[344/259] shrink-0 bg-slate-700 rounded-lg overflow-hidden mx-auto md:mx-0 md:w-[344px]">
                  <img
@@ -891,8 +891,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
       </div>
 
       {/* Our Teams — tiles link to full team pages */}
-      <div className="bg-[#e5e7eb] py-16 px-[clamp(1rem,5vw,4rem)]">
-        <div className="max-w-5xl mx-auto px-4">
+      <div className="bg-[#e5e7eb] py-16 px-16">
+        <div className="container mx-auto px-4">
           <h2 className="text-3xl font-jost font-bold text-[#1E2B48] text-center mb-12">
             Our Teams
           </h2>
@@ -932,7 +932,7 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
       {/* Team boards: segmented tabs (same classes as General Body / Design Team route toggles) */}
       {boardTabTeamOrder.length > 0 && (
         <div className="border-t border-gray-200 bg-[#e5e7eb] py-10 px-4 sm:px-8">
-          <div className="max-w-5xl mx-auto w-full">
+          <div className="container mx-auto max-w-5xl">
             <h2 className="text-2xl sm:text-3xl font-jost font-bold text-[#1E2B48] text-center mb-6">
               Team boards
             </h2>

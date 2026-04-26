@@ -4,12 +4,7 @@ export function repairMidWordBreaks(text: string): string {
     .replace(/[\u00ad\u200b\u200c\u200d\u2060\ufeff]/g, '');
 
   return cleaned
-    // Join words split by <br> (with or without attributes).
-    .replace(/([A-Za-z])\s*<br[^>]*\/?>\s*([A-Za-z])/gi, '$1$2')
-    // Join words split across paragraph boundaries </p>...<p>.
-    .replace(/([A-Za-z])\s*<\/p>\s*(?:<p[^>]*>)?\s*([A-Za-z])/gi, '$1$2')
-    // Join words split by <wbr> tags.
-    .replace(/([A-Za-z])<wbr\s*\/?>\s*([A-Za-z])/gi, '$1$2')
+    .replace(/([A-Za-z])\s*<br\s*\/?>\s*([A-Za-z])/gi, '$1$2')
     // Join words split by line separators/newlines.
     .replace(/([A-Za-z])[\r\n\u2028\u2029]+\s*([A-Za-z])/g, '$1$2')
     // Join words split by tabs between letters.
