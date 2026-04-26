@@ -26,6 +26,7 @@ body {
   background-blend-mode: normal, overlay, normal;
   color: white;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -119,8 +120,8 @@ footer::before {
 .about-copy * {
   max-width: 100%;
   white-space: normal !important;
-  word-break: keep-all !important;
-  overflow-wrap: normal !important;
-  hyphens: none !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  hyphens: manual !important;
 }
 
