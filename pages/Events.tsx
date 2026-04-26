@@ -287,14 +287,6 @@ const Events: React.FC = () => {
                                                         </>
                                                     )}
                                                 </div>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => setExpandedPastEventId(null)}
-                                                  className="mt-4 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
-                                                >
-                                                  <ChevronUp size={16} />
-                                                  Close
-                                                </button>
                                                 {meetingLink && (
                                                   <a
                                                     href={meetingLink}
@@ -305,6 +297,14 @@ const Events: React.FC = () => {
                                                     {getMeetingLabel(meetingLink)}
                                                   </a>
                                                 )}
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setExpandedPastEventId(null)}
+                                                  className="mt-auto pt-3 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
+                                                >
+                                                  <ChevronUp size={16} />
+                                                  Close
+                                                </button>
                                             </>
                                         ) : (
                                             <>
@@ -374,14 +374,6 @@ const Events: React.FC = () => {
                                                                 </>
                                                             )}
                                                         </div>
-                                                        <button
-                                                          type="button"
-                                                          onClick={() => setExpandedPastEventId(null)}
-                                                          className="mt-4 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
-                                                        >
-                                                          <ChevronUp size={16} />
-                                                          Close
-                                                        </button>
                                                         {meetingLink && (
                                                           <a
                                                             href={meetingLink}
@@ -392,6 +384,14 @@ const Events: React.FC = () => {
                                                             {getMeetingLabel(meetingLink)}
                                                           </a>
                                                         )}
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setExpandedPastEventId(null)}
+                                                  className="mt-auto pt-3 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
+                                                >
+                                                  <ChevronUp size={16} />
+                                                  Close
+                                                </button>
                                                     </>
                                                 ) : (
                                                     <>
@@ -458,14 +458,6 @@ const Events: React.FC = () => {
                                                                 </>
                                                             )}
                                                         </div>
-                                                        <button
-                                                          type="button"
-                                                          onClick={() => setExpandedPastEventId(null)}
-                                                          className="mt-4 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
-                                                        >
-                                                          <ChevronUp size={16} />
-                                                          Close
-                                                        </button>
                                                         {meetingLink && (
                                                           <a
                                                             href={meetingLink}
@@ -476,6 +468,14 @@ const Events: React.FC = () => {
                                                             {getMeetingLabel(meetingLink)}
                                                           </a>
                                                         )}
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => setExpandedPastEventId(null)}
+                                                          className="mt-auto pt-3 inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 text-sm font-medium"
+                                                        >
+                                                          <ChevronUp size={16} />
+                                                          Close
+                                                        </button>
                                                     </>
                                                 ) : (
                                                     <>
