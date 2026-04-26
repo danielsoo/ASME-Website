@@ -101,3 +101,15 @@ footer::before {
   white-space: normal;
   max-width: 100%;
 }
+
+/* Some rich text blocks include inline styles (e.g. white-space: pre/nowrap). Force safe wrapping on all descendants. */
+.home-rich-content *,
+.sponsors-rich-content *,
+.about-rich-content *,
+.project-rich-content * {
+  max-width: 100%;
+  overflow-wrap: normal !important;
+  word-break: keep-all !important;
+  hyphens: none !important;
+  white-space: normal !important;
+}
