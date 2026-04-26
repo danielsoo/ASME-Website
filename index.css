@@ -113,3 +113,12 @@ footer::before {
   hyphens: manual !important;
   white-space: normal !important;
 }
+
+/* About page body text: never split a word into two lines (e.g. "fro" + "m"). */
+.about-rich-content,
+.about-rich-content * {
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  hyphens: none !important;
+  white-space: normal !important;
+}
