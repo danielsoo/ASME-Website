@@ -1,18 +1,12 @@
 import React from 'react';
 import type { AboutContent, DesignTeamContent } from '../types';
 import { sanitizeHtml, isHtmlString } from './sanitizeHtml';
-
-function repairMidWordBreaks(text: string): string {
-  // Fix accidental hard wraps inserted inside English words (e.g. "fro\nm", "ma<br>ke").
-  return text
-    .replace(/([A-Za-z])\s*<br\s*\/?>\s*([A-Za-z])/g, '$1$2')
-    .replace(/([A-Za-z])\r?\n\s*([A-Za-z])/g, '$1$2');
-}
+import { repairMidWordBreaks, normalizeParagraphText } from './textWrapNormalize';
 
 /** Render paragraph: HTML (rich editor) or plain text with optional "visit this link". */
 export function renderAboutParagraph(content: string | undefined, linkUrl?: string): React.ReactNode {
   const c = content ?? '';
-  const normalized = repairMidWordBreaks(c).replace(/\r?\n+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+  const normalized = normalizeParagraphText(c);
   if (isHtmlString(c)) {
     const repairedHtml = repairMidWordBreaks(c);
     return (

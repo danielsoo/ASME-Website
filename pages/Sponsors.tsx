@@ -6,6 +6,7 @@ import { getSponsorContactEmail } from '../src/firebase/services';
 import type { Sponsor, SponsorsContent, SponsorTier } from '../src/types';
 import { DEFAULT_SPONSORS } from '../src/types';
 import { sanitizeHtml, isHtmlString } from '../src/utils/sanitizeHtml';
+import { repairMidWordBreaks, normalizeParagraphText } from '../src/utils/textWrapNormalize';
 
 const Sponsors: React.FC = () => {
   const SPONSOR_TIER_CONFIG_DOC_ID = 'tier_config_v1';
@@ -82,7 +83,7 @@ const Sponsors: React.FC = () => {
   const displayEmail = content.contactEmail ?? fallbackEmail;
 
   const renderWithEmailLink = (text: string) => {
-    const parts = text.split(/\{\{email\}\}/);
+    const parts = normalizeParagraphText(text).split(/\{\{email\}\}/);
     return parts.reduce<React.ReactNode[]>((acc, part, i) => {
       acc.push(part);
       if (i < parts.length - 1) acc.push(<a key={i} href={`mailto:${displayEmail}`} className="text-blue-600 font-bold">{displayEmail}</a>);
@@ -95,7 +96,7 @@ const Sponsors: React.FC = () => {
     const c = raw ?? '';
     if (!c) return null;
     if (isHtmlString(c)) {
-      const withEmail = c.replace(/\{\{email\}\}/g, `<a href="mailto:${displayEmail}" class="text-blue-600 font-bold">${displayEmail}</a>`);
+      const withEmail = repairMidWordBreaks(c).replace(/\{\{email\}\}/g, `<a href="mailto:${displayEmail}" class="text-blue-600 font-bold">${displayEmail}</a>`);
       const html = sanitizeHtml(withEmail);
       return <span className="sponsors-rich-content" dangerouslySetInnerHTML={{ __html: html }} />;
     }

@@ -7,6 +7,7 @@ import { Event } from '../src/types';
 import type { HomeContent } from '../src/types';
 import { DEFAULT_HOME } from '../src/types';
 import { sanitizeHtml, isHtmlString } from '../src/utils/sanitizeHtml';
+import { repairMidWordBreaks, normalizeParagraphText } from '../src/utils/textWrapNormalize';
 
 const CONFIG_PATH = 'config';
 const HOME_DOC = 'home';
@@ -18,9 +19,9 @@ function renderRichContent(content: string | undefined, fallback: string): React
   const c = content ?? fallback;
   if (!c) return null;
   if (isHtmlString(c)) {
-    return <span className="home-rich-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(c) }} />;
+    return <span className="home-rich-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(repairMidWordBreaks(c)) }} />;
   }
-  return c;
+  return normalizeParagraphText(c);
 }
 
 /** Event pill colors (Apple Calendar style) */
