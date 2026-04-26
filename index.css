@@ -95,7 +95,9 @@ footer::before {
 .sponsors-rich-content,
 .about-rich-content,
 .project-rich-content {
-  overflow-wrap: break-word;
-  word-break: break-word;
+  /* Keep normal word boundaries; only force-break truly long tokens (URLs, IDs). */
+  overflow-wrap: anywhere;
+  word-break: normal;
+  white-space: normal;
   max-width: 100%;
 }

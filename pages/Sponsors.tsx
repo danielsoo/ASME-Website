@@ -131,8 +131,8 @@ const Sponsors: React.FC = () => {
               <div className="flex items-center justify-center gap-4 md:gap-8">
                   <Settings className="w-16 h-16 md:w-20 md:h-20 text-[#1E2B48] hidden md:block shrink-0" strokeWidth={1} aria-hidden />
                   <div className="min-w-0 flex-1 px-2">
-                      <h2 className="text-[#1E2B48] text-4xl font-bold mb-4 break-words">{renderRichContent(content.getInTouchTitle || 'Get in Touch!')}</h2>
-                      <div className="text-black text-lg mb-8 max-w-xl mx-auto sponsors-rich-content break-words">
+                      <h2 className="text-[#1E2B48] text-4xl font-bold mb-4 break-normal whitespace-normal">{renderRichContent(content.getInTouchTitle || 'Get in Touch!')}</h2>
+                      <div className="text-black text-lg mb-8 max-w-xl mx-auto sponsors-rich-content break-normal whitespace-normal leading-relaxed">
                           {renderRichContent(content.getInTouchParagraph ?? '')}
                       </div>
                   </div>
@@ -147,7 +147,7 @@ const Sponsors: React.FC = () => {
                       {content.thonLabel ?? 'Donate to THON'}
                   </a>
               </div>
-              <div className="text-black mt-2 break-words">
+              <div className="text-black mt-2 break-normal whitespace-normal">
                 <p>OR</p>
                 <p>{renderRichContent(content.guestSpeakerText ?? '')}</p>
               </div>
@@ -186,8 +186,8 @@ const Sponsors: React.FC = () => {
       {/* Special Thanks */}
       <div className="bg-[#d1d5db] py-16 px-4 text-black">
           <div className="container mx-auto max-w-5xl">
-              <h3 className="text-2xl font-bold mb-6 text-[#1E2B48]">{renderRichContent(content.specialThanksTitle || 'Special Thanks to our Supporters')}</h3>
-              <div className="mb-4 text-sm leading-relaxed sponsors-rich-content">
+              <h3 className="text-2xl font-bold mb-6 text-[#1E2B48] break-normal whitespace-normal">{renderRichContent(content.specialThanksTitle || 'Special Thanks to our Supporters')}</h3>
+              <div className="mb-4 text-sm leading-relaxed sponsors-rich-content break-normal whitespace-normal">
                   {renderRichContent(content.specialThanksParagraph ?? '', true)}
               </div>
           </div>
