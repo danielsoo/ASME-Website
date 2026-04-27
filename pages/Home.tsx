@@ -335,14 +335,14 @@ const Home: React.FC = () => {
                 <h2 className="text-3xl font-bold text-white break-normal whitespace-normal">{renderRichContent(homeContent.whatWeDoTitle ?? DEFAULT_HOME.whatWeDoTitle, 'What we do')}</h2>
                 <div className="home-rich-content break-normal whitespace-normal leading-relaxed">
                   {isHtmlString(homeContent.whatWeDoParagraph1 ?? '') ? (
-                    <div className="break-normal whitespace-normal" dangerouslySetInnerHTML={{ __html: sanitizeHtml(repairMidWordBreaks(homeContent.whatWeDoParagraph1 ?? '')) }} />
+                    <div className="break-normal whitespace-normal max-w-full w-full" dangerouslySetInnerHTML={{ __html: sanitizeHtml(repairMidWordBreaks(homeContent.whatWeDoParagraph1 ?? '')) }} />
                   ) : (
                     <p className="break-normal whitespace-normal">{normalizeParagraphText(homeContent.whatWeDoParagraph1 ?? DEFAULT_HOME.whatWeDoParagraph1 ?? 'The Penn State Chapter of ASME provides members with opportunities for professional development, hands-on design experience, and outreach within and beyond Penn State. If you are interested in growing professionally, getting in contact with employers, or working on cool projects, you are in the right spot!')}</p>
                   )}
                 </div>
                 <div className="home-rich-content break-normal whitespace-normal leading-relaxed">
                   {isHtmlString(homeContent.whatWeDoParagraph2 ?? '') ? (
-                    <div className="break-normal whitespace-normal" dangerouslySetInnerHTML={{ __html: sanitizeHtml(repairMidWordBreaks(homeContent.whatWeDoParagraph2 ?? '')) }} />
+                    <div className="break-normal whitespace-normal max-w-full w-full" dangerouslySetInnerHTML={{ __html: sanitizeHtml(repairMidWordBreaks(homeContent.whatWeDoParagraph2 ?? '')) }} />
                   ) : (
                     <p className="break-normal whitespace-normal">{normalizeParagraphText(homeContent.whatWeDoParagraph2 ?? DEFAULT_HOME.whatWeDoParagraph2 ?? 'Everyone is welcome (not just Mechanical engineers), and there are no membership requirements or dues. Just show up!')}</p>
                   )}
