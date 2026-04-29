@@ -212,7 +212,7 @@ const Home: React.FC = () => {
 
       {/* Next Meeting Section (Calendar Visual) */}
       <div 
-        className="relative z-20 container mx-auto px-4 mb-24 min-w-0 w-full max-w-full overflow-hidden"
+        className="relative z-20 container mx-auto px-4 mb-12 min-w-0 w-full max-w-full overflow-hidden"
         style={{
           marginTop: "clamp(-90px, -10vw, -96px)",
         }}
@@ -314,18 +314,18 @@ const Home: React.FC = () => {
       </div>
 
       {/* What we do Section */}
-      <div className="container mx-auto px-4 sm:px-8 md:px-20 mb-24 min-w-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-center min-w-0">
-            <div className="space-y-6 min-w-0 w-fit">
-                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 min-w-0 w-fit">
+      <div className="container mx-auto px-12 md:px-20 mb-24 min-w-0">
+        <div className="flex flex-col gap-8 min-w-0">
+            <div className="flex flex-wrap gap-6 min-w-0 w-fit ">
+                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 pr-16 min-w-0 w-fit">
                     <div className="w-10 h-10 shrink-0 rounded-full border-2 border-asme-dark flex items-center justify-center font-bold text-asme-dark mr-4">1</div>
                     <span className="font-jost font-bold text-asme-dark tracking-widest text-lg min-w-0"><a href="#/projects" className="hover:underline">PROJECTS</a></span>
                 </div>
-                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full min-w-0 w-fit">
+                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 pr-16 min-w-0 w-fit">
                     <div className="w-10 h-10 shrink-0 rounded-full border-2 border-asme-dark flex items-center justify-center font-bold text-asme-dark mr-4">2</div>
                     <span className="font-jost font-bold text-asme-dark tracking-widest text-lg min-w-0">WORKSHOPS</span>
                 </div>
-                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full min-w-0 w-fit">
+                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 pr-16 min-w-0 w-fit">
                     <div className="w-10 h-10 shrink-0 rounded-full border-2 border-asme-dark flex items-center justify-center font-bold text-asme-dark mr-4">3</div>
                     <span className="font-jost font-bold text-asme-dark tracking-widest text-lg min-w-0">SOCIALS</span>
                 </div>
