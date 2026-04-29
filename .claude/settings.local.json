@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const css = require\\('fs'\\).readFileSync\\('node_modules/quill/dist/quill.core.css', 'utf8'\\); const m = css.match\\(/\\\\.ql-editor\\\\s*\\\\{[^}]+\\\\}/\\); console.log\\(m && m[0]\\)\")"
+    ]
+  }
+}

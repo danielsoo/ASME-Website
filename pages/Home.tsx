@@ -314,37 +314,37 @@ const Home: React.FC = () => {
       </div>
 
       {/* What we do Section */}
-      <div className="container mx-auto px-4 sm:px-8 md:px-20 mb-24 min-w-0 max-w-full overflow-hidden">
+      <div className="container mx-auto px-4 sm:px-8 md:px-20 mb-24 min-w-0">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-center min-w-0">
-            <div className="space-y-6 min-w-0">
-                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4 min-w-0">
+            <div className="space-y-6 min-w-0 w-fit">
+                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 min-w-0 w-fit">
                     <div className="w-10 h-10 shrink-0 rounded-full border-2 border-asme-dark flex items-center justify-center font-bold text-asme-dark mr-4">1</div>
-                    <span className="font-jost font-bold text-asme-dark tracking-widest text-lg truncate">PROJECTS</span>
+                    <span className="font-jost font-bold text-asme-dark tracking-widest text-lg min-w-0"><a href="#/projects" className="hover:underline">PROJECTS</a></span>
                 </div>
-                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4 min-w-0">
+                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full min-w-0 w-fit">
                     <div className="w-10 h-10 shrink-0 rounded-full border-2 border-asme-dark flex items-center justify-center font-bold text-asme-dark mr-4">2</div>
-                    <span className="font-jost font-bold text-asme-dark tracking-widest text-lg truncate">WORKSHOPS</span>
+                    <span className="font-jost font-bold text-asme-dark tracking-widest text-lg min-w-0">WORKSHOPS</span>
                 </div>
-                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full md:w-3/4 min-w-0">
+                <div className="flex items-center bg-gray-200/90 rounded-r-full p-4 w-full min-w-0 w-fit">
                     <div className="w-10 h-10 shrink-0 rounded-full border-2 border-asme-dark flex items-center justify-center font-bold text-asme-dark mr-4">3</div>
-                    <span className="font-jost font-bold text-asme-dark tracking-widest text-lg truncate">SOCIALS</span>
+                    <span className="font-jost font-bold text-asme-dark tracking-widest text-lg min-w-0">SOCIALS</span>
                 </div>
             </div>
-            
-            <div className="font-jost text-gray-300 space-y-6 min-w-0 max-w-full overflow-hidden break-normal whitespace-normal">
-                <h2 className="text-3xl font-bold text-white break-normal whitespace-normal">{renderRichContent(homeContent.whatWeDoTitle ?? DEFAULT_HOME.whatWeDoTitle, 'What we do')}</h2>
-                <div className="home-rich-content break-normal whitespace-normal leading-relaxed">
+
+            <div className="font-jost text-gray-300 space-y-6 min-w-0 max-w-full mt-6 md:mt-0">
+                <h2 className="text-3xl font-bold text-white break-words">{renderRichContent(homeContent.whatWeDoTitle ?? DEFAULT_HOME.whatWeDoTitle, 'What we do')}</h2>
+                <div className="home-rich-content leading-relaxed w-full">
                   {isHtmlString(homeContent.whatWeDoParagraph1 ?? '') ? (
-                    <div className="break-normal whitespace-normal max-w-full w-full" dangerouslySetInnerHTML={{ __html: sanitizeHtml(repairMidWordBreaks(homeContent.whatWeDoParagraph1 ?? '')) }} />
+                    <div className="break-words w-full" dangerouslySetInnerHTML={{ __html: sanitizeHtml(repairMidWordBreaks(homeContent.whatWeDoParagraph1 ?? '')) }} />
                   ) : (
-                    <p className="break-normal whitespace-normal">{normalizeParagraphText(homeContent.whatWeDoParagraph1 ?? DEFAULT_HOME.whatWeDoParagraph1 ?? 'The Penn State Chapter of ASME provides members with opportunities for professional development, hands-on design experience, and outreach within and beyond Penn State. If you are interested in growing professionally, getting in contact with employers, or working on cool projects, you are in the right spot!')}</p>
+                    <p className="break-words">{normalizeParagraphText(homeContent.whatWeDoParagraph1 ?? DEFAULT_HOME.whatWeDoParagraph1 ?? 'The Penn State Chapter of ASME provides members with opportunities for professional development, hands-on design experience, and outreach within and beyond Penn State. If you are interested in growing professionally, getting in contact with employers, or working on cool projects, you are in the right spot!')}</p>
                   )}
                 </div>
-                <div className="home-rich-content break-normal whitespace-normal leading-relaxed">
+                <div className="home-rich-content leading-relaxed ">
                   {isHtmlString(homeContent.whatWeDoParagraph2 ?? '') ? (
-                    <div className="break-normal whitespace-normal max-w-full w-full" dangerouslySetInnerHTML={{ __html: sanitizeHtml(repairMidWordBreaks(homeContent.whatWeDoParagraph2 ?? '')) }} />
+                    <div className="break-words w-full" dangerouslySetInnerHTML={{ __html: sanitizeHtml(repairMidWordBreaks(homeContent.whatWeDoParagraph2 ?? '')) }} />
                   ) : (
-                    <p className="break-normal whitespace-normal">{normalizeParagraphText(homeContent.whatWeDoParagraph2 ?? DEFAULT_HOME.whatWeDoParagraph2 ?? 'Everyone is welcome (not just Mechanical engineers), and there are no membership requirements or dues. Just show up!')}</p>
+                    <p className="break-words">{normalizeParagraphText(homeContent.whatWeDoParagraph2 ?? DEFAULT_HOME.whatWeDoParagraph2 ?? 'Everyone is welcome (not just Mechanical engineers), and there are no membership requirements or dues. Just show up!')}</p>
                   )}
                 </div>
                 {(homeContent.whatWeDoButtonText ?? DEFAULT_HOME.whatWeDoButtonText) && (

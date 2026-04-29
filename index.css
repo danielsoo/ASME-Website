@@ -92,7 +92,6 @@ footer::before {
 .footer-rich-content .ql-font-arial { font-family: Arial, sans-serif; }
 
 /* Long words/URLs wrap instead of overflowing the container */
-.home-rich-content,
 .sponsors-rich-content,
 .about-rich-content,
 .project-rich-content {
@@ -104,15 +103,31 @@ footer::before {
 }
 
 /* Some rich text blocks include inline styles (e.g. white-space: pre/nowrap). Force safe wrapping on all descendants. */
-.home-rich-content *,
 .sponsors-rich-content *,
 .about-rich-content *,
 .project-rich-content * {
   max-width: 100%;
-  overflow-wrap: normal !important;
+  overflow-wrap: break-word;
   word-break: normal !important;
   hyphens: none !important;
   white-space: normal !important;
+}
+
+/* home-rich-content: match Quill editor wrapping (white-space: pre-wrap + overflow-wrap: break-word) */
+.home-rich-content {
+  display: block;
+  overflow-wrap: break-word;
+  word-break: normal;
+  white-space: pre-wrap;
+  max-width: 100%;
+}
+
+.home-rich-content * {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none !important;
+  white-space: pre-wrap !important;
 }
 
 /* About body copy: keep words intact, wrap by word, never overflow viewport. */

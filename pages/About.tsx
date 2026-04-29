@@ -24,6 +24,7 @@ import {
   renderAboutTitle as renderTitle,
   renderDesignTeamIntroBlock,
 } from '../src/utils/aboutRichRender';
+import { repairMidWordBreaks, normalizeParagraphText } from '../src/utils/textWrapNormalize';
 /** Public page: empty stored fields fall back to defaults so new/blank team blocks still look reasonable. */
 function mergeTeamBlockForDisplay(
   stored: DesignTeamContent | undefined,
@@ -467,8 +468,8 @@ const About: React.FC<AboutProps> = ({ currentPath = '/about', onNavigate }) => 
                     {renderTitle(generalBodyContent.bodySectionTitle ?? aboutContent.aboutTitle, 'Our General Body')}
                   </h2>
                   <div className="space-y-4 text-gray-800 leading-relaxed font-jost">
-                    <div>{renderParagraph(aboutContent.aboutParagraph1)}</div>
-                    <div>{renderParagraph(aboutContent.aboutParagraph2, aboutContent.aboutLinkUrl)}</div>
+                    <p className="break-words">{renderParagraph(aboutContent.aboutParagraph1)}</p>
+                    <p className="break-words">{renderParagraph(aboutContent.aboutParagraph2, aboutContent.aboutLinkUrl)}</p>
                   </div>
                   <div className="mt-8">
                     <h3 className="text-xl font-jost font-bold text-black mb-4">

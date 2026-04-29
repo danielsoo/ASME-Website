@@ -117,7 +117,7 @@ const Sponsors: React.FC = () => {
     <div className="min-h-screen bg-[#0f131a] text-white font-jost pb-20 relative">
       
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-gray-200 to-gray-300 py-6 px-4">
+      <div className="bg-gradient-to-r from-gray-200 to-gray-300 py-6 px-6">
           <div className="container mx-auto">
               <h1 className="text-[#1E2B48] font-bold text-xl mb-1">{renderRichContent(content.bannerTitle || 'Become a Sponsor')}</h1>
               <p className="text-gray-700 text-sm">
@@ -127,7 +127,7 @@ const Sponsors: React.FC = () => {
       </div>
 
       {/* Get in Touch Section */}
-      <div className="bg-white py-20 px-4 text-center overflow-x-hidden">
+      <div className="bg-white pt-20 pb-16 px-4 text-center overflow-x-hidden">
           <div className="container mx-auto max-w-4xl relative overflow-visible">
               <div className="flex items-center justify-center gap-4 md:gap-8">
                   <Settings className="w-16 h-16 md:w-20 md:h-20 text-[#1E2B48] hidden md:block shrink-0" strokeWidth={1} aria-hidden />
@@ -156,16 +156,19 @@ const Sponsors: React.FC = () => {
       </div>
 
       {/* Sponsors by Tier */}
-      <div className="bg-white py-20 px-16">
+      <div className="bg-white pb-20 px-16">
           <div className="container mx-auto max-w-6xl">
-              <h2 className="text-[#1E2B48] text-3xl font-bold mb-12">Our Sponsors</h2>
+              <h2 className="text-[#1E2B48] text-3xl font-bold mb-8">Our Sponsors</h2>
               <div className="space-y-12">
                 {tiers.map((tier) => {
                   const tierSponsors = sponsorsByTier[tier.id] || [];
                   if (tierSponsors.length === 0) return null;
                   return (
                     <section key={tier.id}>
-                      <h3 className="text-[#1E2B48] text-2xl font-bold mb-6">{tier.name}</h3>
+                      <div className="flex gap-4 items-center align-items mb-8">
+                        <img src={`public/${tier.name}.png`} alt={`${tier.name} Logo`} className="h-12" />
+                        <h3 className="text-[#1E2B48] text-2xl font-bold">{tier.name}</h3>
+                      </div>
                       <div className="bg-[#3b4c6b] p-8 md:p-12 rounded-lg">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                           {tierSponsors.map((sponsor) => (
@@ -185,7 +188,7 @@ const Sponsors: React.FC = () => {
       </div>
 
       {/* Special Thanks */}
-      <div className="bg-[#d1d5db] py-16 px-4 text-black">
+      <div className="bg-[#d1d5db] py-16 px-6 text-black">
           <div className="container mx-auto max-w-5xl">
               <h3 className="text-2xl font-bold mb-6 text-[#1E2B48] break-normal whitespace-normal">{renderRichContent(content.specialThanksTitle || 'Special Thanks to our Supporters')}</h3>
               <div className="mb-4 text-sm leading-relaxed sponsors-rich-content break-normal whitespace-normal">
