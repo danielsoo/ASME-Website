@@ -136,7 +136,7 @@ footer::before {
   max-width: 100%;
   white-space: normal !important;
   word-break: normal !important;
-  overflow-wrap: normal !important;
+
   hyphens: none !important;
 }
 
