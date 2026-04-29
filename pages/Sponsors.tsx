@@ -166,7 +166,7 @@ const Sponsors: React.FC = () => {
                   return (
                     <section key={tier.id}>
                       <div className="flex gap-4 items-center align-items mb-8">
-                        <img src={`public/${tier.name}.png`} alt={`${tier.name} Logo`} className="h-12" />
+                        {/* <img src={`public/${tier.name}.png`} alt={`${tier.name} Logo`} className="h-12" /> */}
                         <h3 className="text-[#1E2B48] text-2xl font-bold">{tier.name}</h3>
                       </div>
                       <div className="bg-[#3b4c6b] p-8 md:p-12 rounded-lg">
