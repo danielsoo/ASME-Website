@@ -58,7 +58,7 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNaviga
 
           {/* Main Image — capped size (full w-full h-auto was huge on tall uploads) */}
           <div className="mb-6 max-w-4xl mx-auto rounded-lg overflow-hidden bg-[#DEE7ED] shadow-md">
-            <div className="relative w-full h-52 sm:h-60 md:h-72">
+            <div className="relative w-full aspect-[16/9]">
               <img
                 src={project.imageUrl}
                 alt={richTextToPlainText(project.title) || 'Project'}
