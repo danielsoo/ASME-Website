@@ -256,7 +256,7 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
         />
 
         {/* Desktop: horizontal nav (md and up) */}
-        <div className="hidden md:flex md:flex-1 md:items-center md:justify-between md:min-w-0 md:mx-4 lg:mx-8">
+        <div className="hidden md:flex md:flex-1 md:items-center md:justify-center md:min-w-0 md:mx-6 lg:mx-10 md:gap-x-6 lg:gap-x-10 xl:gap-x-14">
           {NAV_LINKS.map((link) => {
             const active = isActive(link.path);
             return (
@@ -425,7 +425,7 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
           )}
         </div>
 
-        {/* User Menu — account (desktop: menu icon; mobile: user icon to distinguish from site nav) */}
+        {/* User Menu — account button always shows the person icon (site-nav hamburger is separate, mobile-only) */}
         <div className="relative shrink-0" data-menu-container>
           <button
             type="button"
@@ -447,20 +447,11 @@ const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, user }) => {
             aria-expanded={menuOpen}
             aria-label="Account menu"
           >
-            <span className="hidden md:inline">
-              {menuOpen ? (
-                <X style={{ width: "clamp(24px, 2.29vw, 40px)", height: "clamp(24px, 2.29vw, 40px)" }} />
-              ) : (
-                <Menu style={{ width: "clamp(24px, 2.29vw, 40px)", height: "clamp(24px, 2.29vw, 40px)" }} />
-              )}
-            </span>
-            <span className="md:hidden">
-              {menuOpen ? (
-                <X style={{ width: 28, height: 28 }} />
-              ) : (
-                <User style={{ width: 28, height: 28 }} />
-              )}
-            </span>
+            {menuOpen ? (
+              <X style={{ width: "clamp(24px, 2.29vw, 40px)", height: "clamp(24px, 2.29vw, 40px)" }} />
+            ) : (
+              <User style={{ width: "clamp(24px, 2.29vw, 40px)", height: "clamp(24px, 2.29vw, 40px)" }} />
+            )}
           </button>
 
           {/* Dropdown Menu */}
