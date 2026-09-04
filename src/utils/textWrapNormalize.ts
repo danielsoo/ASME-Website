@@ -1,11 +1,18 @@
 export function repairMidWordBreaks(text: string): string {
   const cleaned = text
     // Remove invisible break characters that can split words.
-    .replace(/[\u00ad\u200b\u200c\u200d\u2060\ufeff]/g, '');
+    .replace(/[\u00ad\u200b\u200c\u200d\u2060\ufeff]/g, '')
+    // Non-breaking spaces (from pasted Word/Docs content, etc.) give the browser no
+    // valid wrap point, forcing mid-word breaks. Normalize to regular breakable spaces.
+    .replace(/\u00a0/g, ' ');
 
   return cleaned
     // Join words split by <br> tags.
     .replace(/([A-Za-z])\s*<br\s*\/?>\s*([A-Za-z])/gi, '$1$2')
+    // Join words split across </p><p> or </div><div> boundaries.
+    // Only merges when the next paragraph starts with a lowercase letter (avoids merging
+    // intentional sentence/phrase breaks like "SOCIETY</p><p>OF").
+    .replace(/([A-Za-z-])\s*<\/(?:p|div|li|h[1-6])>\s*<(?:p|div|li|h[1-6])[^>]*>\s*([a-z])/g, '$1$2')
     // Join words split by line separators/newlines.
     .replace(/([A-Za-z])[\r\n\u2028\u2029]+\s*([A-Za-z])/g, '$1$2')
     // Join words split by tabs between letters.

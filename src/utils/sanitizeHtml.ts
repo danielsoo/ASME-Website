@@ -6,7 +6,17 @@ import DOMPurify from 'dompurify';
  */
 export function sanitizeHtml(html: string): string {
   if (!html || typeof html !== 'string') return '';
-  return DOMPurify.sanitize(html, {
+  // Rich-text editors (especially after pasting from Word/Google Docs) often encode
+  // every regular space as a non-breaking space (&nbsp; / U+00A0). A run of text with
+  // no real spaces gives the browser no valid line-wrap point, so long lines get force-
+  // broken mid-word instead of wrapping at word boundaries. Normalize all non-breaking
+  // spaces to regular spaces so text wraps normally everywhere this is rendered.
+  const normalized = html
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&#160;/gi, ' ')
+    .replace(/&#xa0;/gi, ' ')
+    .replace(/\u00a0/g, ' ');
+  return DOMPurify.sanitize(normalized, {
     ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'a', 'span', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'blockquote'],
     ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'style'],
   });
