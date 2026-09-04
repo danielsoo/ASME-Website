@@ -6,6 +6,7 @@ import { Project } from '../../src/types';
 import Uploader from '../../src/components/Uploader';
 import DragUploader from '../../src/components/DragUploader';
 import { ProjectAdminImagePreview } from '../../src/components/ProjectAdminImagePreview';
+import AboutCropEditor from '../../src/components/AboutCropEditor';
 import { imageKitFolderForProjectId, imageKitTagsForProject } from '../../src/utils/imagekitProjectUpload';
 import AlertModal from '../../src/components/AlertModal';
 import RichTextEditor from '../../src/components/RichTextEditor';
@@ -50,6 +51,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
   const [ikFileId, setIkFileId] = useState<string | null>(null);
   const [ikFilePath, setIkFilePath] = useState<string | null>(null);
   const [ikThumbUrl, setIkThumbUrl] = useState<string | null>(null);
+  const [mainImageCropSource, setMainImageCropSource] = useState<string | null>(null);
 
   const [alert, setAlert] = useState<{ isOpen: boolean; type: 'success' | 'error'; title: string; message: string }>({
     isOpen: false,
@@ -351,7 +353,29 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Main Image</label>
-                {!readOnly && (
+                {!readOnly && mainImageCropSource && (
+                  <AboutCropEditor
+                    sourceUrl={mainImageCropSource}
+                    aspectW={16}
+                    aspectH={9}
+                    folder={imageKitFolderForProjectId(projectId)}
+                    tags={imageKitTagsForProject(projectId)}
+                    outputLongEdge={1600}
+                    containerClassName="w-full max-w-2xl h-72"
+                    onComplete={(url) => {
+                      setIkUrl(url);
+                      setIkFileId(null);
+                      setIkFilePath(null);
+                      setIkThumbUrl(null);
+                      setImageUrl(url);
+                      setMainImageCropSource(null);
+                      setAlert({ isOpen: true, type: 'success', title: 'Image', message: 'Image uploaded.' });
+                    }}
+                    onCancel={() => setMainImageCropSource(null)}
+                    onError={(msg) => setAlert({ isOpen: true, type: 'error', title: 'Image Upload', message: msg })}
+                  />
+                )}
+                {!readOnly && !mainImageCropSource && (
                   <>
                     <Uploader
                       folder={imageKitFolderForProjectId(projectId)}
@@ -362,16 +386,21 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                       }}
                       onError={(msg) => setAlert({ isOpen: true, type: 'error', title: 'Image Upload', message: msg })}
                       onComplete={(u) => {
-                        setIkUrl(u.url);
-                        setIkFileId(u.fileId);
-                        setIkFilePath(u.filePath);
-                        setIkThumbUrl(u.thumbnailUrl ?? null);
-                        setImageUrl(u.url);
-                        setAlert({ isOpen: true, type: 'success', title: 'Image', message: 'Image uploaded.' });
+                        setUploadingImage(false);
+                        setMainImageCropSource(u.url);
                       }}
                     />
                     {uploadPct > 0 && uploadPct < 100 && (
                       <p className="text-xs text-gray-500 mt-1">Uploading... {uploadPct}%</p>
+                    )}
+                    {(ikUrl || imageUrl) && (
+                      <button
+                        type="button"
+                        onClick={() => setMainImageCropSource(ikUrl || imageUrl)}
+                        className="mt-2 text-sm text-blue-700 hover:text-blue-900 underline underline-offset-2"
+                      >
+                        Adjust framing (crop & zoom)
+                      </button>
                     )}
                   </>
                 )}
@@ -501,20 +530,25 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
                         />
                       )}
                       {url.trim() && (
-                        isVideoUrl(url.trim()) ? (
-                          <video
-                            src={url.trim()}
-                            controls
-                            className="h-28 rounded-lg border border-gray-200 w-full bg-black"
-                          />
-                        ) : (
-                          <img
-                            src={url.trim()}
-                            alt={`Preview ${i + 1}`}
-                            className="h-28 rounded-lg object-cover border border-gray-200 w-full"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                        )
+                        <div>
+                          <p className="text-[11px] font-medium text-gray-500 mb-1">
+                            Preview — matches live gallery sizing (shown uncropped)
+                          </p>
+                          {isVideoUrl(url.trim()) ? (
+                            <video
+                              src={url.trim()}
+                              controls
+                              className="h-64 rounded-lg border border-gray-200 w-full bg-[#1c2333] object-contain"
+                            />
+                          ) : (
+                            <img
+                              src={url.trim()}
+                              alt={`Preview ${i + 1}`}
+                              className="h-64 rounded-lg object-contain border border-gray-200 w-full bg-[#1c2333]"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                          )}
+                        </div>
                       )}
                     </div>
                   ))}

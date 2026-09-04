@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Project } from '../types';
 import { GripVertical } from 'lucide-react';
-import { sanitizeHtml, isHtmlString } from '../utils/sanitizeHtml';
+import { sanitizeHtml, isHtmlString, richTextToPlainText } from '../utils/sanitizeHtml';
 
 interface ProjectCardProps {
   project: Project;
@@ -26,7 +26,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onImageClick, onNavi
       >
         <img 
           src={project.imageUrl} 
-          alt={(project.title || '').replace(/<[^>]*>/g, '').trim() || 'Project'} 
+          alt={richTextToPlainText(project.title) || 'Project'} 
           className="w-full h-full object-cover transition-transform duration-700 hover:scale-105 cursor-pointer"
           onClick={() => onImageClick?.(project)}
         />

@@ -5,6 +5,24 @@ import { uploadImageKitBlob } from '../utils/imagekitUploadBlob';
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
+/**
+ * Clamp a frame's position on one axis against the displayed image's bounds.
+ * When the frame is smaller than the image (normal case), it must stay fully
+ * inside the image. When the frame is larger than the image (user zoomed out
+ * past the image to add padding), the constraint flips: the image must stay
+ * fully inside the frame, so the user can freely choose how the padding is
+ * distributed on each side.
+ */
+const clampFrameAxis = (pos: number, frameSize: number, dispOff: number, dispSize: number) => {
+  if (frameSize <= dispSize) {
+    return clamp(pos, dispOff, dispOff + dispSize - frameSize);
+  }
+  return clamp(pos, dispOff + dispSize - frameSize, dispOff);
+};
+
+/** How far past the image's own edges the crop frame may be zoomed out (adds padding). */
+const MAX_PAD_ZOOM_FACTOR = 4;
+
 /** Max rectangle of aspect aw:ah that fits inside dw × dh */
 function maxFrameInDisplay(dw: number, dh: number, aw: number, ah: number) {
   const A = aw / ah;
@@ -131,8 +149,8 @@ const AboutCropEditor: React.FC<AboutCropEditorProps> = ({
       const { offX, offY, dw, dh } = rect;
       let fl = d.startLeft + dx;
       let ft = d.startTop + dy;
-      fl = clamp(fl, offX, offX + dw - frameWidth);
-      ft = clamp(ft, offY, offY + dh - frameHeight);
+      fl = clampFrameAxis(fl, frameWidth, offX, dw);
+      ft = clampFrameAxis(ft, frameHeight, offY, dh);
       setFrameLeft(fl);
       setFrameTop(ft);
     };
@@ -160,8 +178,8 @@ const AboutCropEditor: React.FC<AboutCropEditorProps> = ({
       const { offX, offY, dw, dh } = rect;
       let fl = d.startLeft + dx;
       let ft = d.startTop + dy;
-      fl = clamp(fl, offX, offX + dw - frameWidth);
-      ft = clamp(ft, offY, offY + dh - frameHeight);
+      fl = clampFrameAxis(fl, frameWidth, offX, dw);
+      ft = clampFrameAxis(ft, frameHeight, offY, dh);
       setFrameLeft(fl);
       setFrameTop(ft);
     };
@@ -214,22 +232,24 @@ const AboutCropEditor: React.FC<AboutCropEditorProps> = ({
     const rect = displayRect;
     if (!rect) return;
     const { offX, offY, dw, dh } = rect;
-    const { fw: maxFw, fh: maxFh } = maxFrameInDisplay(dw, dh, aspectW, aspectH);
+    const { fw: maxFw } = maxFrameInDisplay(dw, dh, aspectW, aspectH);
     const cx = frameLeft + frameWidth / 2;
     const cy = frameTop + frameHeight / 2;
+    // Zooming out is allowed to go past the image's own edges (adds padding
+    // around the image) up to MAX_PAD_ZOOM_FACTOR, capped by the visible
+    // editor box so the frame never grows larger than what's on screen.
+    const container = cropContainerRef.current;
+    const cw = container?.clientWidth ?? dw;
+    const ch = container?.clientHeight ?? dh;
+    const maxAllowedW = Math.min(maxFw * MAX_PAD_ZOOM_FACTOR, cw, ch * aspect);
     let nfw = frameWidth * (1 + delta);
-    let nfh = nfw / aspect;
     const minW = Math.max(40, maxFw * 0.08);
-    nfw = clamp(nfw, minW, maxFw);
-    nfh = nfw / aspect;
-    if (nfh > maxFh) {
-      nfh = maxFh;
-      nfw = nfh * aspect;
-    }
+    nfw = clamp(nfw, minW, maxAllowedW);
+    const nfh = nfw / aspect;
     let fl = cx - nfw / 2;
     let ft = cy - nfh / 2;
-    fl = clamp(fl, offX, offX + dw - nfw);
-    ft = clamp(ft, offY, offY + dh - nfh);
+    fl = clampFrameAxis(fl, nfw, offX, dw);
+    ft = clampFrameAxis(ft, nfh, offY, dh);
     setFrameWidth(nfw);
     setFrameHeight(nfh);
     setFrameLeft(fl);

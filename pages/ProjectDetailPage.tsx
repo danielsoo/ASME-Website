@@ -1,6 +1,6 @@
 import React from 'react';
 import { Project } from '../src/types';
-import { sanitizeHtml, isHtmlString } from '../src/utils/sanitizeHtml';
+import { sanitizeHtml, isHtmlString, richTextToPlainText } from '../src/utils/sanitizeHtml';
 import { getProjectFormLinkByTitle } from '../src/formLinks';
 import ImageCarousel from '../src/components/ImageCarousel';
 
@@ -61,7 +61,7 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onNaviga
             <div className="relative w-full h-52 sm:h-60 md:h-72">
               <img
                 src={project.imageUrl}
-                alt={(project.title || '').replace(/<[^>]*>/g, '').trim() || 'Project'}
+                alt={richTextToPlainText(project.title) || 'Project'}
                 className="absolute inset-0 h-full w-full object-cover object-center"
               />
             </div>

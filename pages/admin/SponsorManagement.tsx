@@ -7,6 +7,7 @@ import { Plus, Edit, Trash2, GripVertical } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
 import Uploader from '../../src/components/Uploader';
+import AboutCropEditor from '../../src/components/AboutCropEditor';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 import { useExecPermissions } from '../../src/hooks/useExecPermissions';
 import SectionNav from '../../src/components/admin/SectionNav';
@@ -65,6 +66,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
   const [sponsorName, setSponsorName] = useState('');
   const [sponsorLink, setSponsorLink] = useState('');
   const [logoUrl, setLogoUrl] = useState<string>('');
+  const [logoCropSource, setLogoCropSource] = useState<string | null>(null);
   const [sponsorTierId, setSponsorTierId] = useState<string>('');
 
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -785,17 +787,46 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Sponsor Logo *</label>
-                  <Uploader
-                    folder="/sponsors"
-                    tags={['sponsor']}
-                    buttonLabel="Upload Logo"
-                    onComplete={(u) => setLogoUrl(u.url)}
-                    onError={(msg) => showAlert('error', 'Upload Error', msg)}
-                  />
-                  {logoUrl && (
-                    <div className="mt-4 w-32 aspect-square border rounded overflow-hidden bg-gray-100">
-                      <img src={logoUrl} alt="Logo preview" className="w-full h-full object-cover object-center" />
-                    </div>
+                  {logoCropSource ? (
+                    <AboutCropEditor
+                      sourceUrl={logoCropSource}
+                      aspectW={1}
+                      aspectH={1}
+                      folder="/sponsors"
+                      tags={['sponsor']}
+                      outputLongEdge={800}
+                      containerClassName="w-64 h-64"
+                      onComplete={(url) => {
+                        setLogoUrl(url);
+                        setLogoCropSource(null);
+                      }}
+                      onCancel={() => setLogoCropSource(null)}
+                      onError={(msg) => showAlert('error', 'Upload Error', msg)}
+                    />
+                  ) : (
+                    <>
+                      <Uploader
+                        folder="/sponsors"
+                        tags={['sponsor']}
+                        buttonLabel="Upload Logo"
+                        onComplete={(u) => setLogoCropSource(u.url)}
+                        onError={(msg) => showAlert('error', 'Upload Error', msg)}
+                      />
+                      {logoUrl && (
+                        <>
+                          <div className="mt-4 w-32 aspect-square border rounded overflow-hidden bg-gray-100">
+                            <img src={logoUrl} alt="Logo preview" className="w-full h-full object-cover object-center" />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setLogoCropSource(logoUrl)}
+                            className="mt-2 text-sm text-blue-700 hover:text-blue-900 underline underline-offset-2"
+                          >
+                            Adjust framing (crop & zoom)
+                          </button>
+                        </>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -851,21 +882,50 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Sponsor Logo</label>
-                  <Uploader
-                    folder="/sponsors"
-                    tags={['sponsor']}
-                    buttonLabel="Replace Logo"
-                    onComplete={(u) => setLogoUrl(u.url)}
-                    onError={(msg) => showAlert('error', 'Upload Error', msg)}
-                  />
-                  {(logoUrl || selectedSponsor?.logoUrl) && (
-                    <div className="mt-4 w-32 aspect-square border rounded overflow-hidden bg-gray-100">
-                      <img
-                        src={logoUrl || selectedSponsor?.logoUrl}
-                        alt="Logo preview"
-                        className="w-full h-full object-cover object-center"
+                  {logoCropSource ? (
+                    <AboutCropEditor
+                      sourceUrl={logoCropSource}
+                      aspectW={1}
+                      aspectH={1}
+                      folder="/sponsors"
+                      tags={['sponsor']}
+                      outputLongEdge={800}
+                      containerClassName="w-64 h-64"
+                      onComplete={(url) => {
+                        setLogoUrl(url);
+                        setLogoCropSource(null);
+                      }}
+                      onCancel={() => setLogoCropSource(null)}
+                      onError={(msg) => showAlert('error', 'Upload Error', msg)}
+                    />
+                  ) : (
+                    <>
+                      <Uploader
+                        folder="/sponsors"
+                        tags={['sponsor']}
+                        buttonLabel="Replace Logo"
+                        onComplete={(u) => setLogoCropSource(u.url)}
+                        onError={(msg) => showAlert('error', 'Upload Error', msg)}
                       />
-                    </div>
+                      {(logoUrl || selectedSponsor?.logoUrl) && (
+                        <>
+                          <div className="mt-4 w-32 aspect-square border rounded overflow-hidden bg-gray-100">
+                            <img
+                              src={logoUrl || selectedSponsor?.logoUrl}
+                              alt="Logo preview"
+                              className="w-full h-full object-cover object-center"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setLogoCropSource(logoUrl || selectedSponsor?.logoUrl || '')}
+                            className="mt-2 text-sm text-blue-700 hover:text-blue-900 underline underline-offset-2"
+                          >
+                            Adjust framing (crop & zoom)
+                          </button>
+                        </>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

@@ -8,6 +8,7 @@ import { Plus, Edit, Trash2, Users, UserPlus } from 'lucide-react';
 import AlertModal from '../../src/components/AlertModal';
 import ConfirmModal from '../../src/components/ConfirmModal';
 import Uploader from '@/src/components/Uploader';
+import AboutCropEditor from '@/src/components/AboutCropEditor';
 import { ProjectAdminImagePreview } from '@/src/components/ProjectAdminImagePreview';
 import {
   IMAGEKIT_PROJECT_NEW_UPLOAD_FOLDER,
@@ -51,6 +52,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
   const [ikFileId, setIkFileId] = useState<string | null>(null);
   const [ikFilePath, setIkFilePath] = useState<string | null>(null);
   const [ikThumbUrl, setIkThumbUrl] = useState<string | null>(null);
+  const [projectImageCropSource, setProjectImageCropSource] = useState<string | null>(null);
   const [uploadPct, setUploadPct] = useState<number>(0);
 
   // Confirm delete modal state
@@ -587,26 +589,56 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onNavigate }) => 
                   </label>
                   <div className="space-y-3">
                     {/* File Upload Option */}
-                    <Uploader
-                      folder={IMAGEKIT_PROJECT_NEW_UPLOAD_FOLDER}
-                      tags={imageKitTagsForProject()}
-                      onProgress={(pct) => {
-                        setUploadPct(pct);
-                        setUploadingImage(pct > 0 && pct < 100);
-                      }}
-                      onError={(msg) => showAlert('error', 'Image Upload', msg)}
-                      onComplete={(u) => {
-                        setIkUrl(u.url);
-                        setIkFileId(u.fileId);
-                        setIkFilePath(u.filePath);
-                        setIkThumbUrl(u.thumbnailUrl ?? null);
-                        setProjectImageFile(null);
-                        setProjectImageUrl(u.url);
-                        showAlert('success', 'Image Upload', 'Image uploaded to CDN.');
-                      }}
-                    />
-                    {uploadPct > 0 && uploadPct < 100 && (
-                      <div className="text-xs text-gray-600 mt-1">Uploading... {uploadPct}%</div>
+                    {projectImageCropSource ? (
+                      <AboutCropEditor
+                        sourceUrl={projectImageCropSource}
+                        aspectW={16}
+                        aspectH={9}
+                        folder={IMAGEKIT_PROJECT_NEW_UPLOAD_FOLDER}
+                        tags={imageKitTagsForProject()}
+                        outputLongEdge={1600}
+                        containerClassName="w-full max-w-2xl h-72"
+                        onComplete={(url) => {
+                          setIkUrl(url);
+                          setIkFileId(null);
+                          setIkFilePath(null);
+                          setIkThumbUrl(null);
+                          setProjectImageFile(null);
+                          setProjectImageUrl(url);
+                          setProjectImageCropSource(null);
+                          showAlert('success', 'Image Upload', 'Image uploaded to CDN.');
+                        }}
+                        onCancel={() => setProjectImageCropSource(null)}
+                        onError={(msg) => showAlert('error', 'Image Upload', msg)}
+                      />
+                    ) : (
+                      <>
+                        <Uploader
+                          folder={IMAGEKIT_PROJECT_NEW_UPLOAD_FOLDER}
+                          tags={imageKitTagsForProject()}
+                          onProgress={(pct) => {
+                            setUploadPct(pct);
+                            setUploadingImage(pct > 0 && pct < 100);
+                          }}
+                          onError={(msg) => showAlert('error', 'Image Upload', msg)}
+                          onComplete={(u) => {
+                            setUploadingImage(false);
+                            setProjectImageCropSource(u.url);
+                          }}
+                        />
+                        {uploadPct > 0 && uploadPct < 100 && (
+                          <div className="text-xs text-gray-600 mt-1">Uploading... {uploadPct}%</div>
+                        )}
+                        {(ikUrl || (projectImageUrl !== '#' ? projectImageUrl : '')) && (
+                          <button
+                            type="button"
+                            onClick={() => setProjectImageCropSource(ikUrl || projectImageUrl)}
+                            className="text-sm text-blue-700 hover:text-blue-900 underline underline-offset-2"
+                          >
+                            Adjust framing (crop & zoom)
+                          </button>
+                        )}
+                      </>
                     )}
                     <ProjectAdminImagePreview
                       imageUrl={ikUrl || (projectImageUrl !== '#' ? projectImageUrl : '')}
