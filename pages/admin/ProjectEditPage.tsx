@@ -12,6 +12,7 @@ import RichTextEditor from '../../src/components/RichTextEditor';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 import { richTextToPlainText } from '../../src/utils/sanitizeHtml';
 import { useExecPermissions } from '../../src/hooks/useExecPermissions';
+import SectionNav from '../../src/components/admin/SectionNav';
 
 interface ProjectEditPageProps {
   projectId: string;
@@ -288,7 +289,16 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-3xl mx-auto">
+      <div className="mx-auto max-w-5xl lg:grid lg:grid-cols-[180px_1fr] lg:gap-10">
+        <SectionNav
+          items={[
+            { id: 'basic-info', label: 'Basic Info' },
+            { id: 'join-slack', label: 'Detail page — Join' },
+          ]}
+          className="hidden lg:block lg:sticky"
+          headerOffset={140}
+        />
+        <div className="max-w-3xl mx-auto lg:mx-0 lg:max-w-none">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-800">Edit Project</h1>
           <button
@@ -318,7 +328,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
           className={`bg-white rounded-lg shadow-md p-6 space-y-6 ${readOnly ? 'pointer-events-none select-none' : ''}`}
         >
           {/* Basic info */}
-          <section>
+          <section id="basic-info" style={{ scrollMarginTop: 140 }}>
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Basic Info</h2>
             <div className="space-y-4">
               <div>
@@ -400,7 +410,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
           </section>
 
           {/* Detail page: Join / Slack section */}
-          <section className="border-t border-gray-200 pt-6">
+          <section id="join-slack" className="border-t border-gray-200 pt-6" style={{ scrollMarginTop: 140 }}>
             <h2 className="text-lg font-semibold text-gray-800 mb-2">Detail page — Join / Join the Slack</h2>
             <p className="text-sm text-gray-500 mb-4">Edit Slack invite, deadline, and button text shown on the project detail page.</p>
             <div className="space-y-4">
@@ -552,6 +562,7 @@ const ProjectEditPage: React.FC<ProjectEditPageProps> = ({ projectId, onNavigate
               </button>
             </div>
           )}
+        </div>
         </div>
       </div>
 

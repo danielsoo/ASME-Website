@@ -9,6 +9,7 @@ import ConfirmModal from '../../src/components/ConfirmModal';
 import Uploader from '../../src/components/Uploader';
 import { useUnsavedChangesGuard } from '../../src/hooks/useUnsavedChangesGuard';
 import { useExecPermissions } from '../../src/hooks/useExecPermissions';
+import SectionNav from '../../src/components/admin/SectionNav';
 
 interface SponsorManagementProps {
   onNavigate: (path: string) => void;
@@ -536,7 +537,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
 
   return (
     <div
-      className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto"
+      className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8"
       onDragOver={handleDragViewportScroll}
       onDrop={() => {
         setDraggedSponsorId(null);
@@ -547,7 +548,16 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
         stopAutoScroll();
       }}
     >
-      <div className="max-w-7xl mx-auto min-w-0">
+      <div className="mx-auto max-w-7xl min-w-0 lg:grid lg:grid-cols-[180px_1fr] lg:gap-10">
+        <SectionNav
+          items={[
+            { id: 'sponsor-tiers', label: 'Sponsor Tiers' },
+            ...sortedTiers.map((t) => ({ id: `tier-${t.id}`, label: t.name })),
+          ]}
+          className="hidden lg:block lg:sticky"
+          headerOffset={140}
+        />
+        <div className="min-w-0">
         <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Sponsor Management</h1>
           <div className="flex flex-wrap gap-2 shrink-0">
@@ -594,7 +604,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
         )}
 
         {/* Tier management */}
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
+        <div id="sponsor-tiers" style={{ scrollMarginTop: 140 }} className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Sponsor Tiers</h2>
           <div className="space-y-3">
             {sortedTiers.map((tier) => (
@@ -653,7 +663,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
             {sortedTiers.map((tier) => {
               const tierSponsors = sponsorsByTier[tier.id] || [];
               return (
-                <div key={tier.id} className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div key={tier.id} id={`tier-${tier.id}`} style={{ scrollMarginTop: 140 }} className="bg-white rounded-lg shadow-md p-4 sm:p-6">
                   <h2 className="text-xl font-bold text-gray-800 mb-4">{tier.name}</h2>
                   <div
                     onDragOver={(e) => e.preventDefault()}
@@ -919,6 +929,7 @@ const SponsorManagement: React.FC<SponsorManagementProps> = ({ onNavigate }) => 
           cancelText="Cancel"
           type="warning"
         />
+        </div>
       </div>
     </div>
   );

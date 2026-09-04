@@ -33,6 +33,7 @@ import {
   type TeamSettings,
 } from '../../src/firebase/teamSettings';
 import { ensureTeamBlockForTeam, removeTeamBlock } from '../../src/firebase/aboutTeamBlocks';
+import SectionNav from '../../src/components/admin/SectionNav';
 
 interface MemberManagementProps {
   onNavigate: (path: string) => void;
@@ -604,8 +605,18 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
   const readOnlyMembers = !canManage();
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 overflow-x-auto">
-      <div className="max-w-7xl mx-auto min-w-0">
+    <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-7xl min-w-0 lg:grid lg:grid-cols-[180px_1fr] lg:gap-10">
+        <SectionNav
+          items={[
+            { id: 'exec-positions', label: 'Executive Board Positions' },
+            { id: 'teams', label: 'Teams' },
+            { id: 'members', label: 'Members' },
+          ]}
+          className="hidden lg:block lg:sticky"
+          headerOffset={140}
+        />
+        <div className="min-w-0">
         <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Member Management</h1>
           <button
@@ -623,7 +634,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
           </div>
         )}
         {/* Exec Position Management Section */}
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+        <div id="exec-positions" style={{ scrollMarginTop: 140 }} className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Executive Board Positions</h2>
             {!readOnlyMembers && (
@@ -675,7 +686,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
         </div>
 
         {/* Teams: labels for member assignment + which team feeds each About section */}
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+        <div id="teams" style={{ scrollMarginTop: 140 }} className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Teams</h2>
           <p className="text-sm text-gray-600 mb-4 max-w-3xl">
             Add or remove team labels used when assigning roles. Team boards on the public About page list members by
@@ -728,7 +739,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
         </div>
 
         {/* Members List */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div id="members" style={{ scrollMarginTop: 140 }} className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="p-4 sm:p-6 border-b border-gray-200 flex flex-wrap justify-between items-center gap-2">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Members</h2>
@@ -1241,6 +1252,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ onNavigate }) => {
           cancelText="Cancel"
           type="warning"
         />
+        </div>
       </div>
     </div>
   );

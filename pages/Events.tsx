@@ -130,6 +130,15 @@ const Events: React.FC = () => {
   const upcomingEvents = events.filter(e => e.type === 'upcoming');
   const pastEvents = events.filter(e => e.type === 'past');
   const thisWeekEvents = events.filter(e => e.type === 'this_week');
+  // Sidebar preview: only past events from the current calendar month (America/New_York),
+  // so the widget doesn't keep growing forever as more history piles up.
+  // The full archive (all past events) is still shown in the "Past Events" section below.
+  const todayYM = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }).slice(0, 7); // YYYY-MM
+  const pastEventsThisMonth = pastEvents.filter(e => {
+    const dt = (e as EventWithDateTime).dateTime;
+    if (!dt) return false;
+    return new Date(dt).toLocaleDateString('en-CA', { timeZone: 'America/New_York' }).slice(0, 7) === todayYM;
+  });
   const [expandedPastEventId, setExpandedPastEventId] = useState<string | null>(null);
 
   return (
@@ -137,7 +146,7 @@ const Events: React.FC = () => {
       
       {/* Calendar Section */}
       <div className="bg-white py-20 px-4">
-        <div className="container mx-auto max-w-4xl relative">
+        <div className="container mx-auto max-w-6xl relative">
             <h2 className="text-3xl font-bold mb-8">Calendar</h2>
             
             <div className="flex flex-col lg:flex-row gap-8">
@@ -187,7 +196,7 @@ const Events: React.FC = () => {
                 </div>
 
                 {/* This Week Sidebar */}
-                <div className="w-full lg:w-1/3 flex flex-col gap-4">
+                <div className="w-full lg:w-80 lg:shrink-0 flex flex-col gap-4">
                     <h3 className="text-2xl font-bold">This Week</h3>
                     {loading ? (
                         <div className="text-gray-500">Loading events...</div>
@@ -214,20 +223,20 @@ const Events: React.FC = () => {
                     <h3 className="text-2xl font-bold mt-6">Past Events</h3>
                     {loading ? (
                         <div className="text-gray-500 text-sm">Loading...</div>
-                    ) : pastEvents.length > 0 ? (
+                    ) : pastEventsThisMonth.length > 0 ? (
                         <div className="flex flex-col gap-2">
-                            {pastEvents.slice(0, 5).map(event => (
+                            {pastEventsThisMonth.slice(0, 5).map(event => (
                                 <div key={event.id} className="bg-[#3b4c6b] rounded-lg p-3 border border-gray-600">
                                     <span className="text-blue-200 text-xs font-medium">{event.date}</span>
                                     <h4 className="font-bold text-sm text-white truncate" title={(event.title || '').replace(/<[^>]*>/g, '')}>{renderEventContent(event.title, '')}</h4>
                                 </div>
                             ))}
-                            {pastEvents.length > 5 && (
-                                <p className="text-gray-400 text-xs">+ {pastEvents.length - 5} more below</p>
+                            {pastEvents.length > Math.min(pastEventsThisMonth.length, 5) && (
+                                <p className="text-gray-400 text-xs">+ {pastEvents.length - Math.min(pastEventsThisMonth.length, 5)} more below</p>
                             )}
                         </div>
                     ) : (
-                        <div className="text-gray-500 text-sm">No past events.</div>
+                        <div className="text-gray-500 text-sm">No past events this month.</div>
                     )}
                 </div>
             </div>
